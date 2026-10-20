@@ -1,0 +1,101 @@
+# Tabi (旅)
+
+Personal trip-planning web app. Built first for a trip to Japan in 2028 (Tokyo, Kyoto, Osaka), but designed for any destination.
+
+Owner: Lydia Garcia (GitHub: `LydiaGarcia03`). She lives in Brazil and speaks Portuguese; **talk to her in Portuguese (pt-BR)**, but keep everything in the project in **English**: code, identifiers, file names, comments, commit messages, UI text, docs.
+
+## Goal
+
+Something like Wanderlog, plus precise route planning between places:
+
+- Plan each day of a trip as an ordered list of places (pins) shown on a Google map.
+- Attach notes to each place: historical context, tickets to have at hand, opening hours, tips.
+- Between two consecutive places (A → B), define **exactly how to get there**, as a chain of segments with a transport mode each — e.g. "walk 400 m to X street, then bus line 7 from stop Y to B". Either draw it manually or ask the app for a suggested route.
+- Track costs (places, transport, lodging, other) with totals per day and per trip.
+- Use everything **offline** on the phone during the trip.
+- Usable on her phone (installed as a PWA) and on her PC.
+
+## Hard constraints
+
+1. **Zero cost.** Lydia cannot pay for anything. Only free tiers, and every paid service must be capped so it can never charge. Do not add any dependency, service or API that could bill her.
+2. **No scraping.** Never scrape or bulk-extract Google Maps data (violates Google's terms). Use official APIs or open data only.
+3. **Static hosting only** (GitHub Pages). No backend server. All data lives on the device.
+4. **No secrets in the repo.** The repo is public.
+5. **English everywhere** in the project (see above).
+
+## Key decisions and why
+
+### Maps and places: Google Maps Platform
+Google has the best place data (hotels, attractions, hours) for Japan. Used for **planning** (online).
+
+- Google Cloud project: `japao-2028` (internal name only).
+- One API key, restricted to:
+  - HTTP referrer `https://lydiagarcia03.github.io/*`, plus `http://localhost:5177/*` for local dev (the console rejects port wildcards like `http://localhost:*/*`).
+- **Local dev server port: 5177** (Lydia uses 5173 for another service). Set `server.port: 5177` and `strictPort: true` (and the same for `preview`) in `vite.config.ts`.
+  - APIs: Maps JavaScript API, Places API (New), Routes API. Nothing else.
+- Account is on the **Google Cloud free trial** (no charges possible; quota edits are locked during the trial). **Trial expires 2027-01-19.** A reminder is scheduled for 2027-01-12. Before it expires: upgrade to a paid account and immediately set daily quotas — Maps JavaScript API 300 map loads/day, Places API (New) 100/day, Routes API 100/day — plus a R$ 1 budget alert. After the trial, free usage is per SKU per month (Essentials 10,000, Pro 5,000, Enterprise 1,000 events); quotas must keep usage below that.
+- Keep API usage lean: prefer Essentials-tier SKUs, request only the Places fields actually needed (field masks), store results locally so the same place/route is never fetched twice.
+- Respect Google Maps Platform terms on caching: store `place_id` plus the user's own data; refresh Google-provided details when online. Do not cache map tiles for offline use.
+
+### Transit routing: Google first, NAVITIME as fallback
+- **Open question (Phase 1):** Google's Routes API may not return public-transit routes in Japan (reports list Japan as unsupported; transit data there is licensed from local providers). Must be tested with a real request before building on it. Walking and driving work in Japan.
+- Fallback: **NAVITIME Route (totalnavi)** via RapidAPI — Japanese provider, door-to-door routes by public transport + walking, with fares. Endpoints: `route_transit`, `shape_transit` (polyline to draw on the map), `fare_table`, `fare_comparison`. Note: train times are NAVITIME's estimates, not real timetables — fine for advance planning.
+- RapidAPI plan: **BASIC — $0/month, 500 requests/month with Hard Limit** (blocked, never billed, when exceeded), 50 requests/minute. Includes 10,240 MB/month of bandwidth (overage would be $0.001/MB, unreachable: 500 responses of tens of KB ≈ 25 MB). Never switch to Pro/Ultra (Ultra bills overage). Because the quota is small, always store fetched routes locally and never call NAVITIME automatically (only on an explicit user action).
+- The RapidAPI website (marketplace/dashboard) is often down with 502/504 errors. That is not necessarily the API gateway itself, but treat the provider as unreliable: hide every route provider (Google, NAVITIME, future ones) behind one `RouteProvider` interface in its own module, handle errors and timeouts gracefully, and never block the user — manual segment entry must always work and saved routes must always be readable.
+- RapidAPI host header: `X-RapidAPI-Host: navitime-route-totalnavi.p.rapidapi.com` (base URL `https://navitime-route-totalnavi.p.rapidapi.com`). Not a secret; can live in code.
+- The RapidAPI key is **not** committed or baked into the build: the user enters it in the app's Settings and it is stored only on the device.
+- Rejected: building our own router from open GTFS data (ODPT etc.) — coverage is patchy (JR and several private lines missing or restricted), too much work. Open data may still be used later just to draw lines/stations.
+- Rejected: Ekispert API (free plan has no route search).
+- Rejected: in-app AI route suggestions (would need a paid API). Lydia can ask Claude during development/planning instead.
+
+### Offline: the app itself + Organic Maps
+Google Maps (app or API) does not provide transit/walking directions offline, and can't import a custom multi-modal route.
+
+- The PWA caches the app shell and keeps all trip data in IndexedDB, so itineraries, notes, segments and costs are readable offline.
+- Export each trip/day to **KML** (and GPX) for **Organic Maps** (free, OpenStreetMap-based, excellent offline; imports KML/GPX with pins and tracks). OSM data is good in big Japanese cities; weaker on business info, which is why planning stays on Google.
+- Each place and leg also has an "Open in Google Maps" deep link for when there is connectivity.
+- KML export also works for Google My Maps if ever wanted.
+
+### Hosting
+- GitHub repo: `LydiaGarcia03/tabi` (public — required for free GitHub Pages).
+- Deployed with **GitHub Actions** to GitHub Pages → `https://lydiagarcia03.github.io/tabi/` (Vite `base: '/tabi/'`).
+- The Google key is provided to the build through a GitHub Actions secret (`VITE_GOOGLE_MAPS_API_KEY`). It ends up in the public bundle anyway — that is normal for Maps JS keys; the referrer + API restrictions are what protect it. Never commit it.
+
+## Stack
+
+- **Vite + React + TypeScript**
+- **@vis.gl/react-google-maps** (Google-maintained React wrapper for the Maps JavaScript API)
+- Routing through the Maps JavaScript API (routes library) so the referrer-restricted key works from the browser; NAVITIME via `fetch` to RapidAPI.
+- **Dexie** (IndexedDB) for local storage.
+- **vite-plugin-pwa** (Workbox) for installability and offline app shell.
+- KML/GPX generated client-side (plain string builders, no heavy deps).
+- Keep dependencies few and free/open source.
+
+Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-first layout.
+
+## Data model (initial sketch)
+
+- `Trip` — id, name, startDate, endDate, baseCurrency (JPY), displayCurrency (BRL), exchangeRate (manual).
+- `Day` — id, tripId, date, title, ordered placeIds.
+- `Place` — id, dayId, googlePlaceId?, name, lat, lng, category, notes (markdown), tickets/checklist, plannedTime, cost.
+- `Leg` — id, fromPlaceId, toPlaceId, ordered `Segment[]`, source (`manual` | `google` | `navitime`), fetchedAt.
+- `Segment` — mode (`walk` | `bus` | `train` | `subway` | `taxi` | `ferry` | `other`), line/operator name, from/to stop names, polyline, distance, duration, cost, notes.
+- `Expense` — free-form costs (lodging, passes, food) attached to trip or day.
+- Backup: whole-trip JSON export/import (also the way to move data between PC and phone).
+
+## Features and roadmap
+
+- **Phase 0 — Setup** (done/ongoing): Google key, RapidAPI account, repo, Claude Code.
+- **Phase 1 — Transit spike:** a minimal page that requests Shinjuku Station → Asakusa (Senso-ji) by public transit through Google and through NAVITIME and shows both results. Decides the route-suggestion engine.
+- **Phase 2 — Core planner:** trips, days, place search (Places API), pins on the map per day, reorder places, notes.
+- **Phase 3 — Legs:** segment editor between consecutive places (manual modes + suggested route), drawn on the map with a style per mode; walking segments routed via Google.
+- **Phase 4 — Budget:** costs on places/segments/expenses, totals per day and trip, JPY ↔ BRL.
+- **Phase 5 — Offline & export:** PWA install, offline reading, KML/GPX export for Organic Maps, Google Maps deep links, JSON backup/import.
+- **Phase 6 — Polish:** UX on phone, dark mode, print/share a day.
+
+## Working agreements
+
+- Lydia is not a professional developer: explain steps simply (in Portuguese), give exact commands, and say which files changed and why.
+- Before adding a dependency or calling a new paid-capable API, check it keeps the project at zero cost.
+- Small, incremental commits with clear English messages.
+- Run the dev server (`npm run dev`) and the build (`npm run build`) to verify changes before saying something works.
