@@ -26,6 +26,9 @@ export interface RouteSegment {
   operator?: string
   fromName?: string
   toName?: string
+  /** Station exit/entrance used at each end, as the provider wrote it (e.g. "B4口"). */
+  fromExit?: string
+  toExit?: string
   /** ISO 8601 timestamps. */
   departureTime?: string
   arrivalTime?: string

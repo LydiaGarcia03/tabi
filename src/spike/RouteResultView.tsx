@@ -1,5 +1,5 @@
 import type { RouteResult } from '../routing/types'
-import { MODE_COLOR, MODE_LABEL, formatDistance, formatDuration, formatMoney, formatTime } from './format'
+import { MODE_COLOR, MODE_LABEL, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
 
 interface Props {
   result: RouteResult

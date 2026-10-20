@@ -3,6 +3,7 @@
 // scripts/update-japanese-names.mjs). Works offline; names not in the
 // dictionary are kept as they are (no machine translation of proper nouns).
 
+import { distanceKm } from '../geo'
 import type { LatLng, RouteResult, RouteSegment } from '../routing/types'
 
 interface NameData {
@@ -123,10 +124,11 @@ function withoutParentheses(text: string): string {
   return text.replace(/\s*\([^)]*\)\s*/g, '').trim()
 }
 
-function distanceKm(a: LatLng, b: LatLng): number {
-  const rad = Math.PI / 180
-  const dLat = (b.lat - a.lat) * rad
-  const dLng = (b.lng - a.lng) * rad
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2
-  return 12_742 * Math.asin(Math.sqrt(h))
+/**
+ * Station exits in English: "B4口" → "Exit B4", "7番出口" → "Exit 7".
+ * Descriptive names (e.g. "明治通り側出入口") are returned unchanged.
+ */
+export function translateExit(exit: string): string {
+  const match = /^([A-Z]?\d+[a-z]?)番?(?:出入?)?口$/i.exec(normalize(exit))
+  return match ? `Exit ${match[1].toUpperCase()}` : exit
 }

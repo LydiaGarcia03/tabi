@@ -1,6 +1,10 @@
 import { AdvancedMarker, Map, Pin, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
-import { useEffect } from 'react'
-import type { Place } from '../db/model'
+import { useEffect, useMemo } from 'react'
+import { legKey } from '../db/legs'
+import type { Leg, Place } from '../db/model'
+import { drawingPoints, type Drawing } from '../drawing'
+import { MODE_COLOR } from '../format'
+import type { LatLng } from '../routing/types'
 
 export const DAY_MAP_ID = 'day-map'
 
@@ -8,14 +12,18 @@ const TOKYO = { lat: 35.6812, lng: 139.7671 }
 
 interface Props {
   places: Place[]
+  /** Legs by legKey(from, to). */
+  legs: Map<string, Leg>
   selectedPlaceId: string | null
   onSelectPlace: (id: string) => void
   onMapClick: (event: MapMouseEvent) => void
   /** Where to look when the day has no places yet. */
   fallbackCenter?: { lat: number; lng: number }
+  /** Segment being drawn by hand, if any. */
+  drawing?: Drawing | null
 }
 
-export function DayMap({ places, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter }: Props) {
+export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing }: Props) {
   return (
     <div className="day-map">
       <Map
@@ -45,27 +53,114 @@ export function DayMap({ places, selectedPlaceId, onSelectPlace, onMapClick, fal
             />
           </AdvancedMarker>
         ))}
-        <VisitOrderLine places={places} />
+        <LegLines places={places} legs={legs} />
+        {drawing && <DraftLayer drawing={drawing} />}
         <FitToPlaces places={places} />
       </Map>
     </div>
   )
 }
 
-/** Thin dashed line in visiting order (real routes come with legs in Phase 3). */
-function VisitOrderLine({ places }: { places: Place[] }) {
+/**
+ * Draws each leg between consecutive places: segments with a path in their
+ * mode's style (walking dotted, transit in the line color), otherwise a thin
+ * dashed straight line meaning "route not defined yet".
+ */
+function LegLines({ places, legs }: { places: Place[]; legs: Map<string, Leg> }) {
   const map = useMap(DAY_MAP_ID)
   useEffect(() => {
-    if (!map || places.length < 2) return
-    const line = new google.maps.Polyline({
-      map,
-      path: places.map((p) => ({ lat: p.lat, lng: p.lng })),
-      strokeOpacity: 0,
-      icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.6, strokeColor: '#7f1d1d', scale: 2 }, offset: '0', repeat: '10px' }],
-    })
-    return () => line.setMap(null)
-  }, [map, places])
+    if (!map) return
+    const lines: google.maps.Polyline[] = []
+    for (let i = 0; i < places.length - 1; i++) {
+      const from = places[i]
+      const to = places[i + 1]
+      const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1)
+      if (drawn.length === 0) {
+        lines.push(dottedLine(map, [from, to], '#7f1d1d', 0.5, '10px'))
+        continue
+      }
+      for (const segment of drawn) {
+        const color = segment.color ?? MODE_COLOR[segment.mode]
+        lines.push(
+          segment.mode === 'walk'
+            ? walkingLine(map, segment.path, color)
+            : solidLine(map, segment.path, color),
+        )
+      }
+    }
+    return () => lines.forEach((line) => line.setMap(null))
+  }, [map, places, legs])
   return null
+}
+
+/** The hand-drawn segment in progress: its line and the points placed so far. */
+function DraftLayer({ drawing }: { drawing: Drawing }) {
+  const map = useMap(DAY_MAP_ID)
+  const path = useMemo(() => drawing.snapped?.path ?? drawingPoints(drawing), [drawing])
+  const color = drawing.color ?? MODE_COLOR[drawing.mode]
+
+  useEffect(() => {
+    if (!map || path.length < 2) return
+    const line =
+      drawing.mode === 'walk'
+        ? walkingLine(map, path, color)
+        : solidLine(map, path, color)
+    return () => line.setMap(null)
+  }, [map, path, color, drawing.mode])
+
+  return (
+    <>
+      {drawing.start && (
+        <AdvancedMarker position={drawing.start} zIndex={2000}>
+          <span className="draft-dot start" />
+        </AdvancedMarker>
+      )}
+      {drawing.taps.map((tap, i) => (
+        <AdvancedMarker key={i} position={tap} zIndex={2000}>
+          <span className="draft-dot" />
+        </AdvancedMarker>
+      ))}
+      {drawing.end && (
+        <AdvancedMarker position={drawing.end} zIndex={2000}>
+          <span className="draft-dot end" />
+        </AdvancedMarker>
+      )}
+    </>
+  )
+}
+
+// All lines are non-clickable: otherwise they swallow taps meant for the map
+// (adding places, drawing points).
+
+function solidLine(map: google.maps.Map, path: LatLng[], color: string) {
+  return new google.maps.Polyline({ map, path, clickable: false, strokeColor: color, strokeOpacity: 0.9, strokeWeight: 5 })
+}
+
+/** Round dots with a white rim, readable over streets of any color. */
+function walkingLine(map: google.maps.Map, path: LatLng[], color: string) {
+  return new google.maps.Polyline({
+    map,
+    path,
+    clickable: false,
+    strokeOpacity: 0,
+    icons: [
+      {
+        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 1.5, scale: 3.5 },
+        offset: '0',
+        repeat: '11px',
+      },
+    ],
+  })
+}
+
+function dottedLine(map: google.maps.Map, path: LatLng[], color: string, opacity: number, repeat: string) {
+  return new google.maps.Polyline({
+    map,
+    path: path.map((p) => ({ lat: p.lat, lng: p.lng })),
+    clickable: false,
+    strokeOpacity: 0,
+    icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: opacity, strokeColor: color, scale: 2.5 }, offset: '0', repeat }],
+  })
 }
 
 /** Fits the map to the places whenever the set of places changes (not on edits). */

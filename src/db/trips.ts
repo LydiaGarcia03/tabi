@@ -38,7 +38,8 @@ export async function updateTrip(id: string, changes: Partial<Omit<Trip, 'id' | 
 }
 
 export async function deleteTrip(id: string): Promise<void> {
-  await db.transaction('rw', db.trips, db.days, db.places, async () => {
+  await db.transaction('rw', [db.trips, db.days, db.places, db.legs], async () => {
+    await db.legs.where('tripId').equals(id).delete()
     await db.places.where('tripId').equals(id).delete()
     await db.days.where('tripId').equals(id).delete()
     await db.trips.delete(id)
@@ -84,11 +85,13 @@ export async function updatePlace(id: string, changes: Partial<Omit<Place, 'id' 
 }
 
 export async function deletePlace(id: string): Promise<void> {
-  await db.transaction('rw', db.days, db.places, async () => {
+  await db.transaction('rw', db.days, db.places, db.legs, async () => {
     const place = await db.places.get(id)
     if (!place) return
     const day = await db.days.get(place.dayId)
     if (day) await db.days.update(day.id, { placeIds: day.placeIds.filter((p) => p !== id) })
+    await db.legs.where('fromPlaceId').equals(id).delete()
+    await db.legs.where('toPlaceId').equals(id).delete()
     await db.places.delete(id)
   })
 }

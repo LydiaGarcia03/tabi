@@ -422,3 +422,138 @@ button.danger {
 .place-editor label {
   margin-top: 8px;
 }
+
+/* Legs between places */
+
+.leg-item {
+  margin-left: 12px;
+  border-left: 2px dashed var(--border);
+  padding-left: 10px;
+}
+
+.leg-item.open {
+  border-left-style: solid;
+  border-left-color: var(--accent);
+}
+
+.leg-summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 6px 0;
+}
+
+.leg-arrow {
+  color: var(--muted);
+}
+
+.leg-label {
+  display: grid;
+  gap: 4px;
+  color: var(--accent);
+}
+
+.leg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+.chip {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.leg-editor {
+  display: grid;
+  gap: 8px;
+  padding: 4px 0 12px;
+}
+
+.leg-editor > p {
+  margin: 0;
+}
+
+.segment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.segment-view {
+  border-left: 4px solid var(--muted);
+  padding-left: 10px;
+}
+
+.segment-notes {
+  white-space: pre-wrap;
+}
+
+.segment-actions {
+  margin: 4px 0 0 14px;
+  gap: 12px;
+}
+
+.segment-form {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.draw-toolbar {
+  display: grid;
+  gap: 6px;
+  border-color: var(--accent);
+}
+
+.draw-toolbar p {
+  margin: 0;
+}
+
+/* Points of a segment being drawn (map markers, centered on the point). */
+.draft-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-bottom: -7px;
+  border-radius: 50%;
+  background: #1f1d1a;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4);
+}
+
+.draft-dot.start {
+  background: #16a34a;
+}
+
+.draft-dot.end {
+  background: #b5332e;
+}
+
+.alternatives ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.alternatives li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.875rem;
+}

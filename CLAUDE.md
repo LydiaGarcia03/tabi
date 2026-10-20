@@ -84,8 +84,8 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
 - `Trip` — id, name, startDate, endDate, baseCurrency (JPY), displayCurrency (BRL), exchangeRate (manual).
 - `Day` — id, tripId, date, title, ordered placeIds.
 - `Place` — id, tripId, dayId, googlePlaceId?, googleFetchedAt?, name, lat, lng, address?, notes (markdown), plannedTime. Later: category, tickets/checklist, cost.
-- `Leg` — id, fromPlaceId, toPlaceId, ordered `Segment[]`, source (`manual` | `google` | `navitime`), fetchedAt.
-- `Segment` — mode (`walk` | `bus` | `train` | `subway` | `taxi` | `ferry` | `other`), line/operator name, from/to stop names, polyline, distance, duration, cost, notes.
+- `Leg` — id, tripId, fromPlaceId, toPlaceId, ordered `Segment[]`, source (`manual` | `google` | `navitime`), fetchedAt, alternatives (last suggestions), alternativesDate.
+- `Segment` — id, mode (`walk` | `bus` | `train` | `subway` | `taxi` | `ferry` | `other`), line/operator name, from/to stop names, from/to exits, times, path, distance, duration, fare, color, original (Japanese) names, notes.
 - `Expense` — free-form costs (lodging, passes, food) attached to trip or day.
 - Backup: whole-trip JSON export/import (also the way to move data between PC and phone).
 
@@ -98,7 +98,13 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
   - Hash routing (`#/trip/<id>/day/<id>`, `src/router.ts`), no router dependency; works on GitHub Pages and offline.
   - Places are added by Text Search (explicit Search button, never per keystroke), by tapping a Google POI on the map (details fetched only after "Add"), or as a free custom pin (no API call).
   - **TODO (Phase 5):** Google-provided coordinates/address may only be cached for 30 days; refresh places whose `googleFetchedAt` is older when online (the `place_id` itself can be kept forever).
-- **Phase 3 — Legs:** segment editor between consecutive places (manual modes + suggested route), drawn on the map with a style per mode; walking segments routed via Google.
+- **Phase 3 — Legs** (done, including drawing manual segments on the map): segment editor between consecutive places (manual modes + suggested route), drawn on the map with a style per mode; walking segments routed via Google.
+  - Any segment can be drawn by tapping points on the map ("Draw on map"). "Follow streets" snaps it with 1 Google Routes request: WALKING for walk, DRIVING for bus/taxi (at most 10 middle points, to stay on the Essentials SKU). Train/subway/ferry have no street geometry, so they stay as straight lines through the tapped points (free). Phase 5 export depends on segments having a path.
+  - Legs are stored per (fromPlaceId, toPlaceId) pair (`src/db/legs.ts`), so they survive reordering; deleting a place deletes its legs.
+  - "Suggest transit" = 1 NAVITIME request; all returned options are kept on the leg (`alternatives`), so switching option costs nothing. "Walking route" = 1 Google Routes request (whole leg A → B). A manual segment has no path until it is drawn; a leg with nothing drawable shows a thin dashed straight line.
+  - NAVITIME `shapes` features come in route order tagged `ways: walk | transport`, color in `properties.inline.color`; they are matched to move sections in order (see `assignShapes`).
+  - Suggestions for dates more than 60 days ahead are requested for the next same weekday (`suggestionDate`): providers only know current lines/schedules, and NAVITIME times are estimates anyway.
+  - Station exits ("B4口") are shown as "Exit B4" (`translateExit`).
 - **Phase 4 — Budget:** costs on places/segments/expenses, totals per day and trip, JPY ↔ BRL.
 - **Phase 5 — Offline & export:** PWA install, offline reading, KML/GPX export for Organic Maps, Google Maps deep links, JSON backup/import.
 - **Phase 6 — Polish:** UX on phone, dark mode, print/share a day.

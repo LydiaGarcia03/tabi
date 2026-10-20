@@ -1,4 +1,4 @@
-import type { Money, SegmentMode } from '../routing/types'
+import type { Money, SegmentMode } from './routing/types'
 
 const tokyoTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' })
 
@@ -25,6 +25,16 @@ export function formatMoney(money: Money | undefined): string {
   return new Intl.NumberFormat('en', { style: 'currency', currency: money.currency }).format(money.amount)
 }
 
+export const MODE_ICON: Record<SegmentMode, string> = {
+  walk: '🚶',
+  bus: '🚌',
+  train: '🚆',
+  subway: '🚇',
+  taxi: '🚕',
+  ferry: '⛴️',
+  other: '➡️',
+}
+
 export const MODE_LABEL: Record<SegmentMode, string> = {
   walk: '🚶 Walk',
   bus: '🚌 Bus',
@@ -36,7 +46,7 @@ export const MODE_LABEL: Record<SegmentMode, string> = {
 }
 
 export const MODE_COLOR: Record<SegmentMode, string> = {
-  walk: '#6b7280',
+  walk: '#374151',
   bus: '#16a34a',
   train: '#2563eb',
   subway: '#9333ea',

@@ -1,7 +1,7 @@
 import { AdvancedMarker, Map, Pin, useMap } from '@vis.gl/react-google-maps'
 import { useEffect } from 'react'
 import type { LatLng, RouteOption } from '../routing/types'
-import { MODE_COLOR } from './format'
+import { MODE_COLOR } from '../format'
 
 interface Props {
   origin: LatLng

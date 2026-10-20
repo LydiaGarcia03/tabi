@@ -70,6 +70,72 @@ export const googleProvider: RouteProvider = {
   },
 }
 
+/** Walking route between two points, as a single walk segment. One request. */
+export async function computeWalkingRoute(origin: LatLng, destination: LatLng): Promise<RouteSegment> {
+  if (typeof google === 'undefined' || !google.maps?.importLibrary) {
+    throw new RouteProviderError('not-configured', 'Google Maps is not loaded (is the API key set?).')
+  }
+  try {
+    const { Route } = (await google.maps.importLibrary('routes')) as google.maps.RoutesLibrary
+    const { routes } = await withTimeout(
+      Route.computeRoutes({ origin, destination, travelMode: 'WALKING', fields: ['durationMillis', 'distanceMeters', 'path'] }),
+      TIMEOUT_MS,
+    )
+    const route = routes?.[0]
+    if (!route) throw new RouteProviderError('no-route', 'Google found no walking route.')
+    return {
+      mode: 'walk',
+      distanceMeters: route.distanceMeters,
+      durationMinutes: millisToMinutes(route.durationMillis),
+      path: (route.path ?? []).map(toLatLng),
+    }
+  } catch (error) {
+    throw toProviderError(error)
+  }
+}
+
+/** More middle points would move the request to the pricier Pro SKU. */
+export const MAX_MIDDLE_POINTS = 10
+
+/**
+ * Connects hand-placed points along streets (walking or driving paths),
+ * passing through every middle point. One request.
+ */
+export async function snapToStreets(
+  points: LatLng[],
+  travelMode: 'WALKING' | 'DRIVING',
+): Promise<{ path: LatLng[]; distanceMeters?: number; durationMinutes?: number }> {
+  if (points.length < 2) throw new RouteProviderError('no-route', 'Tap at least two points.')
+  if (points.length - 2 > MAX_MIDDLE_POINTS) {
+    throw new RouteProviderError('unknown', `At most ${MAX_MIDDLE_POINTS} points between start and end.`)
+  }
+  if (typeof google === 'undefined' || !google.maps?.importLibrary) {
+    throw new RouteProviderError('not-configured', 'Google Maps is not loaded (is the API key set?).')
+  }
+  try {
+    const { Route } = (await google.maps.importLibrary('routes')) as google.maps.RoutesLibrary
+    const { routes } = await withTimeout(
+      Route.computeRoutes({
+        origin: points[0],
+        destination: points[points.length - 1],
+        intermediates: points.slice(1, -1).map((location) => ({ location, via: true })),
+        travelMode,
+        fields: ['durationMillis', 'distanceMeters', 'path'],
+      }),
+      TIMEOUT_MS,
+    )
+    const route = routes?.[0]
+    if (!route?.path?.length) throw new RouteProviderError('no-route', 'Google could not connect these points.')
+    return {
+      path: route.path.map(toLatLng),
+      distanceMeters: route.distanceMeters,
+      durationMinutes: millisToMinutes(route.durationMillis),
+    }
+  } catch (error) {
+    throw toProviderError(error)
+  }
+}
+
 function toOption(route: google.maps.routes.Route): RouteOption {
   const steps = route.legs?.flatMap((leg) => leg.steps) ?? []
   const segments: RouteSegment[] = []

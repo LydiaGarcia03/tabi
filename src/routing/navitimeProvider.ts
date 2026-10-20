@@ -3,6 +3,7 @@
 // and results should be stored by the caller.
 // Docs: https://api-sdk.navitime.co.jp/api/specs/api_guide/route_transit.html
 
+import { distanceKm } from '../geo'
 import {
   RouteProviderError,
   type LatLng,
@@ -25,6 +26,13 @@ interface NtPoint {
   type: 'point'
   name?: string
   coord?: { lat: number; lon: number }
+  /** Station exit/entrance, e.g. "B4口". */
+  gateway?: string
+}
+/** One piece of the route geometry; pieces come in the same order as move sections. */
+interface NtShapeFeature {
+  geometry?: { type?: string; coordinates?: unknown }
+  properties?: { ways?: 'walk' | 'transport'; inline?: { color?: string } }
 }
 interface NtMove {
   type: 'move'
@@ -39,7 +47,7 @@ interface NtMove {
 interface NtRoute {
   summary?: { move?: { time?: number; distance?: number; transit_count?: number; from_time?: string; to_time?: string; fare?: NtFare } }
   sections?: (NtPoint | NtMove)[]
-  shapes?: { features?: { geometry?: { type?: string; coordinates?: unknown }; properties?: Record<string, unknown> }[] }
+  shapes?: { features?: NtShapeFeature[] }
 }
 
 export function createNavitimeProvider(getApiKey: () => string | null): RouteProvider {
@@ -102,29 +110,41 @@ export function createNavitimeProvider(getApiKey: () => string | null): RoutePro
   }
 }
 
+interface NtMoveWithPoints {
+  section: NtMove
+  from?: NtPoint
+  to?: NtPoint
+}
+
 function toOption(item: NtRoute): RouteOption {
   const sections = item.sections ?? []
-  const segments: RouteSegment[] = []
-
+  const moves: NtMoveWithPoints[] = []
   sections.forEach((section, i) => {
-    if (section.type !== 'move') return
-    const from = sections[i - 1] as NtPoint | undefined
-    const to = sections[i + 1] as NtPoint | undefined
+    if (section.type === 'move') {
+      moves.push({ section, from: sections[i - 1] as NtPoint | undefined, to: sections[i + 1] as NtPoint | undefined })
+    }
+  })
+  const shapes = assignShapes(moves, item.shapes?.features ?? [])
+
+  const segments: RouteSegment[] = moves.map(({ section, from, to }, k) => {
     const mode = moveToMode(section)
-    segments.push({
+    const straight = [from?.coord, to?.coord].filter((c) => c != null).map(toLatLng)
+    return {
       mode,
       lineName: mode === 'walk' ? undefined : (section.transport?.name ?? section.line_name),
       operator: section.transport?.company?.name,
       fromName: from?.name,
       toName: to?.name,
+      fromExit: from?.gateway,
+      toExit: to?.gateway,
       departureTime: section.from_time,
       arrivalTime: section.to_time,
       distanceMeters: section.distance,
       durationMinutes: section.time,
       fare: toMoney(section.transport?.fare),
-      color: toCssColor(section.transport?.color),
-      path: [from?.coord, to?.coord].filter((c) => c != null).map((c) => ({ lat: c.lat, lng: c.lon })),
-    })
+      color: mode === 'walk' ? undefined : (toCssColor(section.transport?.color) ?? shapes[k]?.color),
+      path: shapes[k]?.path ?? straight,
+    }
   })
 
   const move = item.summary?.move
@@ -136,8 +156,48 @@ function toOption(item: NtRoute): RouteOption {
     transfers: move?.transit_count,
     fare: toMoney(move?.fare),
     segments,
-    lines: shapesToLines(item.shapes) ?? segments.map((s) => ({ path: s.path, mode: s.mode, color: s.color })),
+    lines: segments.map((s) => ({ path: s.path, mode: s.mode, color: s.color })),
   }
+}
+
+/**
+ * Gives each move section its piece(s) of the route geometry. Pieces come in
+ * route order, tagged walk/transport; consecutive pieces of the same kind
+ * belong to one section until the path reaches that section's end point.
+ * A section without a matching piece gets null (drawn as a straight line).
+ */
+function assignShapes(moves: NtMoveWithPoints[], features: NtShapeFeature[]) {
+  const pieces = features.flatMap((feature) =>
+    lineStrings(feature).map((path) => ({
+      path,
+      walk: feature.properties?.ways === 'walk',
+      color: toCssColor(feature.properties?.inline?.color),
+    })),
+  )
+  let next = 0
+  return moves.map(({ section, to }) => {
+    const walk = section.move === 'walk'
+    const path: LatLng[] = []
+    let color: string | undefined
+    while (next < pieces.length && pieces[next].walk === walk) {
+      path.push(...pieces[next].path)
+      color ??= pieces[next].color
+      next++
+      const end = path.at(-1)
+      if (to?.coord && end && distanceKm(end, toLatLng(to.coord)) < 0.2) break
+    }
+    return path.length > 1 ? { path, color } : null
+  })
+}
+
+function lineStrings(feature: NtShapeFeature): LatLng[][] {
+  const { type, coordinates } = feature.geometry ?? {}
+  const parts = type === 'LineString' ? [coordinates] : type === 'MultiLineString' ? (coordinates as unknown[]) : []
+  return parts.map((part) => (part as [number, number][]).map(([lng, lat]) => ({ lat, lng })))
+}
+
+function toLatLng(coord: { lat: number; lon: number }): LatLng {
+  return { lat: coord.lat, lng: coord.lon }
 }
 
 function moveToMode(section: NtMove): SegmentMode {
@@ -157,23 +217,6 @@ function moveToMode(section: NtMove): SegmentMode {
 function toMoney(fare: NtFare | undefined): Money | undefined {
   const amount = fare?.unit_48 ?? fare?.unit_0
   return amount == null ? undefined : { amount, currency: 'JPY' }
-}
-
-function shapesToLines(shapes: NtRoute['shapes']): RouteOption['lines'] | undefined {
-  const features = shapes?.features
-  if (!features?.length) return undefined
-  const lines: RouteOption['lines'] = []
-  for (const feature of features) {
-    const { type, coordinates } = feature.geometry ?? {}
-    const parts = type === 'LineString' ? [coordinates] : type === 'MultiLineString' ? (coordinates as unknown[]) : []
-    const props = feature.properties ?? {}
-    const color = toCssColor((props.color ?? props.stroke) as string | undefined)
-    for (const part of parts) {
-      const path = (part as [number, number][]).map(([lng, lat]) => ({ lat, lng }))
-      if (path.length > 1) lines.push({ path, color })
-    }
-  }
-  return lines.length ? lines : undefined
 }
 
 function toCssColor(color: string | undefined): string | undefined {
