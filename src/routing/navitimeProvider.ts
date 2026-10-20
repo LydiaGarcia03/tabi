@@ -58,7 +58,8 @@ export function createNavitimeProvider(getApiKey: () => string | null): RoutePro
         limit: '3',
         shape: 'true',
         shape_color: 'railway_line',
-        lang: 'en',
+        // No `lang`: the Basic plan rejects it ("bad usage on this contract: Multilingual"),
+        // so names come back in Japanese.
         datum: 'wgs84',
         coord_unit: 'degree',
       })
@@ -147,7 +148,7 @@ function moveToMode(section: NtMove): SegmentMode {
   if (move === 'car') return 'taxi'
   if (move.includes('train')) {
     const names = `${section.transport?.company?.name ?? ''} ${section.line_name ?? ''}`
-    return /metro|subway|toei/i.test(names) ? 'subway' : 'train'
+    return /metro|subway|toei|地下鉄|メトロ|都営/i.test(names) ? 'subway' : 'train'
   }
   return 'other'
 }

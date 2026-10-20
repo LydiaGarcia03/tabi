@@ -37,9 +37,15 @@ Google has the best place data (hotels, attractions, hours) for Japan. Used for 
 - Keep API usage lean: prefer Essentials-tier SKUs, request only the Places fields actually needed (field masks), store results locally so the same place/route is never fetched twice.
 - Respect Google Maps Platform terms on caching: store `place_id` plus the user's own data; refresh Google-provided details when online. Do not cache map tiles for offline use.
 
-### Transit routing: Google first, NAVITIME as fallback
-- **Open question (Phase 1):** Google's Routes API may not return public-transit routes in Japan (reports list Japan as unsupported; transit data there is licensed from local providers). Must be tested with a real request before building on it. Walking and driving work in Japan.
-- Fallback: **NAVITIME Route (totalnavi)** via RapidAPI — Japanese provider, door-to-door routes by public transport + walking, with fares. Endpoints: `route_transit`, `shape_transit` (polyline to draw on the map), `fare_table`, `fare_comparison`. Note: train times are NAVITIME's estimates, not real timetables — fine for advance planning.
+### Transit routing: NAVITIME (decided in Phase 1)
+- **Phase 1 result (2026-10-20):** Google's Routes API returns **no routes** for `TRANSIT` in Japan (Shinjuku Station → Senso-ji: empty `routes`, no fallback). NAVITIME returned 3 complete routes with lines, times, fares and track shapes. So NAVITIME is the transit engine; Google is used for maps, places and walking segments.
+- NAVITIME Basic plan findings:
+  - The `lang` parameter is rejected (`400 bad usage on this contract : Multilingual`), so station/line names come back in Japanese.
+  - `shape=true` is allowed: the route geometry (GeoJSON) comes in the same `route_transit` response, so one route costs one request (no separate `shape_transit` call).
+  - A `403 You are not subscribed to this API` with an active plan means the key belongs to a different RapidAPI app than the subscribed one.
+  - JR fares spanning several JR lines are charged on the last JR segment; earlier JR segments show ¥0.
+- **Japanese → English names:** NAVITIME names are Japanese, and machine translation mangles proper nouns (新宿 → "New Lodging"). So names are looked up in a dictionary of official English names of stations, lines and operators built from **Wikidata** (CC0): `scripts/update-japanese-names.mjs` (`npm run names:update`, run manually, output committed in `src/data/japanese-names.json`), used by `src/i18n/japaneseNames.ts`. Homonym stations (e.g. 神田 = Kanda in Tokyo, Kouda in Saga) are resolved by nearest coordinates. Unknown names stay in Japanese; the original Japanese is always shown next to the English (useful to match signs). Works offline, no API.
+- **NAVITIME Route (totalnavi)** via RapidAPI — Japanese provider, door-to-door routes by public transport + walking, with fares. Endpoints: `route_transit`, `shape_transit` (polyline to draw on the map), `fare_table`, `fare_comparison`. Note: train times are NAVITIME's estimates, not real timetables — fine for advance planning.
 - RapidAPI plan: **BASIC — $0/month, 500 requests/month with Hard Limit** (blocked, never billed, when exceeded), 50 requests/minute. Includes 10,240 MB/month of bandwidth (overage would be $0.001/MB, unreachable: 500 responses of tens of KB ≈ 25 MB). Never switch to Pro/Ultra (Ultra bills overage). Because the quota is small, always store fetched routes locally and never call NAVITIME automatically (only on an explicit user action).
 - The RapidAPI website (marketplace/dashboard) is often down with 502/504 errors. That is not necessarily the API gateway itself, but treat the provider as unreliable: hide every route provider (Google, NAVITIME, future ones) behind one `RouteProvider` interface in its own module, handle errors and timeouts gracefully, and never block the user — manual segment entry must always work and saved routes must always be readable.
 - RapidAPI host header: `X-RapidAPI-Host: navitime-route-totalnavi.p.rapidapi.com` (base URL `https://navitime-route-totalnavi.p.rapidapi.com`). Not a secret; can live in code.
@@ -77,7 +83,7 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
 
 - `Trip` — id, name, startDate, endDate, baseCurrency (JPY), displayCurrency (BRL), exchangeRate (manual).
 - `Day` — id, tripId, date, title, ordered placeIds.
-- `Place` — id, dayId, googlePlaceId?, name, lat, lng, category, notes (markdown), tickets/checklist, plannedTime, cost.
+- `Place` — id, tripId, dayId, googlePlaceId?, googleFetchedAt?, name, lat, lng, address?, notes (markdown), plannedTime. Later: category, tickets/checklist, cost.
 - `Leg` — id, fromPlaceId, toPlaceId, ordered `Segment[]`, source (`manual` | `google` | `navitime`), fetchedAt.
 - `Segment` — mode (`walk` | `bus` | `train` | `subway` | `taxi` | `ferry` | `other`), line/operator name, from/to stop names, polyline, distance, duration, cost, notes.
 - `Expense` — free-form costs (lodging, passes, food) attached to trip or day.
@@ -86,8 +92,12 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
 ## Features and roadmap
 
 - **Phase 0 — Setup** (done/ongoing): Google key, RapidAPI account, repo, Claude Code.
-- **Phase 1 — Transit spike:** a minimal page that requests Shinjuku Station → Asakusa (Senso-ji) by public transit through Google and through NAVITIME and shows both results. Decides the route-suggestion engine.
-- **Phase 2 — Core planner:** trips, days, place search (Places API), pins on the map per day, reorder places, notes.
+- **Phase 1 — Transit spike** (done): a minimal page that requests Shinjuku Station → Asakusa (Senso-ji) by public transit through Google and through NAVITIME and shows both results. Result: NAVITIME for transit (see above).
+- **Phase 2 — Core planner** (done): trips, days, place search (Places API), pins on the map per day, reorder places, notes.
+  - Data in IndexedDB via Dexie (`src/db/`); all writes go through `src/db/trips.ts`. Days are generated from the trip dates; changing dates never deletes a day that has places.
+  - Hash routing (`#/trip/<id>/day/<id>`, `src/router.ts`), no router dependency; works on GitHub Pages and offline.
+  - Places are added by Text Search (explicit Search button, never per keystroke), by tapping a Google POI on the map (details fetched only after "Add"), or as a free custom pin (no API call).
+  - **TODO (Phase 5):** Google-provided coordinates/address may only be cached for 30 days; refresh places whose `googleFetchedAt` is older when online (the `place_id` itself can be kept forever).
 - **Phase 3 — Legs:** segment editor between consecutive places (manual modes + suggested route), drawn on the map with a style per mode; walking segments routed via Google.
 - **Phase 4 — Budget:** costs on places/segments/expenses, totals per day and trip, JPY ↔ BRL.
 - **Phase 5 — Offline & export:** PWA install, offline reading, KML/GPX export for Organic Maps, Google Maps deep links, JSON backup/import.

@@ -2,7 +2,8 @@
 // (Shinjuku Station → Senso-ji) and show both answers side by side.
 // Nothing is requested automatically: each provider only runs on a click.
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { translateRouteResult } from '../i18n/japaneseNames'
 import { googleProvider } from '../routing/googleProvider'
 import { createNavitimeProvider } from '../routing/navitimeProvider'
 import { RouteProviderError, type LatLng, type RouteProvider, type RouteProviderId, type RouteResult } from '../routing/types'
@@ -36,14 +37,29 @@ export function TransitSpike({ hasGoogleKey }: Props) {
   })
   const [selected, setSelected] = useState<{ providerId: RouteProviderId; index: number } | null>(null)
 
+  // Translate a result saved before translation existed (no new request needed).
+  useEffect(() => {
+    const cached = states.navitime.status === 'done' ? states.navitime.result : null
+    if (!cached) return
+    void translateRouteResult(cached).then((translated) => {
+      if (translated === cached) return
+      saveJson(NAVITIME_CACHE_KEY, translated)
+      setStates((s) => ({ ...s, navitime: { status: 'done', result: translated } }))
+    })
+    // Only on mount: fresh results are translated in run().
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function run(provider: RouteProvider) {
     setStates((s) => ({ ...s, [provider.id]: { status: 'loading' } }))
     try {
-      const result = await provider.computeTransit({
-        origin: ORIGIN,
-        destination: DESTINATION,
-        departureTime: new Date(`${departure}:00+09:00`),
-      })
+      const result = await translateRouteResult(
+        await provider.computeTransit({
+          origin: ORIGIN,
+          destination: DESTINATION,
+          departureTime: new Date(`${departure}:00+09:00`),
+        }),
+      )
       if (provider.id === 'navitime') saveJson(NAVITIME_CACHE_KEY, result)
       setStates((s) => ({ ...s, [provider.id]: { status: 'done', result } }))
       if (result.options.length > 0) setSelected({ providerId: provider.id, index: 0 })

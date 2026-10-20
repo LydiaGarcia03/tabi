@@ -35,6 +35,8 @@ export interface RouteSegment {
   /** Line color as a CSS color, when the provider knows it. */
   color?: string
   path: LatLng[]
+  /** Names as the provider returned them (e.g. Japanese), set when they were translated. */
+  originalNames?: { line?: string; operator?: string; from?: string; to?: string }
 }
 
 export interface RouteOption {

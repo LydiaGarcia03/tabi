@@ -24,7 +24,7 @@
 | Moment | Tool | Why |
 | --- | --- | --- |
 | Planning (online) | Google Maps Platform | Best place data (attractions, hotels, hours) |
-| Transit suggestions | Google Routes API, or NAVITIME as a fallback | Google's transit coverage in Japan via API is uncertain; NAVITIME is a Japanese routing provider |
+| Transit suggestions | NAVITIME | Google's Routes API returns no public-transit routes in Japan; NAVITIME is a Japanese routing provider |
 | During the trip (offline) | Tabi (PWA) + Organic Maps | Google Maps can't show custom transit/walking routes offline |
 
 All trip data lives on your device. There is no backend server.
@@ -33,7 +33,7 @@ All trip data lives on your device. There is no backend server.
 
 - [Vite](https://vite.dev/) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 - [@vis.gl/react-google-maps](https://visgl.github.io/react-google-maps/) — Maps JavaScript API, Places API (New), Routes API
-- [NAVITIME Route (totalnavi)](https://rapidapi.com/navitimejapan-navitimejapan/api/navitime-route-totalnavi) via RapidAPI — transit routing fallback
+- [NAVITIME Route (totalnavi)](https://rapidapi.com/navitimejapan-navitimejapan/api/navitime-route-totalnavi) via RapidAPI — public-transit routing
 - [Dexie](https://dexie.org/) — local storage (IndexedDB)
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) — installable, offline-ready app
 - GitHub Pages + GitHub Actions — hosting and deployment
@@ -94,8 +94,8 @@ Tabi is designed to run at **zero cost**:
 
 ## Roadmap
 
-- [ ] **Phase 1 — Transit spike:** compare Google and NAVITIME transit routes in Tokyo
-- [ ] **Phase 2 — Core planner:** trips, days, place search, pins, notes
+- [x] **Phase 1 — Transit spike:** compare Google and NAVITIME transit routes in Tokyo (NAVITIME wins)
+- [x] **Phase 2 — Core planner:** trips, days, place search, pins, notes
 - [ ] **Phase 3 — Legs:** segment editor and suggested routes on the map
 - [ ] **Phase 4 — Budget:** costs and totals, JPY ↔ BRL
 - [ ] **Phase 5 — Offline & export:** PWA, KML/GPX for Organic Maps, JSON backup
@@ -103,7 +103,7 @@ Tabi is designed to run at **zero cost**:
 
 ## Data and attribution
 
-Map and place data © Google. Transit routes by NAVITIME JAPAN. Offline maps by Organic Maps, using © OpenStreetMap contributors.
+Map and place data © Google. Transit routes by NAVITIME JAPAN. English names of Japanese stations and lines from [Wikidata](https://www.wikidata.org/) (CC0). Offline maps by Organic Maps, using © OpenStreetMap contributors.
 
 ## About
 

@@ -9,4 +9,6 @@ export default defineConfig({
   // Port 5177 is the one allowed by the Google API key referrer restriction.
   server: { port: 5177, strictPort: true },
   preview: { port: 5177, strictPort: true },
+  // The Japanese names dictionary (~660 kB) is a lazily loaded chunk; that's expected.
+  build: { chunkSizeWarningLimit: 800 },
 })

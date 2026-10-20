@@ -40,10 +40,19 @@ export function RouteResultView({ result, selectedIndex, onSelect }: Props) {
                 <div>
                   <strong>{MODE_LABEL[segment.mode]}</strong>
                   {segment.lineName && <> · {segment.lineName}</>}
+                  {segment.originalNames?.line && (
+                    <span className="muted small" lang="ja"> {segment.originalNames.line}</span>
+                  )}
                   {segment.operator && <span className="muted"> ({segment.operator})</span>}
                 </div>
                 <div className="small">
                   {segment.fromName ?? '?'} → {segment.toName ?? '?'}
+                  {(segment.originalNames?.from || segment.originalNames?.to) && (
+                    <span className="muted" lang="ja">
+                      {' '}
+                      ({segment.originalNames.from ?? segment.fromName} → {segment.originalNames.to ?? segment.toName})
+                    </span>
+                  )}
                 </div>
                 <div className="small muted">
                   {segment.departureTime && <>{formatTime(segment.departureTime)}–{formatTime(segment.arrivalTime)} · </>}

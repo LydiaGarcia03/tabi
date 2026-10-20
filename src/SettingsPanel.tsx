@@ -6,8 +6,8 @@ export function SettingsPanel() {
   const [saved, setSaved] = useState(false)
 
   return (
-    <details className="card">
-      <summary>Settings</summary>
+    <section className="card">
+      <h2>Settings</h2>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -30,6 +30,6 @@ export function SettingsPanel() {
         <p className="muted small">Stored only on this device. Never sent anywhere except RapidAPI.</p>
         <button type="submit">Save</button> {saved && <span className="muted small">Saved.</span>}
       </form>
-    </details>
+    </section>
   )
 }
