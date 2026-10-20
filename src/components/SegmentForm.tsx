@@ -7,6 +7,8 @@ const MODES = Object.keys(MODE_LABEL) as SegmentMode[]
 
 interface Props {
   segment?: Segment
+  /** Trip currency, used for a new cost. */
+  currency: string
   /** Prefilled stop names for a new segment. */
   defaults?: { fromName?: string; toName?: string }
   onSave: (segment: Segment) => void
@@ -16,7 +18,8 @@ interface Props {
 }
 
 /** Manual entry or editing of one segment. Unknown fields (path, times) are kept. */
-export function SegmentForm({ segment, defaults, onSave, onSaveAndDraw, onCancel }: Props) {
+export function SegmentForm({ segment, currency, defaults, onSave, onSaveAndDraw, onCancel }: Props) {
+  const fareCurrency = segment?.fare?.currency ?? currency
   const [mode, setMode] = useState<SegmentMode>(segment?.mode ?? 'walk')
   const [lineName, setLineName] = useState(segment?.lineName ?? '')
   const [operator, setOperator] = useState(segment?.operator ?? '')
@@ -43,7 +46,7 @@ export function SegmentForm({ segment, defaults, onSave, onSaveAndDraw, onCancel
       fromName: fromName.trim() || undefined,
       toName: toName.trim() || undefined,
       durationMinutes: toNumber(minutes),
-      fare: fareAmount != null ? { amount: fareAmount, currency: segment?.fare?.currency ?? 'JPY' } : undefined,
+      fare: fareAmount != null ? { amount: fareAmount, currency: fareCurrency } : undefined,
       notes: notes.trim() || undefined,
       // Edited names replace the translated ones; drop originals that no longer apply.
       originalNames:
@@ -93,7 +96,7 @@ export function SegmentForm({ segment, defaults, onSave, onSaveAndDraw, onCancel
           <input type="number" min="0" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
         </label>
         <label>
-          Cost ({segment?.fare?.currency ?? 'JPY'})
+          Cost ({fareCurrency})
           <input type="number" min="0" inputMode="decimal" value={fare} onChange={(e) => setFare(e.target.value)} />
         </label>
       </div>

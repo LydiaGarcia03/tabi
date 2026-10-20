@@ -20,7 +20,7 @@ export async function createTrip(input: { name: string; startDate: string; endDa
     createdAt: now(),
     updatedAt: now(),
   }
-  await db.transaction('rw', db.trips, db.days, db.places, async () => {
+  await db.transaction('rw', [db.trips, db.days, db.expenses], async () => {
     await db.trips.add(trip)
     await syncDays(trip)
   })
@@ -28,7 +28,7 @@ export async function createTrip(input: { name: string; startDate: string; endDa
 }
 
 export async function updateTrip(id: string, changes: Partial<Omit<Trip, 'id' | 'createdAt'>>): Promise<void> {
-  await db.transaction('rw', db.trips, db.days, db.places, async () => {
+  await db.transaction('rw', [db.trips, db.days, db.expenses], async () => {
     await db.trips.update(id, { ...changes, updatedAt: now() })
     if (changes.startDate || changes.endDate) {
       const trip = await db.trips.get(id)
@@ -38,7 +38,8 @@ export async function updateTrip(id: string, changes: Partial<Omit<Trip, 'id' | 
 }
 
 export async function deleteTrip(id: string): Promise<void> {
-  await db.transaction('rw', [db.trips, db.days, db.places, db.legs], async () => {
+  await db.transaction('rw', [db.trips, db.days, db.places, db.legs, db.expenses], async () => {
+    await db.expenses.where('tripId').equals(id).delete()
     await db.legs.where('tripId').equals(id).delete()
     await db.places.where('tripId').equals(id).delete()
     await db.days.where('tripId').equals(id).delete()
@@ -48,7 +49,8 @@ export async function deleteTrip(id: string): Promise<void> {
 
 /**
  * Makes sure there is one day per date of the trip. Days outside the dates
- * are removed only when empty, so changing dates never loses places.
+ * are removed only when empty (no places, no expenses), so changing dates
+ * never loses data.
  */
 async function syncDays(trip: Trip): Promise<void> {
   const dates = dateRange(trip.startDate, trip.endDate)
@@ -61,7 +63,8 @@ async function syncDays(trip: Trip): Promise<void> {
   await db.days.bulkAdd(missing)
 
   const inRange = new Set(dates)
-  const removable = existing.filter((d) => !inRange.has(d.date) && d.placeIds.length === 0)
+  const daysWithExpenses = new Set((await db.expenses.where('tripId').equals(trip.id).toArray()).map((e) => e.dayId))
+  const removable = existing.filter((d) => !inRange.has(d.date) && d.placeIds.length === 0 && !daysWithExpenses.has(d.id))
   await db.days.bulkDelete(removable.map((d) => d.id))
 }
 

@@ -1,7 +1,7 @@
 // Trip data stored on the device (IndexedDB). Dates are local calendar dates
 // as "YYYY-MM-DD" strings; timestamps are ISO 8601.
 
-import type { RouteOption, RouteSegment } from '../routing/types'
+import type { Money, RouteOption, RouteSegment } from '../routing/types'
 
 export interface Trip {
   id: string
@@ -43,6 +43,22 @@ export interface Place {
   notes: string
   /** "HH:mm", local time at the destination. */
   plannedTime?: string
+  /** Entry fee, ticket… (counted as "activities" in the budget). */
+  cost?: Money
+}
+
+export type ExpenseCategory = 'lodging' | 'transport' | 'food' | 'activities' | 'shopping' | 'other'
+
+/** A cost not tied to a place or segment: hotel, rail pass, meals, souvenirs… */
+export interface Expense {
+  id: string
+  tripId: string
+  /** Day it belongs to; absent for trip-wide costs (hotel, insurance, passes). */
+  dayId?: string
+  category: ExpenseCategory
+  description: string
+  amount: Money
+  notes?: string
 }
 
 /** One step of a leg, e.g. "walk 400 m" or "Ginza Line from Kanda to Asakusa". */

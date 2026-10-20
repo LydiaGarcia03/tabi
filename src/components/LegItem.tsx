@@ -18,6 +18,8 @@ interface Props {
   to: Place
   /** Date of the day, "YYYY-MM-DD". */
   date: string
+  /** Trip currency, used for new segment costs. */
+  currency: string
   hasGoogleKey: boolean
   open: boolean
   onToggle: () => void
@@ -26,7 +28,7 @@ interface Props {
 }
 
 /** "How to get there" between two consecutive places. */
-export function LegItem({ tripId, leg, from, to, date, hasGoogleKey, open, onToggle, onDraw }: Props) {
+export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw }: Props) {
   const segments = leg?.segments ?? []
   return (
     <li className={`leg-item${open ? ' open' : ''}`}>
@@ -38,7 +40,16 @@ export function LegItem({ tripId, leg, from, to, date, hasGoogleKey, open, onTog
         </span>
       </button>
       {open && (
-        <LegEditor tripId={tripId} leg={leg} from={from} to={to} date={date} hasGoogleKey={hasGoogleKey} onDraw={onDraw} />
+        <LegEditor
+          tripId={tripId}
+          leg={leg}
+          from={from}
+          to={to}
+          date={date}
+          currency={currency}
+          hasGoogleKey={hasGoogleKey}
+          onDraw={onDraw}
+        />
       )}
     </li>
   )
@@ -46,7 +57,7 @@ export function LegItem({ tripId, leg, from, to, date, hasGoogleKey, open, onTog
 
 function LegSummary({ segments }: { segments: Segment[] }) {
   const minutes = segments.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
-  const fare = totalFare(segments)
+  const fares = totalFares(segments)
   return (
     <span className="leg-chips">
       {segments.map((s) => (
@@ -57,7 +68,7 @@ function LegSummary({ segments }: { segments: Segment[] }) {
       ))}
       <span className="muted small">
         {minutes > 0 && formatDuration(minutes)}
-        {fare && ` · ${formatMoney(fare)}`}
+        {fares.length > 0 && ` · ${fares.map(formatMoney).join(' + ')}`}
       </span>
     </span>
   )
@@ -65,7 +76,7 @@ function LegSummary({ segments }: { segments: Segment[] }) {
 
 type Editing = { kind: 'new' } | { kind: 'edit'; id: string } | null
 
-function LegEditor({ tripId, leg, from, to, date, hasGoogleKey, onDraw }: Omit<Props, 'open' | 'onToggle'>) {
+function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw }: Omit<Props, 'open' | 'onToggle'>) {
   const [busy, setBusy] = useState<'transit' | 'walk' | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
@@ -176,6 +187,7 @@ function LegEditor({ tripId, leg, from, to, date, hasGoogleKey, onDraw }: Omit<P
             <li key={segment.id}>
               <SegmentForm
                 segment={segment}
+                currency={currency}
                 onSave={(updated) => {
                   void save(segments.map((s) => (s.id === updated.id ? updated : s)))
                   setEditing(null)
@@ -222,6 +234,7 @@ function LegEditor({ tripId, leg, from, to, date, hasGoogleKey, onDraw }: Omit<P
 
       {editing?.kind === 'new' && (
         <SegmentForm
+          currency={currency}
           defaults={{
             fromName: segments.at(-1)?.toName ?? from.name,
             toName: segments.length === 0 ? undefined : to.name,
@@ -279,11 +292,13 @@ function Alternatives({ leg, options, from, to, date }: { leg: Leg; options: Rou
   )
 }
 
-function totalFare(segments: Segment[]): Money | undefined {
-  const fares = segments.map((s) => s.fare).filter((f) => f != null)
-  if (fares.length === 0) return undefined
-  // Mixed currencies are summed in Phase 4 (budget); here all fares are JPY.
-  return { amount: fares.reduce((sum, f) => sum + f.amount, 0), currency: fares[0].currency }
+/** Sum of the segment fares, one value per currency. */
+function totalFares(segments: Segment[]): Money[] {
+  const totals: Record<string, number> = {}
+  for (const fare of segments.map((s) => s.fare)) {
+    if (fare) totals[fare.currency] = (totals[fare.currency] ?? 0) + fare.amount
+  }
+  return Object.entries(totals).map(([currency, amount]) => ({ amount, currency }))
 }
 
 function errorMessage(error: unknown): string {

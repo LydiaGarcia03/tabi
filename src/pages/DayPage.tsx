@@ -1,7 +1,10 @@
 import type { MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Fragment, useMemo, useState } from 'react'
+import { dayBudget } from '../budget'
+import { BudgetBreakdown } from '../components/BudgetView'
 import { DayMap } from '../components/DayMap'
+import { ExpenseList } from '../components/ExpenseList'
 import { DrawToolbar } from '../components/DrawToolbar'
 import { LegItem } from '../components/LegItem'
 import { PlaceItem } from '../components/PlaceItem'
@@ -29,13 +32,15 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const anyTripPlace = useLiveQuery(() => db.places.where('tripId').equals(tripId).first(), [tripId])
   const tripLegs = useLiveQuery(() => db.legs.where('tripId').equals(tripId).toArray(), [tripId])
   const legs = useMemo(() => new Map((tripLegs ?? []).map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l])), [tripLegs])
+  const trip = useLiveQuery(async () => (await db.trips.get(tripId)) ?? null, [tripId])
+  const dayExpenses = useLiveQuery(() => db.expenses.where('dayId').equals(dayId).toArray(), [dayId])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openLeg, setOpenLeg] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingAdd | null>(null)
   const [drawing, setDrawing] = useState<Drawing | null>(null)
 
-  if (day === undefined || days === undefined || dayPlaces === undefined) return null
-  if (!day) return <NotFound />
+  if (day === undefined || days === undefined || dayPlaces === undefined || trip === undefined || !dayExpenses) return null
+  if (!day || !trip) return <NotFound />
 
   const places = orderPlaces(day, dayPlaces)
   const index = days.findIndex((d) => d.id === day.id)
@@ -101,43 +106,53 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
           )}
         </div>
 
-        <ol className="place-list">
-          {places.length === 0 && <li className="muted">No places yet. Search above or tap the map.</li>}
-          {places.map((place, i) => {
-            const next = places[i + 1]
-            const key = next && legKey(place.id, next.id)
-            return (
-              <Fragment key={place.id}>
-                <PlaceItem
-                  place={place}
-                  index={i}
-                  count={places.length}
-                  days={days}
-                  selected={place.id === selectedId}
-                  onSelect={() => setSelectedId(place.id === selectedId ? null : place.id)}
-                />
-                {next && (
-                  <LegItem
-                    tripId={tripId}
-                    leg={legs.get(key)}
-                    from={place}
-                    to={next}
-                    date={day.date}
-                    hasGoogleKey={hasGoogleKey}
-                    open={openLeg === key}
-                    onToggle={() => setOpenLeg(openLeg === key ? null : key)}
-                    onDraw={(d) => {
-                      setPending(null)
-                      setDrawing(d)
-                      // On a phone the map is above the list: bring it into view.
-                      document.querySelector('.day-map')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    }}
+        <div className="day-list-column">
+          <ol className="place-list">
+            {places.length === 0 && <li className="muted">No places yet. Search above or tap the map.</li>}
+            {places.map((place, i) => {
+              const next = places[i + 1]
+              const key = next && legKey(place.id, next.id)
+              return (
+                <Fragment key={place.id}>
+                  <PlaceItem
+                    place={place}
+                    index={i}
+                    count={places.length}
+                    days={days}
+                    currency={trip.baseCurrency}
+                    selected={place.id === selectedId}
+                    onSelect={() => setSelectedId(place.id === selectedId ? null : place.id)}
                   />
-                )}
-              </Fragment>
-            )
-          })}
-        </ol>
+                  {next && (
+                    <LegItem
+                      tripId={tripId}
+                      leg={legs.get(key)}
+                      from={place}
+                      to={next}
+                      date={day.date}
+                      currency={trip.baseCurrency}
+                      hasGoogleKey={hasGoogleKey}
+                      open={openLeg === key}
+                      onToggle={() => setOpenLeg(openLeg === key ? null : key)}
+                      onDraw={(d) => {
+                        setPending(null)
+                        setDrawing(d)
+                        // On a phone the map is above the list: bring it into view.
+                        document.querySelector('.day-map')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }}
+                    />
+                  )}
+                </Fragment>
+              )
+            })}
+          </ol>
+
+          <section className="card">
+            <BudgetBreakdown budget={dayBudget(day, dayPlaces, legs, dayExpenses)} trip={trip} title="Day budget" />
+            <h3>Expenses this day</h3>
+            <ExpenseList trip={trip} dayId={day.id} expenses={dayExpenses} />
+          </section>
+        </div>
       </div>
     </>
   )

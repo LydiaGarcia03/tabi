@@ -97,7 +97,7 @@ Tabi is designed to run at **zero cost**:
 - [x] **Phase 1 — Transit spike:** compare Google and NAVITIME transit routes in Tokyo (NAVITIME wins)
 - [x] **Phase 2 — Core planner:** trips, days, place search, pins, notes
 - [x] **Phase 3 — Legs:** segment editor, suggested routes and hand-drawn segments on the map
-- [ ] **Phase 4 — Budget:** costs and totals, JPY ↔ BRL
+- [x] **Phase 4 — Budget:** costs and totals, JPY ↔ BRL
 - [ ] **Phase 5 — Offline & export:** PWA, KML/GPX for Organic Maps, JSON backup
 - [ ] **Phase 6 — Polish:** mobile UX, dark mode, sharing
 

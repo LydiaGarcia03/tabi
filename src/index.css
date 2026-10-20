@@ -423,6 +423,78 @@ button.danger {
   margin-top: 8px;
 }
 
+.day-list-column {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+/* Budget */
+
+.budget {
+  display: grid;
+  gap: 6px;
+}
+
+.budget p {
+  margin: 0;
+}
+
+.budget-total {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 1.05rem;
+}
+
+.budget-categories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 0.875rem;
+}
+
+.budget-categories li,
+.expense-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+}
+
+.expenses {
+  display: grid;
+  gap: 8px;
+}
+
+.expense-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.expense-form {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+label.grow {
+  flex: 1;
+  min-width: 160px;
+}
+
+.currency-settings input {
+  width: 9em;
+}
+
 /* Legs between places */
 
 .leg-item {

@@ -83,10 +83,10 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
 
 - `Trip` — id, name, startDate, endDate, baseCurrency (JPY), displayCurrency (BRL), exchangeRate (manual).
 - `Day` — id, tripId, date, title, ordered placeIds.
-- `Place` — id, tripId, dayId, googlePlaceId?, googleFetchedAt?, name, lat, lng, address?, notes (markdown), plannedTime. Later: category, tickets/checklist, cost.
+- `Place` — id, tripId, dayId, googlePlaceId?, googleFetchedAt?, name, lat, lng, address?, notes (markdown), plannedTime, cost?. Later: category, tickets/checklist.
 - `Leg` — id, tripId, fromPlaceId, toPlaceId, ordered `Segment[]`, source (`manual` | `google` | `navitime`), fetchedAt, alternatives (last suggestions), alternativesDate.
 - `Segment` — id, mode (`walk` | `bus` | `train` | `subway` | `taxi` | `ferry` | `other`), line/operator name, from/to stop names, from/to exits, times, path, distance, duration, fare, color, original (Japanese) names, notes.
-- `Expense` — free-form costs (lodging, passes, food) attached to trip or day.
+- `Expense` — id, tripId, dayId? (absent = trip-wide), category (`lodging` | `transport` | `food` | `activities` | `shopping` | `other`), description, amount (Money), notes?.
 - Backup: whole-trip JSON export/import (also the way to move data between PC and phone).
 
 ## Features and roadmap
@@ -105,7 +105,10 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
   - NAVITIME `shapes` features come in route order tagged `ways: walk | transport`, color in `properties.inline.color`; they are matched to move sections in order (see `assignShapes`).
   - Suggestions for dates more than 60 days ahead are requested for the next same weekday (`suggestionDate`): providers only know current lines/schedules, and NAVITIME times are estimates anyway.
   - Station exits ("B4口") are shown as "Exit B4" (`translateExit`).
-- **Phase 4 — Budget:** costs on places/segments/expenses, totals per day and trip, JPY ↔ BRL.
+- **Phase 4 — Budget** (done): costs on places/segments/expenses, totals per day and trip, JPY ↔ BRL.
+  - Every amount is a `Money` (amount + currency). Totals are kept per currency (`src/budget.ts`) and converted only for display: base-currency amounts × the trip's manual rate, display-currency amounts added as they are, other currencies shown apart (never guessed).
+  - Day total = place costs (activities) + fares of the legs between its consecutive places (transport) + the day's expenses. Trip total = all days + trip-wide expenses (no `dayId`).
+  - A day with expenses is never removed when trip dates change (like a day with places).
 - **Phase 5 — Offline & export:** PWA install, offline reading, KML/GPX export for Organic Maps, Google Maps deep links, JSON backup/import.
 - **Phase 6 — Polish:** UX on phone, dark mode, print/share a day.
 
