@@ -13,7 +13,7 @@ import {
   splitIntoLegs,
   withLegSummary,
 } from '../planning/journeys'
-import { BaggageSummary, SequenceBaggage } from './AirlineGuide'
+import { BaggageBreakdown } from './AirlineGuide'
 import { JourneyLegsEditor } from './JourneyLegs'
 
 /** What a booking form saves (the trip and day are added by the caller). */
@@ -328,11 +328,7 @@ export function JourneyFields({
           </label>
         )}
       </div>
-      {isFlight && hasLegs ? (
-        <SequenceBaggage carriers={journeyCarriers(journey)} main={airline?.name} fare={journey.fare} />
-      ) : (
-        airline && <BaggageSummary airline={airline} fare={journey.fare} />
-      )}
+      {isFlight && <BaggageBreakdown carriers={hasLegs ? journeyCarriers(journey) : [journey.carrier ?? '']} main={airline?.name} fare={journey.fare} />}
     </>
   )
 }

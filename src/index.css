@@ -107,6 +107,41 @@ a {
   flex: none;
 }
 
+/* Inner scroll areas (days in the sidebar, wide tables, sheets): a thin bar
+   in the border color, a little stronger while the pointer is over it. */
+/* Chrome's own scrollbar styling (scrollbar-color would keep the arrow buttons on Windows). */
+.sidebar-days::-webkit-scrollbar,
+.table-scroll::-webkit-scrollbar,
+.sheet-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.sidebar-days::-webkit-scrollbar-track,
+.table-scroll::-webkit-scrollbar-track,
+.sheet-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-days::-webkit-scrollbar-thumb,
+.table-scroll::-webkit-scrollbar-thumb,
+.sheet-body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.sidebar-days:hover::-webkit-scrollbar-thumb,
+.table-scroll:hover::-webkit-scrollbar-thumb,
+.sheet-body:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
+.sidebar-days::-webkit-scrollbar-button,
+.table-scroll::-webkit-scrollbar-button,
+.sheet-body::-webkit-scrollbar-button {
+  display: none;
+}
+
 /* --- App shell ----------------------------------------------------------- */
 
 .app-bar {
@@ -1360,15 +1395,25 @@ button:disabled {
     padding-bottom: 0;
   }
 
+  /* Back link, trip and sections stay put; only the list of days scrolls. */
   .trip-sidebar {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 4px;
-    align-content: start;
     position: sticky;
     top: calc(var(--bar-height) + 16px);
     max-height: calc(100vh - var(--bar-height) - 32px);
+  }
+
+  .trip-sidebar > * {
+    flex: none;
+  }
+
+  .trip-sidebar > .sidebar-days {
+    flex: 0 1 auto;
+    min-height: 0;
     overflow-y: auto;
-    padding-right: 4px;
+    padding-right: 6px;
   }
 
   .day-map-column {
@@ -2391,30 +2436,26 @@ dialog.photo-viewer::backdrop {
   color: var(--accent-text);
 }
 
-.baggage-summary {
-  display: grid;
-  gap: 2px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
+.baggage-cell .bag-box {
+  min-width: 260px;
 }
 
-.baggage-title {
-  font-weight: 700;
-}
-
-.baggage-cell .small,
-.options-table td[data-label='Legroom'] .small {
+.options-table td[data-label='Comfort'] .small {
   display: grid;
   gap: 2px;
-  min-width: 170px;
+  min-width: 150px;
 }
 
 /* In the phone cards (see options-table above) the column is narrower. */
 @media (max-width: 760px) {
-  .options-table td[data-label] .small {
+  .options-table td[data-label] .small,
+  .baggage-cell .bag-box {
     min-width: 0;
+  }
+
+  /* Baggage needs the whole width of the card. */
+  .options-table td.baggage-cell {
+    grid-column: 1 / -1;
   }
 
   /* The airline guide becomes one card per airline, like the options. */
@@ -2496,8 +2537,8 @@ dialog.photo-viewer::backdrop {
   margin-right: 12px;
 }
 
-.airline-guide header h2 {
-  margin: 0;
+.airline-guide > header {
+  margin-bottom: 8px;
 }
 
 /* --- Opening hours & optimized order ------------------------------------- */
@@ -2828,6 +2869,228 @@ details pre {
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border);
+}
+
+/* --- Baggage (BaggageBreakdown) and the flight planner ------------------- */
+
+.bag-box {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.bag-box.compact {
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
+.bag-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+
+/* Label | value rows: what fits every flight. */
+.bag-rows {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.bag-rows > div {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 8px;
+}
+
+.bag-box.compact .bag-rows > div {
+  grid-template-columns: 6.5em minmax(0, 1fr);
+}
+
+.bag-rows dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.bag-rows dd {
+  margin: 0;
+}
+
+.bag-fares,
+.bag-fare {
+  display: block;
+}
+
+.bag-fares > span {
+  display: block;
+}
+
+.bag-note,
+.bag-box > .warning {
+  margin: 0;
+}
+
+.tag.bag-alike {
+  margin: 0;
+}
+
+.tag.bag-alike.good {
+  background: color-mix(in srgb, #16a34a 18%, transparent);
+  color: #15803d;
+}
+
+:root[data-theme='dark'] .tag.bag-alike.good {
+  color: #86efac;
+}
+
+.tag.bag-alike.low {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.bag-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.airline-rules {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.airline-rules h4 {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+}
+
+.airline-rules section {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.airline-rules p {
+  margin: 4px 0 0;
+}
+
+.comfort-cell > span {
+  display: block;
+}
+
+.planner-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.planner-entry > span {
+  display: grid;
+  gap: 2px;
+}
+
+.airline-guide-sub {
+  display: block;
+  font-weight: 400;
+}
+
+.flight-planner {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 16px;
+}
+
+.flight-planner .chip-picker button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.planner-results-title {
+  margin-top: 18px;
+}
+
+.plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.plan-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.plan-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.plan-rank {
+  font-weight: 750;
+  color: var(--muted);
+}
+
+/* NVT —GOL→ GRU —Qatar→ DOH —Qatar→ KIX, wrapping on phones. */
+.plan-route {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+}
+
+.plan-route li {
+  display: flex;
+  align-items: center;
+}
+
+.plan-airport {
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.plan-flight {
+  margin: 0 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.plan-flight::after {
+  content: ' →';
+  color: var(--muted);
+}
+
+.plan-facts {
+  margin: 0;
+}
+
+.plan-scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+}
+
+.plan-scores strong {
+  color: var(--text);
 }
 
 /* --- Money set aside (budget page) --------------------------------------- */

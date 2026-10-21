@@ -2,14 +2,12 @@ import { useState } from 'react'
 import {
   AIRLINE_GUIDE_UPDATED,
   AIRLINES,
-  checkedForFare,
   describeBag,
   describeChecked,
-  findAirline,
-  strictestBag,
   type AirlineInfo,
 } from '../data/airlines'
 import { formatDate } from '../dates'
+import { tripBaggage } from '../planning/baggage'
 
 const PREMIUM_LABEL: Record<AirlineInfo['premiumEconomy'], string> = {
   yes: 'Yes',
@@ -17,67 +15,167 @@ const PREMIUM_LABEL: Record<AirlineInfo['premiumEconomy'], string> = {
   'some aircraft': 'Some aircraft',
 }
 
-/** Compact baggage line for one airline (and fare, when known). */
-export function BaggageSummary({ airline, fare }: { airline: AirlineInfo; fare?: string }) {
-  const rule = checkedForFare(airline, fare)
+const fareName = (fare: string) => fare.replace(/^Economy /, '')
+
+/**
+ * Baggage on a trip of one or more airlines, as three clear rows: what fits
+ * every flight (personal item, carry-on) and the checked bags, with the
+ * airline that sets each limit. `compact` (lists) leaves out each airline's
+ * own rules; `checkedBags` (planner) names the cheapest fare with that many bags.
+ */
+export function BaggageBreakdown({
+  carriers,
+  main,
+  fare,
+  checkedBags,
+  compact = false,
+}: {
+  carriers: string[]
+  main?: string
+  fare?: string
+  checkedBags?: number
+  compact?: boolean
+}) {
+  const bags = tripBaggage(carriers, { main, fare, checkedBags: checkedBags ?? 1 })
+  if (bags.airlines.length === 0) {
+    return bags.unknown.length ? (
+      <p className="muted small">Not in the airline guide: {bags.unknown.join(', ')} (check their baggage rules on their sites).</p>
+    ) : null
+  }
+  const several = bags.airlines.length > 1
+  const mainRow = bags.checked.perAirline.find((r) => r.airline.name === bags.checked.main?.name) ?? bags.checked.perAirline[0]
+  const limit = (name?: string) => (name ? <span className="muted"> · {name} sets the limit</span> : null)
+
   return (
-    <div className="baggage-summary small">
-      <span className="baggage-title">🧳 {airline.name} — economy baggage</span>
-      <span>
-        <strong>Personal item:</strong> {describeBag(airline.personalItem)}
-      </span>
-      <span>
-        <strong>Carry-on:</strong> {describeBag(airline.carryOn)}
-        {airline.carryOn.note && <span className="muted"> ({airline.carryOn.note})</span>}
-      </span>
-      {airline.cabinNote && <span className="muted">{airline.cabinNote}</span>}
-      <span>
-        <strong>Checked:</strong>{' '}
-        {rule
-          ? `${describeChecked(rule)} (${rule.fare})`
-          : airline.checked.map((r) => `${r.fare}: ${describeChecked(r)}`).join(' · ')}
-        {rule?.note && <span className="muted"> — {rule.note}</span>}
-      </span>
-      {airline.toConfirm.length > 0 && <span className="warning">Confirm: {airline.toConfirm.join('; ')}</span>}
+    <div className={`bag-box small${compact ? ' compact' : ''}`}>
+      {!compact && (
+        <div className="bag-head">
+          <strong>🧳 Economy baggage{several ? ' that works on every flight' : ` · ${bags.airlines[0].name}`}</strong>
+          {several && <span className={`tag bag-alike ${bags.similarity >= 0.85 ? 'good' : bags.similarity >= 0.6 ? 'ok' : 'low'}`}>{alikeLabel(bags.similarity)}</span>}
+        </div>
+      )}
+      <dl className="bag-rows">
+        <div>
+          <dt>👜 Personal item</dt>
+          <dd>
+            {bags.personal.fits ? describeBag(bags.personal.fits) : several ? 'none on some flights: one piece only' : 'none (one piece only)'}
+            {limit(bags.personal.strictest)}
+          </dd>
+        </div>
+        <div>
+          <dt>🧳 Carry-on</dt>
+          <dd>
+            {describeBag(bags.carryOn.fits)}
+            {limit(bags.carryOn.strictest)}
+          </dd>
+        </div>
+        <div>
+          <dt>🛄 Checked</dt>
+          <dd>
+            {checkedBags != null ? (
+              <CheapestFares bags={bags} />
+            ) : mainRow.chosen ? (
+              <>
+                {describeChecked(mainRow.chosen)} <span className="muted">({mainRow.airline.name} {fareName(mainRow.chosen.fare)})</span>
+              </>
+            ) : (
+              <>
+                {several && <span className="muted">{mainRow.airline.name}: </span>}
+                {mainRow.airline.checked.map((r) => `${fareName(r.fare)} ${describeChecked(r)}`).join(' · ')}
+              </>
+            )}
+          </dd>
+        </div>
+      </dl>
+      {several && !compact && (
+        <p className="muted bag-note">
+          On <strong>one ticket</strong> the main airline's checked allowance ({bags.checked.main?.name}) usually covers the whole trip; on
+          separate tickets each airline's own rules apply and you check in again.
+        </p>
+      )}
+      {bags.unknown.length > 0 && <p className="warning">Not in the guide: {bags.unknown.join(', ')}: check their rules too.</p>}
+      {!compact && (
+        <details className="bag-details">
+          <summary>{several ? 'What each airline allows' : 'Details and what to confirm'}</summary>
+          <AirlineRules airlines={bags.airlines} />
+        </details>
+      )}
     </div>
   )
 }
 
-/**
- * Baggage for a sequence of airlines (e.g. Gol → Qatar → ANA): what fits
- * every flight, then each airline's own rules. The fare applies to the main one.
- */
-export function SequenceBaggage({ carriers, main, fare }: { carriers: string[]; main?: string; fare?: string }) {
-  const known = [...new Map(carriers.map((c) => findAirline(c)).filter((a): a is AirlineInfo => !!a).map((a) => [a.name, a])).values()]
-  const unknown = carriers.filter((c) => !findAirline(c))
-  const mainAirline = findAirline(main)
-  if (known.length === 0) {
-    return unknown.length ? <p className="muted small">Not in the airline guide: {unknown.join(', ')} (check their baggage rules on their sites).</p> : null
-  }
-  if (known.length === 1 && unknown.length === 0) return <BaggageSummary airline={known[0]} fare={fare} />
-  const personal = strictestBag(known.map((a) => a.personalItem))
-  const carryOn = strictestBag(known.map((a) => a.carryOn))
+function alikeLabel(similarity: number): string {
+  return similarity >= 0.85 ? 'Rules alike' : similarity >= 0.6 ? 'Rules differ a bit' : 'Rules differ'
+}
+
+/** For each airline, the cheapest fare that includes the bags you need. */
+function CheapestFares({ bags }: { bags: ReturnType<typeof tripBaggage> }) {
+  if (bags.checked.needed === 0) return <>not needed</>
   return (
-    <div className="baggage-summary small">
-      <span className="baggage-title">🧳 To fit every flight ({known.map((a) => a.name).join(' → ')})</span>
-      <span>
-        <strong>Personal item:</strong> {personal ? describeBag(personal) : 'none on some airline: plan for one piece only'}
-      </span>
-      <span>
-        <strong>Carry-on:</strong> {describeBag(carryOn)}
-      </span>
-      <span className="muted">
-        Checked bags: on <strong>one ticket</strong> the main airline's allowance usually applies to the whole trip
-        {mainAirline ? ` (${mainAirline.name}: ${checkedForFare(mainAirline, fare) ? describeChecked(checkedForFare(mainAirline, fare)!) : mainAirline.checked.map((r) => `${r.fare.replace(/^Economy /, '')} ${describeChecked(r)}`).join(' · ')})` : ''}; on{' '}
-        <strong>separate tickets</strong> each airline's own rules apply and you check in again.
-      </span>
-      {unknown.length > 0 && <span className="warning">Not in the guide: {unknown.join(', ')} — check their rules too.</span>}
-      <details>
-        <summary>Each airline's rules</summary>
-        {known.map((a) => (
-          <BaggageSummary key={a.name} airline={a} fare={a.name === mainAirline?.name ? fare : undefined} />
-        ))}
-      </details>
+    <span className="bag-fares">
+      {bags.checked.perAirline.map(({ airline, cheapestWithBags }) => (
+        <span key={airline.name}>
+          {airline.name}:{' '}
+          {cheapestWithBags ? (
+            <>
+              {fareName(cheapestWithBags.fare)} <span className="muted">({describeChecked(cheapestWithBags)})</span>
+            </>
+          ) : (
+            <span className="warning">no fare includes {bags.checked.needed}</span>
+          )}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** Each airline's own rules side by side: personal item, carry-on, checked by fare, comfort, what to confirm. */
+function AirlineRules({ airlines }: { airlines: AirlineInfo[] }) {
+  return (
+    <div className="airline-rules">
+      {airlines.map((a) => (
+        <section key={a.name}>
+          <h4>
+            {a.name} <span className="muted">{[a.alliance, a.type === 'low-cost' ? 'low-cost' : ''].filter(Boolean).join(' · ')}</span>
+          </h4>
+          <dl className="bag-rows">
+            <div>
+              <dt>Personal item</dt>
+              <dd>
+                {describeBag(a.personalItem)}
+                {a.personalItem?.note && <span className="muted"> ({a.personalItem.note})</span>}
+              </dd>
+            </div>
+            <div>
+              <dt>Carry-on</dt>
+              <dd>
+                {describeBag(a.carryOn)}
+                {a.carryOn.note && <span className="muted"> ({a.carryOn.note})</span>}
+                {a.cabinNote && <span className="muted"> {a.cabinNote}</span>}
+              </dd>
+            </div>
+            <div>
+              <dt>Checked</dt>
+              <dd>
+                {a.checked.map((r) => (
+                  <span key={r.fare} className="bag-fare">
+                    {fareName(r.fare)}: <strong>{describeChecked(r)}</strong>
+                    {r.note && <span className={/confirm/i.test(r.note) ? 'warning' : 'muted'}> ({r.note})</span>}
+                  </span>
+                ))}
+                {a.checkedMax && <span className="muted">Max per bag: {describeBag(a.checkedMax)}</span>}
+              </dd>
+            </div>
+            <div>
+              <dt>Comfort</dt>
+              <dd>
+                Legroom {a.legroom?.economy ?? 'not published'} · Premium economy: {PREMIUM_LABEL[a.premiumEconomy].toLowerCase()}
+              </dd>
+            </div>
+          </dl>
+          {a.toConfirm.length > 0 && <p className="warning">Confirm: {a.toConfirm.join('; ')}</p>}
+        </section>
+      ))}
     </div>
   )
 }
@@ -98,9 +196,15 @@ export function AirlineGuideTable({ highlight }: { highlight: string[] }) {
   const airlines = AIRLINES.filter((a) => a.scope === scope && (!onlyMine || highlight.includes(a.name)))
 
   return (
-    <section className="card airline-guide">
+    // Folded by default: it is reference material, opened when needed.
+    <details className="card disclosure airline-guide">
+      <summary>
+        <span>
+          🧳 Airline guide
+          <span className="muted small airline-guide-sub">Baggage, premium economy and legroom by airline</span>
+        </span>
+      </summary>
       <header className="row between wrap">
-        <h2>🧳 Airline guide</h2>
         <div className="row wrap">
           <div className="segmented" role="radiogroup" aria-label="Flights">
             {SCOPES.map(([id, label]) => (
@@ -207,6 +311,6 @@ export function AirlineGuideTable({ highlight }: { highlight: string[] }) {
           </div>
         ))}
       </details>
-    </section>
+    </details>
   )
 }

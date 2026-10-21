@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
-import { AirlineGuideTable } from '../components/AirlineGuide'
+import { AirlineGuideTable, BaggageBreakdown } from '../components/AirlineGuide'
 import { HotelForm, JourneyForm, type BookingValues } from '../components/BookingForms'
 import { Icon } from '../components/Icon'
-import { checkedForFare, describeBag, describeChecked, findAirline } from '../data/airlines'
+import { findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
+import { FlightPlanner } from '../components/FlightPlanner'
 import { PhotoStrip } from '../components/Photos'
 import { Sheet } from '../components/Sheet'
 import { JourneyItinerary } from '../components/JourneyLegs'
@@ -54,6 +55,7 @@ export function OptionsPage({ tripId }: { tripId: string }) {
   const [city, setCity] = useState('')
   const [showDiscarded, setShowDiscarded] = useState(false)
   const [editing, setEditing] = useState<TripOption | 'new' | null>(null)
+  const [planning, setPlanning] = useState(false)
   const [weights, setWeightsState] = useState<Weights>(() => loadJson<Weights>(WEIGHTS_KEY) ?? DEFAULT_WEIGHTS)
   const setWeights = (w: Weights) => {
     setWeightsState(w)
@@ -110,6 +112,18 @@ export function OptionsPage({ tripId }: { tripId: string }) {
         or route, mark favorites ☆, pick one ✓ (adds it to a day or books it) or discard ✕.
       </p>
 
+      {planning && (
+        <Sheet title="Flight planner" onClose={() => setPlanning(false)}>
+          <FlightPlanner
+            trip={trip}
+            onSaved={() => {
+              setPlanning(false)
+              setKind('transport')
+            }}
+          />
+        </Sheet>
+      )}
+
       {editing && (
         <Sheet
           key={editing === 'new' ? 'new' : editing.id}
@@ -152,6 +166,18 @@ export function OptionsPage({ tripId }: { tripId: string }) {
           </label>
         </div>
       </div>
+
+      {kind === 'transport' && (
+        <section className="card planner-entry">
+          <span>
+            <strong>✈️ Flight planner</strong>
+            <span className="muted small">Build and rank itineraries with the airlines and connections you accept.</span>
+          </span>
+          <button type="button" className="primary" onClick={() => setPlanning(true)}>
+            Plan flights
+          </button>
+        </section>
+      )}
 
       <WeightsPanel weights={weights} onChange={setWeights} />
 
@@ -223,7 +249,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
                 <>
                   <th className="num">Time</th>
                   <th>Baggage (economy)</th>
-                  <th>Legroom</th>
+                  <th>Comfort</th>
                 </>
               ) : (
                 <th className="num">Distance</th>
@@ -250,8 +276,11 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
   const [choosing, setChoosing] = useState(false)
   const journey = option.journey
   const isTransport = group.kind === 'transport'
-  const airline = journey?.mode === 'flight' ? findAirline(journey.carrier) : undefined
-  const fareRule = airline ? checkedForFare(airline, journey?.fare) : undefined
+  const carriers = journey?.mode === 'flight' ? journeyCarriers(journey) : []
+  // Long-haul first: their legroom matters most.
+  const flightAirlines = [...new Map(carriers.map((c) => findAirline(c)).filter((a) => !!a).map((a) => [a!.name, a!])).values()].sort(
+    (a, b) => Number(b.scope === 'international') - Number(a.scope === 'international'),
+  )
   const inPlan = (option.placeId && placeIds.has(option.placeId)) || (option.expenseId && expenseIds.has(option.expenseId))
   const columns = 7 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 2 : 0)
 
@@ -312,33 +341,22 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
               {journey?.durationHours != null ? formatHours(journey.durationHours) : '—'}
             </td>
             <td className="baggage-cell" data-label="Baggage (economy)">
-              {airline ? (
-                <span className="small">
-                  <span>Personal: {describeBag(airline.personalItem)}</span>
-                  <span>
-                    Carry-on: {describeBag(airline.carryOn)}
-                    {airline.carryOn.note && <span className="muted"> ({airline.carryOn.note})</span>}
-                  </span>
-                  <span>
-                    Checked:{' '}
-                    {fareRule
-                      ? describeChecked(fareRule)
-                      : airline.checked.map((r) => `${r.fare.replace(/^Economy /, '')} ${describeChecked(r)}`).join(' · ')}
-                    {fareRule?.note && <span className={/confirm/i.test(fareRule.note) ? 'warning' : 'muted'}> ({fareRule.note})</span>}
-                  </span>
-                  {airline.cabinNote && <span className="muted">{airline.cabinNote}</span>}
-                </span>
+              {journey?.mode === 'flight' && carriers.length > 0 ? (
+                <BaggageBreakdown carriers={carriers} main={journey.carrier} fare={journey.fare} compact />
               ) : (
-                <span className="muted small">
-                  {journey?.mode !== 'flight' ? '—' : journey.carrier ? 'airline not in the guide' : 'set the airline (Edit)'}
-                </span>
+                <span className="muted small">{journey?.mode !== 'flight' ? '—' : 'set the airlines (Edit)'}</span>
               )}
             </td>
-            <td data-label="Legroom">
-              {airline?.legroom ? (
-                <span className="small">
-                  {airline.legroom.economy && <span>Eco {airline.legroom.economy}</span>}
-                  {airline.legroom.premiumEconomy && <span>Premium {airline.legroom.premiumEconomy}</span>}
+            <td data-label="Comfort">
+              {flightAirlines.length > 0 ? (
+                <span className="small comfort-cell">
+                  {flightAirlines.map((a) => (
+                    <span key={a.name}>
+                      {flightAirlines.length > 1 && <span className="muted">{a.name}: </span>}
+                      {a.legroom?.economy ?? 'legroom not published'}
+                      {a.premiumEconomy !== 'no' && <span className="muted"> · premium eco{a.premiumEconomy === 'some aircraft' ? ' on some' : ''}</span>}
+                    </span>
+                  ))}
                 </span>
               ) : (
                 <span className="muted">—</span>
