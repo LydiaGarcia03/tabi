@@ -113,58 +113,42 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
     <TripLayout trip={trip} active={{ dayId: day.id }}>
       <DayStrip tripId={tripId} days={days} currentId={day.id} />
 
-      <div className="day-top row between">
-        <DayHeader key={day.id} day={day} number={index + 1} city={stays ? cityLabel(stays, day.date) : ''} places={places} legs={legs} />
-        <span className="row day-arrows">
-          {prev && (
-            <a className="icon-button" href={href({ page: 'day', tripId, dayId: prev.id })} aria-label="Previous day">
-              <Icon name="back" />
-            </a>
-          )}
-          {next && (
-            <a className="icon-button" href={href({ page: 'day', tripId, dayId: next.id })} aria-label="Next day">
-              <Icon name="forward" />
-            </a>
-          )}
-        </span>
-      </div>
-
       <div className="day-layout">
         <div className={`day-map-column${mapOpen ? '' : ' map-collapsed'}`}>
-          <div className="row wrap map-buttons">
-            <button type="button" className="map-toggle" onClick={() => setMapOpen(!mapOpen)} aria-expanded={mapOpen}>
-              <Icon name="map" /> {mapOpen ? 'Hide map' : 'Show map'}
-            </button>
-            <button
-              type="button"
-              className={`map-provider${mapProvider === 'offline' ? ' active' : ''}`}
-              aria-pressed={mapProvider === 'offline'}
-              onClick={() => setMapProvider(mapProvider === 'offline' ? 'google' : 'offline')}
-            >
-              {mapProvider === 'offline' ? 'Use Google map' : 'Use offline map'}
+          <div className="map-bar">
+            <div className="segmented map-switch" role="radiogroup" aria-label="Map">
+              {(['google', 'offline'] as const).map((provider) => (
+                <button
+                  key={provider}
+                  type="button"
+                  role="radio"
+                  aria-checked={mapProvider === provider}
+                  className={mapProvider === provider ? 'active' : ''}
+                  onClick={() => setMapProvider(provider)}
+                >
+                  {provider === 'google' ? 'Google map' : 'Offline map'}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="ghost map-toggle" onClick={() => setMapOpen(!mapOpen)} aria-expanded={mapOpen}>
+              <Icon name={mapOpen ? 'up' : 'map'} /> {mapOpen ? 'Hide' : 'Show map'}
             </button>
           </div>
           {mapProvider === 'offline' ? (
-            <>
-              <ErrorBoundary fallback={<p className="error">The offline map failed to load. Reload the page to try again.</p>}>
-                <Suspense fallback={<p className="muted small">Loading the offline map…</p>}>
-                  <OfflineMapPanel
-                    tripId={tripId}
-                    places={places}
-                    legs={legs}
-                    selectedPlaceId={selectedId}
-                    onSelectPlace={setSelectedId}
-                    onTap={onOfflineTap}
-                    drawing={drawing}
-                    bases={bases}
-                  />
-                </Suspense>
-              </ErrorBoundary>
-              {drawing && <DrawToolbar drawing={drawing} onChange={setDrawing} />}
-              {pending && !drawing && <PendingAddCard key={JSON.stringify(pending)} pending={pending} onAdd={add} onClose={() => setPending(null)} />}
-              {online && hasGoogleKey && <PlaceSearch onAdd={add} />}
-              <p className="muted small">Tip: tap the map to drop a pin (tapping a shop or sight names it), or draw a segment.</p>
-            </>
+            <ErrorBoundary fallback={<p className="error">The offline map failed to load. Reload the page to try again.</p>}>
+              <Suspense fallback={<p className="muted small">Loading the offline map…</p>}>
+                <OfflineMapPanel
+                  tripId={tripId}
+                  places={places}
+                  legs={legs}
+                  selectedPlaceId={selectedId}
+                  onSelectPlace={setSelectedId}
+                  onTap={onOfflineTap}
+                  drawing={drawing}
+                  bases={bases}
+                />
+              </Suspense>
+            </ErrorBoundary>
           ) : !hasGoogleKey ? (
             <p className="error">Map and place search need the Google key (VITE_GOOGLE_MAPS_API_KEY).</p>
           ) : mapStatus === APILoadingStatus.FAILED || (!online && mapStatus !== APILoadingStatus.LOADED && mapStatus !== APILoadingStatus.AUTH_FAILURE) ? (
@@ -172,32 +156,35 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             // it offline can make Google's code throw).
             <MapUnavailable online={online} />
           ) : (
-            <>
-              <ErrorBoundary fallback={<MapUnavailable online={online} />}>
-                <DayMap
-                  places={places}
-                  legs={legs}
-                  selectedPlaceId={selectedId}
-                  onSelectPlace={setSelectedId}
-                  onMapClick={onMapClick}
-                  fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
-                  drawing={drawing}
-                  bases={bases}
-                />
-              </ErrorBoundary>
-              {drawing && <DrawToolbar drawing={drawing} onChange={setDrawing} />}
-              {pending && !drawing && <PendingAddCard key={JSON.stringify(pending)} pending={pending} onAdd={add} onClose={() => setPending(null)} />}
-              {online && (
-                <>
-                  <PlaceSearch onAdd={add} />
-                  <p className="muted small">Tip: tap a place on the map to add it, or an empty spot to drop a custom pin.</p>
-                </>
-              )}
-            </>
+            <ErrorBoundary fallback={<MapUnavailable online={online} />}>
+              <DayMap
+                places={places}
+                legs={legs}
+                selectedPlaceId={selectedId}
+                onSelectPlace={setSelectedId}
+                onMapClick={onMapClick}
+                fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
+                drawing={drawing}
+                bases={bases}
+              />
+            </ErrorBoundary>
           )}
+          {drawing && <DrawToolbar drawing={drawing} onChange={setDrawing} />}
+          {pending && !drawing && <PendingAddCard key={JSON.stringify(pending)} pending={pending} onAdd={add} onClose={() => setPending(null)} />}
         </div>
 
         <div className="day-list-column">
+          <DayHeader
+            key={day.id}
+            day={day}
+            number={index + 1}
+            city={stays ? cityLabel(stays, day.date) : ''}
+            places={places}
+            legs={legs}
+            prevHref={prev && href({ page: 'day', tripId, dayId: prev.id })}
+            nextHref={next && href({ page: 'day', tripId, dayId: next.id })}
+          />
+
           {places.length >= 2 &&
             (optimizing ? (
               <OptimizePanel day={day} places={places} legs={legs} onClose={() => setOptimizing(false)} />
@@ -221,7 +208,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             {places.length === 0 && (
               <li className="empty-state">
                 <p>No places yet.</p>
-                <p className="muted small">Search for a place or tap the map to add one.</p>
+                <p className="muted small">Search for a place below or tap the map to add one.</p>
               </li>
             )}
             {places.map((place, i) => {
@@ -264,6 +251,16 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             })}
           </ol>
 
+          {/* Like the end of a list in Wanderlog: add the next place right below the last one. */}
+          <section className="add-place">
+            {online && hasGoogleKey && <PlaceSearch onAdd={add} />}
+            <p className="muted small">
+              {mapProvider === 'offline'
+                ? 'Or tap the map to drop a pin (tapping a shop or sight names it).'
+                : 'Or tap a place on the map to add it, or an empty spot to drop a custom pin.'}
+            </p>
+          </section>
+
           <section className="card">
             <BudgetBreakdown budget={dayBudget(day, dayPlaces, legs, dayExpenses)} trip={trip} title="Day budget" />
             <h3>Expenses this day</h3>
@@ -283,12 +280,16 @@ function DayHeader({
   city,
   places,
   legs,
+  prevHref,
+  nextHref,
 }: {
   day: Day
   number: number
   city: string
   places: Place[]
   legs: Map<string, Leg>
+  prevHref?: string
+  nextHref?: string
 }) {
   const [title, setTitle] = useDraft(day.title, (value) => updateDay(day.id, { title: value.trim() }))
   const [shared, setShared] = useState('')
@@ -304,10 +305,31 @@ function DayHeader({
 
   return (
     <header className="hero day-hero">
-      <p className="hero-kicker">
-        Day {number} · {formatDay(day.date)}
-        {city && <CityTag city={city} />}
-      </p>
+      <div className="day-hero-top">
+        <p className="hero-kicker">
+          Day {number} · {formatDay(day.date)}
+          {city && <CityTag city={city} />}
+        </p>
+        <span className="row day-hero-actions">
+          <button type="button" className="ghost icon-button" onClick={share} aria-label="Share this day" title="Share">
+            <Icon name="share" />
+          </button>
+          <button type="button" className="ghost icon-button" onClick={() => window.print()} aria-label="Print this day" title="Print">
+            <Icon name="print" />
+          </button>
+          {/* Phones have the day strip above; arrows only where there is room. */}
+          {prevHref && (
+            <a className="icon-button day-arrow" href={prevHref} aria-label="Previous day" title="Previous day">
+              <Icon name="back" />
+            </a>
+          )}
+          {nextHref && (
+            <a className="icon-button day-arrow" href={nextHref} aria-label="Next day" title="Next day">
+              <Icon name="forward" />
+            </a>
+          )}
+        </span>
+      </div>
       <input
         className="hero-title"
         value={title}
@@ -315,15 +337,7 @@ function DayHeader({
         placeholder="Add a title (e.g. Asakusa and Ueno)"
         aria-label="Day title"
       />
-      <div className="row wrap hero-actions">
-        <button type="button" className="ghost" onClick={share}>
-          <Icon name="share" /> Share
-        </button>
-        <button type="button" className="ghost" onClick={() => window.print()}>
-          <Icon name="print" /> Print
-        </button>
-        {shared && <span className="muted small">{shared}</span>}
-      </div>
+      {shared && <p className="muted small">{shared}</p>}
     </header>
   )
 }

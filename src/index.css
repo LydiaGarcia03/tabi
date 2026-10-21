@@ -154,6 +154,9 @@ a {
   margin: 0 auto;
   padding: 16px 16px 32px;
   display: grid;
+  /* minmax(0, …): wide content (tables, chip rows) scrolls inside its card
+     instead of widening the whole page on a phone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-content: start;
 }
@@ -773,12 +776,74 @@ button:disabled {
   box-shadow: var(--shadow);
 }
 
-.map-toggle {
-  justify-self: start;
+/* Above the map: Google / offline switch and hide/show. */
+.map-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-switch {
+  flex-wrap: nowrap;
+}
+
+.map-switch button {
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
 }
 
 .map-collapsed .day-map {
   display: none;
+}
+
+.day-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-hero-top .hero-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.day-hero-actions {
+  gap: 0;
+  margin-right: -8px;
+}
+
+.day-hero-actions .day-arrow {
+  display: none;
+}
+
+.add-place {
+  display: grid;
+  gap: 4px;
+}
+
+.add-place p {
+  margin: 0;
+}
+
+/* Phones: the map goes edge to edge, like a native maps app. */
+@media (max-width: 959px) {
+  .day-map {
+    margin: 0 -16px;
+    height: 40vh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .day-map-column {
+    gap: 8px;
+  }
 }
 
 @media (min-width: 960px) {
@@ -1163,12 +1228,14 @@ button:disabled {
 
 .trip-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
 
 .trip-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-content: start;
   min-width: 0;
@@ -1178,35 +1245,100 @@ button:disabled {
   display: none;
 }
 
-.trip-tabs {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  margin: -8px 0 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+/* Android-style navigation bar (Material 3): icon in a pill + label, fixed
+   at the bottom, within thumb reach. Hidden on computers (sidebar). */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 0.06);
 }
 
-.trip-tabs a {
-  flex: none;
-  padding: 10px 12px;
+.bottom-nav a {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 4px 0;
   color: var(--muted);
+  font-size: 0.75rem;
   font-weight: 650;
   text-decoration: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
 }
 
-.trip-tabs a.active {
-  color: var(--accent-text);
-  border-bottom-color: var(--accent);
-}
-
-.trip-tabs .trip-tabs-back {
-  display: inline-grid;
+.bottom-nav-icon {
+  display: grid;
   place-items: center;
-  padding: 10px 6px;
+  width: 56px;
+  height: 30px;
+  border-radius: 999px;
+  transition: background 0.15s;
+}
+
+.bottom-nav a.active {
+  color: var(--accent-text);
+}
+
+.bottom-nav a.active .bottom-nav-icon {
+  background: var(--accent-soft);
+}
+
+/* Room for the bar under the last things on the page. */
+.shell.in-trip {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* While typing, the keyboard pushes the bar up: hide it to keep the field visible. */
+.shell:has(:is(input, textarea, select):focus) .bottom-nav {
+  display: none;
+}
+
+/* Inside a trip on phones the top bar says where you are (TripBarTitle in App.tsx). */
+.app-bar-trip {
+  display: none;
+}
+
+@media (max-width: 1099px) {
+  .shell.in-trip .app-bar {
+    padding-left: 4px;
+  }
+
+  .shell.in-trip .brand,
+  .trip-kicker {
+    display: none;
+  }
+
+  .app-bar-trip {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .app-bar-trip-name {
+    display: grid;
+    min-width: 0;
+    color: var(--text);
+    text-decoration: none;
+    line-height: 1.2;
+  }
+
+  .app-bar-trip-name > * {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .app-bar-trip-name .muted {
+    font-size: 0.75rem;
+  }
 }
 
 @media (min-width: 1100px) {
@@ -1214,9 +1346,18 @@ button:disabled {
     grid-template-columns: 230px minmax(0, 1fr);
   }
 
-  .trip-tabs,
+  .bottom-nav,
   .day-strip {
     display: none;
+  }
+
+  /* No day strip here: previous / next day in the day header. */
+  .day-hero-actions .day-arrow {
+    display: inline-grid;
+  }
+
+  .shell.in-trip {
+    padding-bottom: 0;
   }
 
   .trip-sidebar {
@@ -1359,17 +1500,33 @@ button:disabled {
   color: hsl(var(--hue, 0) 70% 82%);
 }
 
-.stay-main .city-tag {
-  margin-left: 0;
-}
-
 /* --- Trip overview ------------------------------------------------------- */
 
 .overview-grid,
 .budget-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+/* Phones: days and the rest of the plan (cities, checklist, notes…) are two
+   views, like Wanderlog's Itinerary / Overview, instead of one long page. */
+@media (max-width: 899px) {
+  .overview-grid.show-days .overview-side,
+  .overview-grid.show-plan .overview-days {
+    display: none;
+  }
+
+  .overview-switch {
+    justify-self: start;
+  }
+}
+
+@media (min-width: 900px) {
+  .overview-switch {
+    display: none;
+  }
 }
 
 .overview-side {
@@ -1399,27 +1556,149 @@ button:disabled {
   border-color: var(--muted);
 }
 
-.stay-list {
+/* --- Cities (StaysEditor): a vertical itinerary --------------------------
+   One thin line runs down the left; each city has a small marker in its
+   color, day trips and the ends (from / back home) a hollow one. */
+
+.city-route {
   list-style: none;
-  margin: 0 0 10px;
+  margin: 8px 0 14px;
   padding: 0;
+}
+
+.cr-item {
+  position: relative;
   display: grid;
-  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  column-gap: 14px;
+  align-items: start;
 }
 
-.stay-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+/* The line, through every item; it starts at the first marker and ends at the last. */
+.cr-item::before {
+  content: '';
+  position: absolute;
+  left: 7.5px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--border);
 }
 
-.stay-main {
+.cr-item.first::before {
+  top: 9px;
+}
+
+.cr-item.last::before {
+  bottom: calc(100% - 9px);
+}
+
+.cr-rail {
+  display: grid;
+  justify-items: center;
+  padding-top: 4px;
+}
+
+.cr-mark {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: hsl(var(--hue, 0) 40% 48%);
+  box-shadow: 0 0 0 4px var(--surface);
+}
+
+.cr-day-trip .cr-mark,
+.cr-leg .cr-mark {
+  width: 8px;
+  height: 8px;
+  margin-top: 1px;
+  background: var(--surface);
+  border: 1.5px solid hsl(var(--hue, 0) 40% 48%);
+}
+
+.cr-leg .cr-mark {
+  border-color: var(--muted);
+}
+
+.cr-body {
   display: grid;
   gap: 2px;
-  justify-items: start;
+  min-width: 0;
+}
+
+.cr-city .cr-body,
+.cr-day-trip .cr-body {
+  padding-bottom: 14px;
+}
+
+.cr-leg .cr-body {
+  padding: 0 0 14px;
+}
+
+.cr-title {
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.cr-day-trip .cr-title {
+  font-size: 0.95rem;
+}
+
+.cr-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.cr-strong {
+  color: var(--text);
+}
+
+.cr-faint {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Legs between cities and the ends: small caps, like a boarding pass. */
+.cr-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.cr-options {
+  color: var(--muted);
+}
+
+/* "+ Transport": a small quiet button at the right of a leg (or inline in a day trip). */
+.cr-add {
+  min-height: 26px;
+  padding: 2px 10px;
+  margin-top: -3px;
+  border-radius: 999px;
+  border-color: var(--border);
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.cr-add.inline {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 0.85rem;
+}
+
+.cr-edit {
+  width: 32px;
+  height: 32px;
+  margin-top: -6px;
+  color: var(--muted);
 }
 
 .stay-base {
@@ -1461,15 +1740,6 @@ button:disabled {
 .checklist-add input:first-child {
   flex: 1;
   min-width: 180px;
-}
-
-.day-top {
-  align-items: flex-start;
-}
-
-.day-top .hero {
-  flex: 1;
-  min-width: 0;
 }
 
 /* --- Comparison tables --------------------------------------------------- */
@@ -1907,6 +2177,18 @@ fieldset.journey-leg {
   flex-wrap: nowrap;
 }
 
+.install-tips {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+/* A time plus its day ("+1 (Wed 29 Mar)") needs more room: one per line on phones. */
+.field-row.time-fields {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .time-and-day input,
 .time-and-day select {
   min-width: 0;
@@ -2045,7 +2327,7 @@ dialog.photo-viewer::backdrop {
 
   .options-table tr.option-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 2px 12px;
     padding: 10px 0;
     border-bottom: 1px solid var(--border);
@@ -2084,37 +2366,6 @@ dialog.photo-viewer::backdrop {
 
 /* --- Transport between cities & airline guide ---------------------------- */
 
-.stay-list .transfer-row {
-  list-style: none;
-}
-
-.transfer {
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
-  padding: 2px 0 2px 10px;
-}
-
-.transfer-rail {
-  flex: none;
-  width: 0;
-  border-left: 2px dashed var(--border);
-}
-
-.transfer-body {
-  display: block;
-  padding: 2px 0;
-}
-
-.transfer-booked {
-  display: block;
-  font-weight: 600;
-}
-
-.transfer-booked .muted {
-  font-weight: 400;
-}
-
 .day-card-journey {
   font-weight: 600;
   color: var(--accent-text);
@@ -2138,6 +2389,53 @@ dialog.photo-viewer::backdrop {
   display: grid;
   gap: 2px;
   min-width: 170px;
+}
+
+/* In the phone cards (see options-table above) the column is narrower. */
+@media (max-width: 760px) {
+  .options-table td[data-label] .small {
+    min-width: 0;
+  }
+
+  /* The airline guide becomes one card per airline, like the options. */
+  .airline-table,
+  .airline-table tbody,
+  .airline-table td {
+    display: block;
+  }
+
+  .airline-table thead {
+    display: none;
+  }
+
+  .airline-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px 12px;
+    padding: 10px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .airline-table td {
+    min-width: 0;
+    border: none;
+    padding: 0;
+  }
+
+  .airline-table td[data-label='Airline'],
+  .airline-table td[data-label='Checked'] {
+    grid-column: 1 / -1;
+  }
+
+  .airline-table td:not([data-label='Airline'])::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
 }
 
 .airline-table td {
@@ -2512,6 +2810,163 @@ details pre {
   border: 1px solid var(--border);
 }
 
+/* --- Money set aside (budget page) --------------------------------------- */
+
+.savings-progress {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.savings-progress p {
+  margin: 0;
+}
+
+.progress.done > span {
+  background: #16a34a;
+}
+
+/* --- Sheet: a form on its own layer (Sheet.tsx) -------------------------- */
+
+dialog.sheet {
+  width: min(640px, calc(100% - 32px));
+  max-height: calc(100% - 48px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.3);
+  overflow: hidden;
+}
+
+dialog.sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.sheet:focus {
+  outline: none;
+}
+
+dialog.sheet::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+.sheet-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet-bar h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  padding: 4px 16px 0;
+}
+
+/* Inside a sheet, a form needs no frame of its own. */
+.sheet-body .expense-form {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.sheet-body .booking-form > h4 {
+  display: none;
+}
+
+/* Save / Cancel stay visible at the bottom while the form scrolls. */
+.sheet-body .sheet-actions {
+  position: sticky;
+  bottom: 0;
+  margin: 12px -16px 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+/* Phones: full screen, like an Android "new item" screen. */
+@media (max-width: 599px) {
+  dialog.sheet {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+/* One-tap choices that wrap (types of hotel, restaurant…). */
+.chip-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-picker button {
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.chip-picker button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.chip-picker + input {
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* --- Phones: denser, closer to a native app ------------------------------ */
+
+@media (max-width: 599px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .hero-title {
+    font-size: 1.35rem;
+  }
+
+  .page {
+    gap: 14px;
+    padding-top: 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  /* Filter chips: one row that scrolls sideways, instead of wrapping into a block. */
+  .options-toolbar .segmented {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: none;
+  }
+
+  .options-toolbar .segmented button {
+    flex: none;
+  }
+
+  .app-footer {
+    font-size: 0.75rem;
+  }
+}
+
 /* --- Print: a clean itinerary sheet -------------------------------------- */
 
 @media print {
@@ -2538,6 +2993,9 @@ details pre {
   .day-strip,
   .day-map-column,
   .hero-actions,
+  .day-hero-actions,
+  .bottom-nav,
+  .add-place,
   .export-card,
   .expenses > .row,
   .expense-row button,

@@ -4,6 +4,7 @@ import { dayBudget, expensesBudget, mergeBudgets } from '../budget'
 import { BudgetBreakdown } from '../components/BudgetView'
 import { EstimatesCard } from '../components/EstimatesCard'
 import { ExpenseList } from '../components/ExpenseList'
+import { SavingsCard } from '../components/SavingsCard'
 import { TripLayout } from '../components/TripLayout'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
@@ -37,11 +38,12 @@ export function BudgetPage({ tripId }: { tripId: string }) {
   return (
     <TripLayout trip={trip} active="budget">
       <header className="hero">
-        <p className="hero-kicker">{trip.name}</p>
+        <p className="hero-kicker trip-kicker">{trip.name}</p>
         <h1>Budget</h1>
       </header>
       <div className="budget-grid">
         <div className="section">
+          <SavingsCard trip={trip} actual={budget} />
           <section className="card">
             <BudgetBreakdown budget={budget} trip={trip} title="Trip budget" />
           </section>

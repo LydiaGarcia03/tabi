@@ -35,12 +35,13 @@ export const PRICE_LABEL: Record<OptionKind, string> = {
   transport: 'Price per ticket',
 }
 
-export const CATEGORY_HINT: Record<OptionKind, string> = {
-  hotel: 'Business hotel, ryokan, resort…',
-  restaurant: 'Ramen, sushi, izakaya…',
-  place: 'Temple, park, museum…',
-  shop: 'Records, anime, souvenirs…',
-  transport: '',
+/** Common types, picked with one tap (anything else can be typed). */
+export const CATEGORY_PRESETS: Record<OptionKind, string[]> = {
+  hotel: ['Business hotel', 'Ryokan', 'Resort', 'Hostel', 'Capsule hotel', 'Apartment'],
+  restaurant: ['Ramen', 'Sushi', 'Izakaya', 'Yakiniku', 'Café', 'Street food'],
+  place: ['Temple / shrine', 'Museum', 'Park / garden', 'Viewpoint', 'Theme park', 'Neighborhood'],
+  shop: ['Anime / manga', 'Souvenirs', 'Records', 'Fashion', 'Department store', 'Market'],
+  transport: [],
 }
 
 export const STATUS_LABEL: Record<OptionStatus, string> = {

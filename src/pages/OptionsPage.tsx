@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { checkedForFare, describeBag, describeChecked, findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
 import { PhotoStrip } from '../components/Photos'
+import { Sheet } from '../components/Sheet'
 import { JourneyItinerary } from '../components/JourneyLegs'
 import { Stars } from '../components/Stars'
 import { CityTag, TripLayout } from '../components/TripLayout'
@@ -17,7 +18,7 @@ import { cityLabel, stayNights, stayOfCity } from '../db/stays'
 import { formatMoney } from '../format'
 import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, type Weights } from '../planning/compare'
 import { formatHours, JOURNEY_ICON, journeyCarriers, journeyDetails } from '../planning/journeys'
-import { KIND_ICON, KIND_PLURAL, OPTION_KINDS } from '../planning/optionKinds'
+import { KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { NotFound } from './TripPage'
@@ -97,14 +98,12 @@ export function OptionsPage({ tripId }: { tripId: string }) {
     <TripLayout trip={trip} active="options">
       <header className="hero row between">
         <span>
-          <p className="hero-kicker">{trip.name}</p>
+          <p className="hero-kicker trip-kicker">{trip.name}</p>
           <h1>Options</h1>
         </span>
-        {editing === null && (
-          <button type="button" className="primary" onClick={() => setEditing('new')}>
-            <Icon name="plus" /> Add option
-          </button>
-        )}
+        <button type="button" className="primary" onClick={() => setEditing('new')}>
+          <Icon name="plus" /> Add option
+        </button>
       </header>
       <p className="muted small options-intro">
         Hotels, restaurants, places, shops and transport (flights, shinkansen…) you're considering. Compare them by city
@@ -112,14 +111,19 @@ export function OptionsPage({ tripId }: { tripId: string }) {
       </p>
 
       {editing && (
-        <OptionForm
+        <Sheet
           key={editing === 'new' ? 'new' : editing.id}
-          trip={trip}
-          cities={cities}
-          option={editing === 'new' ? undefined : editing}
-          defaults={{ kind: kind === 'all' ? undefined : kind, city: city || undefined }}
-          onDone={() => setEditing(null)}
-        />
+          title={editing === 'new' ? 'New option' : `Edit ${KIND_SINGULAR[editing.kind].toLowerCase()}`}
+          onClose={() => setEditing(null)}
+        >
+          <OptionForm
+            trip={trip}
+            cities={cities}
+            option={editing === 'new' ? undefined : editing}
+            defaults={{ kind: kind === 'all' ? undefined : kind, city: city || undefined }}
+            onDone={() => setEditing(null)}
+          />
+        </Sheet>
       )}
 
       <div className="options-toolbar">
@@ -196,7 +200,9 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
           {group.city && <CityTag city={group.city} />}
         </h2>
         <p className="muted small">
+          {group.kind === 'hotel' && group.stay && group.stay.kind && group.stay.kind !== 'stay' && 'No night here (day trip or stop on the way) · '}
           {nights &&
+            nights.nights > 0 &&
             `${nights.nights} ${nights.nights === 1 ? 'night' : 'nights'} (${formatDay(nights.checkIn)} → ${formatDay(nights.checkOut)}) · `}
           {isTransport
             ? 'Compared by price, total travel time and your rating. Baggage from the airline guide below.'
@@ -419,7 +425,8 @@ function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: 
   }
 
   if (option.kind === 'hotel') {
-    const nights = stay ? stayNights(stay, trip) : null
+    const stayed = stay ? stayNights(stay, trip) : null
+    const nights = stayed && stayed.nights > 0 ? stayed : null
     const initial = {
       id: '',
       tripId: trip.id,

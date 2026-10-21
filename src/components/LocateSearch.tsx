@@ -7,10 +7,12 @@ interface Props {
   initialQuery?: string
   onPick: (place: PlaceResult) => void
   placeholder?: string
+  /** A city added to the search when the text doesn't name it (a hotel name alone can be anywhere). */
+  near?: string
 }
 
 /** Finds a place on Google to get its location (1 request per search, only on "Search"). */
-export function LocateSearch({ initialQuery = '', onPick, placeholder = 'Search on the map…' }: Props) {
+export function LocateSearch({ initialQuery = '', onPick, placeholder = 'Search on the map…', near }: Props) {
   const online = useOnline()
   const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<PlaceResult[] | null>(null)
@@ -24,7 +26,9 @@ export function LocateSearch({ initialQuery = '', onPick, placeholder = 'Search 
     setBusy(true)
     setError('')
     try {
-      setResults(await searchPlaces(query.trim()))
+      const text = query.trim()
+      const city = near?.trim()
+      setResults(await searchPlaces(city && !text.toLowerCase().includes(city.toLowerCase()) ? `${text} ${city}` : text))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

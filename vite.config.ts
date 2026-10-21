@@ -16,6 +16,8 @@ export default defineConfig({
         short_name: 'Tabi',
         description: 'Plan every step of a trip, and take it offline.',
         lang: 'en',
+        // Stable identity of the installed app (Chrome uses it to match installs).
+        id: '/tabi/',
         start_url: '/tabi/',
         scope: '/tabi/',
         display: 'standalone',

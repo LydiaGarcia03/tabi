@@ -115,6 +115,13 @@ export function displayAmount(totals: Totals, trip: Trip): number | null {
   return converted && converted.unconverted.length === 0 ? converted.amount : null
 }
 
+/** All the trip's estimates in the display currency (null when a currency can't be converted). */
+export function estimatesTotal(trip: Trip): number | null {
+  const totals: Totals = {}
+  for (const e of trip.estimates ?? []) totals[e.amount.currency] = (totals[e.amount.currency] ?? 0) + e.amount.amount
+  return displayAmount(totals, trip)
+}
+
 /** Totals as money values, base currency first. */
 export function totalsList(totals: Totals, trip: Trip): Money[] {
   return Object.entries(totals)

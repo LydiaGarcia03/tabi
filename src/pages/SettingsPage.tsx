@@ -1,3 +1,4 @@
+import { installApp, useInstallState } from '../install'
 import { SettingsPanel } from '../SettingsPanel'
 import { href } from '../router'
 import { setTheme, useTheme, type ThemeChoice } from '../theme'
@@ -32,11 +33,44 @@ export function SettingsPage() {
           ))}
         </div>
       </section>
+      <InstallCard />
       <SettingsPanel />
       <section className="card">
         <h2>Developer</h2>
         <a href={href({ page: 'transit-spike' })}>Transit spike (Google vs NAVITIME)</a>
       </section>
     </>
+  )
+}
+
+function InstallCard() {
+  const state = useInstallState()
+  const offlineReady = 'serviceWorker' in navigator && navigator.serviceWorker.controller != null
+  return (
+    <section className="card">
+      <h2>Install the app</h2>
+      {state === 'installed' && <p className="muted small">Tabi is installed on this device.</p>}
+      {state === 'ready' && (
+        <>
+          <p className="muted small">Opens in its own window, with its icon among your apps, and works without internet.</p>
+          <div className="row">
+            <button type="button" className="primary" onClick={() => void installApp()}>
+              Install Tabi
+            </button>
+          </div>
+        </>
+      )}
+      {state === 'unavailable' && (
+        <>
+          <p className="muted small">Chrome hasn't offered to install the app here. Things to check on the phone:</p>
+          <ul className="small install-tips">
+            <li>Open the site in the Chrome app itself: not in a link preview inside another app, and not in an incognito tab.</li>
+            <li>Chrome menu (⋮) → <strong>Install app</strong> (or <strong>Add to home screen</strong> → <strong>Install</strong>).</li>
+            <li>If only "Create shortcut" shows up: remove the old Tabi shortcut from the home screen, close the tab, open the site again and wait a few seconds before opening the menu.</li>
+          </ul>
+        </>
+      )}
+      <p className="muted small">{offlineReady ? '✓ Saved for offline use on this device.' : 'Not saved for offline use yet: reload the page once.'}</p>
+    </section>
   )
 }

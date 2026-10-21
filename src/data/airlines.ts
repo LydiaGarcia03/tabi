@@ -1,10 +1,10 @@
 // Airline guide: baggage (personal item, carry-on, checked by fare), premium
-// economy and legroom, for airlines flying Brazil → Japan (with a connection)
-// and inside Japan. Researched by hand from the airlines' own pages — no API
+// economy and legroom, for airlines flying Brazil → Japan (with a connection),
+// inside Brazil (the first flight) and inside Japan. Researched by hand from the airlines' own pages — no API
 // exists for this and scraping is not allowed. Rules change: every entry says
 // what still needs confirming, and links its sources. Update by asking Claude.
 
-export const AIRLINE_GUIDE_UPDATED = '2026-10-20'
+export const AIRLINE_GUIDE_UPDATED = '2026-10-21'
 
 export interface BagRule {
   /** Length × width × height, cm. */
@@ -29,7 +29,7 @@ export interface AirlineInfo {
   name: string
   /** Other ways people write it (matched case-insensitively). */
   aliases: string[]
-  scope: 'international' | 'japan-domestic'
+  scope: 'international' | 'japan-domestic' | 'brazil'
   type: 'full-service' | 'low-cost'
   alliance?: string
   hub?: string
@@ -312,6 +312,77 @@ export const AIRLINES: AirlineInfo[] = [
     notes: ['Some Kansai–Okinawa flights may be operated by Jetstar Airways (JQ), with different rules.'],
     toConfirm: ['Carry-on size'],
     sources: ['https://www.jetstar.com/jp/en/flights/baggage/carry-on-baggage'],
+  },
+  // Brazilian airlines: usually the first flight (e.g. Navegantes → São Paulo) before the long-haul one.
+  // Researched on their own pages on 2026-10-21.
+  {
+    code: 'LA',
+    name: 'LATAM',
+    aliases: ['latam', 'latam airlines', 'latam brasil', 'tam'],
+    scope: 'brazil',
+    type: 'full-service',
+    hub: 'São Paulo (GRU)',
+    personalItem: { cm: [45, 35, 20], kg: 10, note: 'all fares; under the seat in front' },
+    carryOn: { cm: [55, 35, 25], kg: 12, note: 'not on Basic (only on some short international routes); 16 kg in Premium cabins' },
+    checked: [
+      { fare: 'Basic', pieces: 0, note: 'can be bought' },
+      { fare: 'Light', pieces: 0, note: 'can be bought' },
+      { fare: 'Standard', pieces: 1, kgEach: 23 },
+      { fare: 'Full', pieces: 1, kgEach: 23 },
+      { fare: 'Premium Economy', pieces: 1, kgEach: 23 },
+    ],
+    checkedMax: { linearCm: 158, kg: 23 },
+    premiumEconomy: 'some aircraft',
+    notes: [
+      'On one ticket with an international airline, the checked bags usually follow the long-haul airline’s rules; carry-on follows each airline flown.',
+    ],
+    toConfirm: ['Allowance on your exact ticket (it depends on route and fare)'],
+    sources: [
+      'https://www.latamairlines.com/br/pt/experiencia/prepare-sua-viagem/bagagem/bagagem-de-mao',
+      'https://www.latamairlines.com/br/pt/experiencia/prepare-sua-viagem/bagagem/bagagem-despachada',
+    ],
+  },
+  {
+    code: 'G3',
+    name: 'GOL',
+    aliases: ['gol', 'gol linhas aéreas', 'gol linhas aereas'],
+    scope: 'brazil',
+    type: 'low-cost',
+    hub: 'São Paulo (GRU, CGH)',
+    personalItem: { cm: [43, 32, 22], kg: 10, note: 'under the seat in front' },
+    carryOn: { cm: [55, 35, 25], kg: 12, note: 'tickets issued from 14 Oct 2025 (10 kg before); not on Basic; may be sent to the hold at the gate' },
+    checked: [
+      { fare: 'Basic', pieces: 0, note: 'can be bought' },
+      { fare: 'Light', pieces: 0, note: 'can be bought; included for Smiles Silver and above' },
+      { fare: 'Classic', pieces: 1, kgEach: 23 },
+      { fare: 'Flex', pieces: 1, kgEach: 23 },
+      { fare: 'Premium Economy', pieces: 1, kgEach: 23 },
+    ],
+    checkedMax: { cm: [80, 50, 28], kg: 23 },
+    premiumEconomy: 'some aircraft',
+    notes: ['Fares renamed: Classic was "Plus", Flex was "Max".'],
+    toConfirm: ['Allowance on your exact ticket'],
+    sources: ['https://www.voegol.com.br/informacoes/bagagem'],
+  },
+  {
+    code: 'AD',
+    name: 'Azul',
+    aliases: ['azul', 'azul linhas aéreas', 'azul linhas aereas'],
+    scope: 'brazil',
+    type: 'full-service',
+    hub: 'Campinas (VCP)',
+    personalItem: { cm: [45, 35, 20], note: 'under the seat in front' },
+    carryOn: { cm: [55, 35, 25], kg: 10 },
+    checked: [
+      { fare: 'Azul', pieces: 0, note: 'can be bought' },
+      { fare: 'MaisAzul', pieces: 1, kgEach: 23 },
+      { fare: 'Azul Super', pieces: '1 or more', note: 'confirm' },
+    ],
+    checkedMax: { cm: [80, 50, 28], kg: 23 },
+    premiumEconomy: 'some aircraft',
+    notes: ['Azul Fidelidade levels (Topázio and above) add free checked bags.'],
+    toConfirm: ['Azul Super allowance', 'Allowance on your exact ticket'],
+    sources: ['https://www.voeazul.com.br/br/pt/sua-viagem/planeje/bagagens'],
   },
 ]
 

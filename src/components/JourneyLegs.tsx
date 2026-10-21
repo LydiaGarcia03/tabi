@@ -143,7 +143,7 @@ export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onC
                   <input value={leg.to} onChange={(e) => setPlace(i, 'to', e.target.value)} placeholder={isFlight ? 'Doha (DOH)' : 'Tokyo'} />
                 </label>
               </div>
-              <div className="field-row">
+              <div className="field-row time-fields">
                 <TimeAndDay
                   label="Departs"
                   date={journey.date}

@@ -1,150 +1,426 @@
 import { useState, type FormEvent } from 'react'
-import { daysBetween, formatDay } from '../dates'
+import { formatDay } from '../dates'
 import { addExpense } from '../db/expenses'
-import type { Expense, Stay, Trip } from '../db/model'
-import { addStay, deleteStay, updateStay } from '../db/stays'
-import { JOURNEY_ICON, journeyDetails, journeysOnRoute } from '../planning/journeys'
+import type { Expense, Stay, StayBase, StayKind, Trip, TripOption } from '../db/model'
+import { addStay, baseIcon, deleteStay, homeOf, routeStays, stayNights, updateStay } from '../db/stays'
+import { JOURNEY_LABEL, journeyDetails, journeysOnRoute } from '../planning/journeys'
 import { href } from '../router'
 import { JourneyForm } from './BookingForms'
+import { useCityHue } from '../cityColors'
+import { Icon } from './Icon'
 import { LocateSearch } from './LocateSearch'
-import { CityTag } from './TripLayout'
+import { Sheet } from './Sheet'
+
+/** What is open in the sheet: a city to edit, a new city, or a way to get somewhere. */
+type Editing = { city: Stay | 'new' } | { transfer: { from?: Stay; to?: Stay; roundTrip: boolean } } | null
 
 /**
- * The trip split by city: which days are spent where, and how you get from
- * one city to the next (arrival and return included).
+ * The trip as a route: each city a stop (dates, nights, base), day trips
+ * inside the city you sleep in, and between stops how you get there.
+ * Forms open in a sheet so the card stays a clean overview.
  */
-export function StaysEditor({ trip, stays, expenses }: { trip: Trip; stays: Stay[]; expenses: Expense[] }) {
-  const [editing, setEditing] = useState<string | 'new' | null>(null)
+export function StaysEditor({
+  trip,
+  stays,
+  expenses,
+  options,
+}: {
+  trip: Trip
+  stays: Stay[]
+  expenses: Expense[]
+  /** The trip's options: hotels for the city's base, transport to compare per route. */
+  options: TripOption[]
+}) {
+  const [editing, setEditing] = useState<Editing>(null)
   const sorted = [...stays].sort((a, b) => a.startDate.localeCompare(b.startDate))
   const last = sorted.at(-1)
-  const transfer = (key: string, from: Stay | undefined, to: Stay | undefined) => (
-    <li key={key} className="transfer-row">
-      <Transfer trip={trip} stays={sorted} expenses={expenses} from={from} to={to} />
-    </li>
+  // Travel goes city to city along the route; day trips leave from where you sleep and come back.
+  const route = routeStays(sorted)
+  const dayTrips = sorted.filter((s) => s.kind === 'day-trip')
+  const homes = new Map(dayTrips.map((t) => [t.id, homeOf(sorted, t)]))
+  const hotels = options.filter((o) => o.kind === 'hotel')
+  const transport = options.filter((o) => o.kind === 'transport' && o.status !== 'discarded')
+  const close = () => setEditing(null)
+
+  const leg = (key: string, from?: Stay, to?: Stay) => (
+    <RouteLeg
+      key={key}
+      trip={trip}
+      stays={sorted}
+      expenses={expenses}
+      transport={transport}
+      from={from}
+      to={to}
+      onAdd={() => setEditing({ transfer: { from, to, roundTrip: false } })}
+    />
   )
+
+  const nightsTotal = route.reduce((sum, s) => sum + stayNights(s, trip).nights, 0)
 
   return (
     <section className="card">
-      <h2>Cities</h2>
-      {sorted.length === 0 && editing === null && (
+      <header className="row between">
+        <h2>Cities</h2>
+        {route.length > 0 && (
+          <span className="muted small">
+            {route.length} {route.length === 1 ? 'city' : 'cities'} · {nightsTotal} {nightsTotal === 1 ? 'night' : 'nights'}
+          </span>
+        )}
+      </header>
+      {sorted.length === 0 && (
         <p className="muted small">Split the trip by city (e.g. Osaka 30 Mar – 1 Apr): days show their city, and hotel options get their total for the stay.</p>
       )}
-      <ul className="stay-list">
-        {sorted.length > 0 && transfer('arrival', undefined, sorted[0])}
-        {sorted.map((stay, i) => [
-          editing === stay.id ? (
-            <li key={stay.id}>
-              <StayForm trip={trip} stay={stay} onDone={() => setEditing(null)} />
-            </li>
-          ) : (
-            <li key={stay.id} className="stay-row">
-              <span className="stay-main">
-                <CityTag city={stay.city} />
-                <span className="small">
-                  {formatDay(stay.startDate)} – {formatDay(stay.endDate)} · {daysBetween(stay.startDate, stay.endDate) + 1}{' '}
-                  {daysBetween(stay.startDate, stay.endDate) === 0 ? 'day' : 'days'}
-                </span>
-                {stay.base && <span className="muted small">Distances from {stay.base.name}</span>}
-              </span>
-              <span className="row">
-                <button type="button" className="link" onClick={() => setEditing(stay.id)}>
-                  Edit
-                </button>
-              </span>
-            </li>
-          ),
-          transfer(`after-${stay.id}`, stay, sorted[i + 1]),
-        ])}
-      </ul>
-      {editing === 'new' ? (
-        <StayForm
-          trip={trip}
-          defaults={{ startDate: last && last.endDate < trip.endDate ? last.endDate : trip.startDate, endDate: trip.endDate }}
-          onDone={() => setEditing(null)}
-        />
-      ) : (
-        editing === null && (
-          <button type="button" onClick={() => setEditing('new')}>
-            + Add city
-          </button>
-        )
+
+      {sorted.length > 0 && (
+        <ol className="city-route">
+          {route.length > 0 && leg('arrival', undefined, route[0])}
+          {route.map((stay, i) => [
+            <CityItem key={stay.id} stay={stay} trip={trip} onEdit={() => setEditing({ city: stay })} />,
+            ...dayTrips
+              .filter((t) => homes.get(t.id)?.id === stay.id)
+              .map((t) => (
+                <DayTripItem
+                  key={t.id}
+                  dayTrip={t}
+                  home={stay}
+                  stays={sorted}
+                  expenses={expenses}
+                  onEdit={() => setEditing({ city: t })}
+                  onAddTransport={() => setEditing({ transfer: { from: stay, to: t, roundTrip: true } })}
+                />
+              )),
+            leg(`after-${stay.id}`, stay, route[i + 1]),
+          ])}
+          {/* Day trips with no city to sleep in around them. */}
+          {dayTrips
+            .filter((t) => !homes.get(t.id))
+            .map((t) => (
+              <CityItem key={t.id} stay={t} trip={trip} onEdit={() => setEditing({ city: t })} />
+            ))}
+        </ol>
+      )}
+
+      <button type="button" onClick={() => setEditing({ city: 'new' })}>
+        + Add city
+      </button>
+
+      {editing && 'city' in editing && (
+        <Sheet title={editing.city === 'new' ? 'New city' : `Edit ${editing.city.city}`} onClose={close}>
+          <StayForm
+            trip={trip}
+            stay={editing.city === 'new' ? undefined : editing.city}
+            hotels={hotels}
+            defaults={{ startDate: last && last.endDate < trip.endDate ? last.endDate : trip.startDate, endDate: trip.endDate }}
+            onDone={close}
+          />
+        </Sheet>
+      )}
+      {editing && 'transfer' in editing && (
+        <Sheet title={legLabel(editing.transfer)} onClose={close}>
+          <NewJourney trip={trip} {...editing.transfer} onDone={close} />
+        </Sheet>
       )}
     </section>
   )
 }
 
-/** How you get from one city to the next (or arrive / go home): booked journeys, or a button to add one. */
-function Transfer({
+function legLabel({ from, to, roundTrip }: { from?: Stay; to?: Stay; roundTrip?: boolean }): string {
+  if (!from) return `Getting to ${to!.city}`
+  if (!to) return `Going home from ${from.city}`
+  return roundTrip ? `${from.city} ⇄ ${to.city}` : `${from.city} → ${to.city}`
+}
+
+/** "Thu 30 Mar – Sun 2 Apr" or "Mon 19 Oct". */
+function dateRange(stay: Stay): string {
+  return stay.endDate === stay.startDate ? formatDay(stay.startDate) : `${formatDay(stay.startDate)} – ${formatDay(stay.endDate)}`
+}
+
+const BASE_LABEL: Record<NonNullable<StayBase['kind']>, string> = { hotel: 'Hotel', station: 'Station', other: 'Base' }
+
+function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" className="ghost icon-button cr-edit" onClick={onClick} aria-label={label} title={label}>
+      <Icon name="edit" size={16} />
+    </button>
+  )
+}
+
+/** A city on the route: name, dates and nights, base. Its marker carries the city color. */
+function CityItem({ stay, trip, onEdit }: { stay: Stay; trip: Trip; onEdit: () => void }) {
+  const hue = useCityHue(stay.city)
+  const nights = stayNights(stay, trip).nights
+  const note =
+    stay.kind === 'day-trip' ? 'Day trip' : stay.kind === 'stopover' ? 'Stop on the way · no hotel' : `${nights} ${nights === 1 ? 'night' : 'nights'}`
+  return (
+    <li className="cr-item cr-city" style={{ ['--hue' as string]: hue }}>
+      <span className="cr-rail">
+        <span className="cr-mark" />
+      </span>
+      <div className="cr-body">
+        <span className="cr-title">{stay.city}</span>
+        <span className="cr-meta">
+          {dateRange(stay)} · {note}
+        </span>
+        <span className="cr-meta">
+          {stay.base ? (
+            <>
+              {BASE_LABEL[stay.base.kind ?? 'other']}: <span className="cr-strong">{stay.base.name}</span>
+            </>
+          ) : (
+            <span className="cr-faint">No base set</span>
+          )}
+        </span>
+      </div>
+      <EditButton label={`Edit ${stay.city}`} onClick={onEdit} />
+    </li>
+  )
+}
+
+/** A day trip from the city you sleep in, with its way there and back. */
+function DayTripItem({
+  dayTrip,
+  home,
+  stays,
+  expenses,
+  onEdit,
+  onAddTransport,
+}: {
+  dayTrip: Stay
+  home: Stay
+  stays: Stay[]
+  expenses: Expense[]
+  onEdit: () => void
+  onAddTransport: () => void
+}) {
+  const hue = useCityHue(dayTrip.city)
+  const booked = [...journeysOnRoute(expenses, stays, home.city, dayTrip.city), ...journeysOnRoute(expenses, stays, dayTrip.city, home.city)]
+  return (
+    <li className="cr-item cr-day-trip" style={{ ['--hue' as string]: hue }}>
+      <span className="cr-rail">
+        <span className="cr-mark" />
+      </span>
+      <div className="cr-body">
+        <span className="cr-title">
+          {dayTrip.city} <span className="cr-faint">· day trip from {home.city}</span>
+        </span>
+        <span className="cr-meta">
+          {dateRange(dayTrip)}
+          {booked.length > 0 ? (
+            <>
+              {' · '}
+              <span className="cr-strong">{journeyDetails(booked[0].journey!).join(' · ') || 'Transport booked'}</span>
+            </>
+          ) : (
+            <>
+              {' · '}
+              <button type="button" className="cr-add inline" onClick={onAddTransport}>
+                + Transport there and back
+              </button>
+            </>
+          )}
+        </span>
+      </div>
+      <EditButton label={`Edit ${dayTrip.city}`} onClick={onEdit} />
+    </li>
+  )
+}
+
+/** Between two cities (or arriving / going home): what is booked, or one link to add it. */
+function RouteLeg({
   trip,
   stays,
   expenses,
+  transport,
   from,
   to,
+  onAdd,
 }: {
   trip: Trip
   stays: Stay[]
   expenses: Expense[]
+  transport: TripOption[]
   from?: Stay
   to?: Stay
+  onAdd: () => void
 }) {
-  const [adding, setAdding] = useState(false)
   const booked = journeysOnRoute(expenses, stays, from?.city, to?.city)
-  const label = !from ? `Getting to ${to!.city}` : !to ? `Going home from ${from.city}` : `${from.city} → ${to.city}`
-
-  if (adding) {
-    const initial = {
-      id: '',
-      tripId: trip.id,
-      category: 'transport',
-      description: '',
-      amount: { amount: 0, currency: trip.displayCurrency },
-      journey: {
-        mode: from && to ? 'shinkansen' : 'flight',
-        from: from?.city ?? '',
-        to: to?.city ?? '',
-        // Leave on the first day of the next city (or the last day of the trip).
-        date: to?.startDate ?? from?.endDate,
-      },
-    } satisfies Expense
-    return (
-      <JourneyForm
-        trip={trip}
-        expense={initial}
-        onSave={async (values) => {
-          await addExpense({ ...values, tripId: trip.id })
-          setAdding(false)
-        }}
-        onCancel={() => setAdding(false)}
-      />
-    )
-  }
+  const considered = journeysOnRoute(transport, stays, from?.city, to?.city)
+  const edge = !from ? 'first' : !to ? 'last' : ''
 
   return (
-    <span className="transfer">
-      <span className="transfer-rail" aria-hidden="true" />
-      <span className="transfer-body small">
-        {booked.length > 0 ? (
-          booked.map((e) => (
-            <span key={e.id} className="transfer-booked">
-              {JOURNEY_ICON[e.journey!.mode]} {label}
-              <span className="muted">
-                {' · '}
-                {[e.journey!.date && formatDay(e.journey!.date), e.journey!.time, ...journeyDetails(e.journey!)].filter(Boolean).join(' · ')}
-              </span>
-            </span>
-          ))
-        ) : (
-          <>
-            <span className="muted">{label}</span>{' '}
-            <button type="button" className="link" onClick={() => setAdding(true)}>
-              + How you'll go
-            </button>
+    <li className={`cr-item cr-leg ${edge}`}>
+      <span className="cr-rail">{edge && <span className="cr-mark" />}</span>
+      <div className="cr-body">
+        <span className="cr-label">
+          {!from ? 'From home' : !to ? 'Back home' : `${from.city} → ${to.city}`}
+          {booked.length === 0 && considered.length > 0 && (
+            <>
+              {' · '}
+              <a className="cr-options" href={href({ page: 'options', tripId: trip.id })}>
+                {considered.length} {considered.length === 1 ? 'option' : 'options'}
+              </a>
+            </>
+          )}
+        </span>
+        {booked.map((e) => (
+          <span key={e.id} className="cr-meta">
+            <span className="cr-strong">{JOURNEY_LABEL[e.journey!.mode]}</span>
             {' · '}
-            <a href={href({ page: 'options', tripId: trip.id })}>compare options</a>
+            {[e.journey!.date && formatDay(e.journey!.date), e.journey!.time, ...journeyDetails(e.journey!)].filter(Boolean).join(' · ')}
+          </span>
+        ))}
+      </div>
+      {/* Small, on the right of the leg, where the cities have their edit button. */}
+      {booked.length === 0 && (
+        <button type="button" className="cr-add" onClick={onAdd}>
+          + Transport
+        </button>
+      )}
+    </li>
+  )
+}
+
+/** Booking the way to get somewhere, prefilled with the route and the day. */
+function NewJourney({ trip, from, to, roundTrip, onDone }: { trip: Trip; from?: Stay; to?: Stay; roundTrip: boolean; onDone: () => void }) {
+  const initial = {
+    id: '',
+    tripId: trip.id,
+    category: 'transport',
+    description: '',
+    amount: { amount: 0, currency: trip.displayCurrency },
+    journey: {
+      mode: roundTrip ? 'train' : from && to ? 'shinkansen' : 'flight',
+      from: from?.city ?? '',
+      to: to?.city ?? '',
+      // Leave on the first day of the next city or the day trip (or the last day of the trip).
+      date: to?.startDate ?? from?.endDate,
+    },
+  } satisfies Expense
+  return (
+    <JourneyForm
+      trip={trip}
+      expense={initial}
+      onSave={async (values) => {
+        await addExpense({ ...values, tripId: trip.id })
+        onDone()
+      }}
+      onCancel={onDone}
+    />
+  )
+}
+
+const STAY_KINDS: [StayKind, string][] = [
+  ['stay', '🏨 Sleeping here'],
+  ['day-trip', '↩️ Day trip'],
+  ['stopover', '➡️ Stop on the way'],
+]
+
+const STAY_KIND_HINT: Record<StayKind, string> = {
+  stay: 'You sleep here: hotel options get the nights of these days.',
+  'day-trip': 'There and back the same day, sleeping in the city you are staying in (e.g. Kyoto from Osaka). No hotel; the trip goes on from that city.',
+  stopover: 'Visited on the way to the next city, without sleeping here (e.g. Nara between Kyoto and Osaka). No hotel.',
+}
+
+type BaseKind = NonNullable<StayBase['kind']>
+
+const BASE_KINDS: [BaseKind, string][] = [
+  ['hotel', '🏨 Hotel'],
+  ['station', '🚉 Station'],
+  ['other', '📍 Other'],
+]
+
+/**
+ * Where distances in the city are measured from: a hotel (one of the hotel
+ * options, or searched by name), a station or anything else (searched).
+ */
+function BasePicker({
+  city,
+  base,
+  hotels,
+  onChange,
+}: {
+  city: string
+  base?: StayBase
+  hotels: TripOption[]
+  onChange: (base: StayBase | undefined) => void
+}) {
+  const [kind, setKind] = useState<BaseKind>(base?.kind ?? (hotels.length > 0 ? 'hotel' : 'station'))
+  // The hotel options of this city that are still in the running.
+  const cityHotels = hotels.filter(
+    (h) => h.status !== 'discarded' && (h.city ?? '').trim().toLowerCase() === city.toLowerCase(),
+  )
+
+  return (
+    <div className="field stay-base">
+      <span className="field-label">Base for distances</span>
+      <p className="small">
+        {base ? (
+          <>
+            {baseIcon(base)} <strong>{base.name}</strong>{' '}
+            <button type="button" className="link" onClick={() => onChange(undefined)}>
+              Clear
+            </button>
           </>
+        ) : (
+          <span className="muted">Not set. Hotel and restaurant options of this city are compared by distance from it.</span>
         )}
-      </span>
-    </span>
+      </p>
+      <div className="segmented" role="radiogroup" aria-label="Base type">
+        {BASE_KINDS.map(([value, label]) => (
+          <button key={value} type="button" role="radio" aria-checked={kind === value} className={kind === value ? 'active' : ''} onClick={() => setKind(value)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {kind === 'hotel' && cityHotels.length > 0 && (
+        <div className="chip-picker base-hotels" role="radiogroup" aria-label="Your hotel options">
+          {cityHotels.map((h) => {
+            const located = h.lat != null && h.lng != null
+            return (
+              <button
+                key={h.id}
+                type="button"
+                role="radio"
+                aria-checked={base?.optionId === h.id}
+                className={base?.optionId === h.id ? 'active' : ''}
+                disabled={!located}
+                title={located ? h.address : 'No location yet: edit the option to find it on the map'}
+                onClick={() => onChange({ name: h.name, lat: h.lat!, lng: h.lng!, kind: 'hotel', optionId: h.id })}
+              >
+                {h.status === 'chosen' ? '✓ ' : h.status === 'favorite' ? '★ ' : ''}
+                {h.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {kind === 'hotel' && cityHotels.some((h) => h.lat == null) && (
+        <p className="muted small">Greyed out: options without a location yet (edit them in Options to find them on the map).</p>
+      )}
+      {kind === 'hotel' && (
+        <p className="muted small">
+          With a hotel as base, restaurants and places are measured from it; hotel options aren't compared by distance
+          (pick a station for that).
+        </p>
+      )}
+
+      <LocateSearch
+        key={kind}
+        initialQuery={kind === 'station' && city ? `${city} station` : ''}
+        near={city || undefined}
+        placeholder={
+          kind === 'hotel'
+            ? cityHotels.length > 0
+              ? 'Or search another hotel by name'
+              : 'Hotel name (e.g. Super Hotel Namba)'
+            : kind === 'station'
+              ? 'Station name (e.g. Shin-Osaka)'
+              : 'Name of the place'
+        }
+        onPick={(p) => onChange({ name: p.name, lat: p.lat, lng: p.lng, kind })}
+      />
+    </div>
   )
 }
 
@@ -152,23 +428,27 @@ function StayForm({
   trip,
   stay,
   defaults,
+  hotels,
   onDone,
 }: {
   trip: Trip
   stay?: Stay
   defaults?: { startDate: string; endDate: string }
+  /** The trip's hotel options, to pick the base from. */
+  hotels: TripOption[]
   onDone: () => void
 }) {
   const [city, setCity] = useState(stay?.city ?? '')
   const [startDate, setStartDate] = useState(stay?.startDate ?? defaults?.startDate ?? trip.startDate)
   const [endDate, setEndDate] = useState(stay?.endDate ?? defaults?.endDate ?? trip.endDate)
   const [base, setBase] = useState(stay?.base)
+  const [kind, setKind] = useState<StayKind>(stay?.kind ?? 'stay')
   const valid = city.trim() !== '' && !!startDate && !!endDate && endDate >= startDate
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
-    const values = { city: city.trim(), startDate, endDate, base }
+    const values = { city: city.trim(), startDate, endDate, base, kind: kind === 'stay' ? undefined : kind }
     if (stay) await updateStay(stay.id, values)
     else await addStay({ ...values, tripId: trip.id })
     onDone()
@@ -180,6 +460,28 @@ function StayForm({
         City
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Osaka" autoFocus />
       </label>
+      <div className="field">
+        <span className="field-label">How you'll visit it</span>
+        <div className="segmented" role="radiogroup" aria-label="How you'll visit it">
+          {STAY_KINDS.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={kind === value}
+              className={kind === value ? 'active' : ''}
+              onClick={() => {
+                setKind(value)
+                // Day trips and stops are usually a single day.
+                if (value !== 'stay') setEndDate(startDate)
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">{STAY_KIND_HINT[kind]}</p>
+      </div>
       <div className="field-row">
         <label>
           First day
@@ -190,28 +492,9 @@ function StayForm({
           <input type="date" value={endDate} min={startDate} max={trip.endDate} onChange={(e) => setEndDate(e.target.value)} />
         </label>
       </div>
-      <p className="muted small">A travel day can be the last day of one city and the first of the next.</p>
-      <div className="stay-base">
-        <span className="small">
-          <strong>Base for distances</strong> (station, hotel…):{' '}
-          {base ? (
-            <>
-              {base.name}{' '}
-              <button type="button" className="link" onClick={() => setBase(undefined)}>
-                Clear
-              </button>
-            </>
-          ) : (
-            <span className="muted">not set</span>
-          )}
-        </span>
-        <LocateSearch
-          initialQuery={city ? `${city} station` : ''}
-          placeholder="e.g. Shimbashi Station"
-          onPick={(p) => setBase({ name: p.name, lat: p.lat, lng: p.lng })}
-        />
-      </div>
-      <div className="row wrap">
+      {kind === 'stay' && <p className="muted small">A travel day can be the last day of one city and the first of the next.</p>}
+      <BasePicker city={city.trim()} base={base} hotels={hotels} onChange={setBase} />
+      <div className="row wrap sheet-actions">
         <button type="submit" className="primary" disabled={!valid}>
           Save city
         </button>

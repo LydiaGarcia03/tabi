@@ -82,6 +82,12 @@ export function SequenceBaggage({ carriers, main, fare }: { carriers: string[]; 
   )
 }
 
+const SCOPES: [AirlineInfo['scope'], string][] = [
+  ['international', 'Brazil → Japan'],
+  ['brazil', 'Inside Brazil'],
+  ['japan-domestic', 'Inside Japan'],
+]
+
 /**
  * Side-by-side airline comparison: baggage (sizes and weights), premium
  * economy and legroom. `highlight` = airlines used in the trip's options.
@@ -97,12 +103,11 @@ export function AirlineGuideTable({ highlight }: { highlight: string[] }) {
         <h2>🧳 Airline guide</h2>
         <div className="row wrap">
           <div className="segmented" role="radiogroup" aria-label="Flights">
-            <button type="button" role="radio" aria-checked={scope === 'international'} className={scope === 'international' ? 'active' : ''} onClick={() => setScope('international')}>
-              Brazil → Japan
-            </button>
-            <button type="button" role="radio" aria-checked={scope === 'japan-domestic'} className={scope === 'japan-domestic' ? 'active' : ''} onClick={() => setScope('japan-domestic')}>
-              Inside Japan
-            </button>
+            {SCOPES.map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={scope === id} className={scope === id ? 'active' : ''} onClick={() => setScope(id)}>
+                {label}
+              </button>
+            ))}
           </div>
           {highlight.length > 0 && (
             <label className="check">

@@ -97,8 +97,8 @@ export function compareOptions(options: TripOption[], trip: Trip, stays: Stay[],
 }
 
 /**
- * Hotels are measured from the city's base (e.g. a station); everything
- * else from the chosen hotel in that city, or the base.
+ * Hotels are measured from the city's base (e.g. a station, not a hotel);
+ * everything else from the chosen hotel in that city, or the base.
  */
 function referencePoint(kind: OptionKind, stay: Stay | undefined, options: TripOption[], city: string) {
   if (kind === 'transport') return undefined
@@ -108,6 +108,8 @@ function referencePoint(kind: OptionKind, stay: Stay | undefined, options: TripO
     )
     if (hotel) return { name: hotel.name, lat: hotel.lat!, lng: hotel.lng! }
   }
+  // Hotels measured from a hotel would only say how far they are from each other.
+  if (kind === 'hotel' && stay?.base?.kind === 'hotel') return undefined
   return stay?.base
 }
 

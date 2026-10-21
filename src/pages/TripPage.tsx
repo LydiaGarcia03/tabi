@@ -19,7 +19,15 @@ import { journeysOn } from '../planning/journeys'
 import { href, navigate } from '../router'
 import { useDraft } from '../useDraft'
 
+type OverviewView = 'days' | 'plan'
+
+const VIEWS: { id: OverviewView; label: string }[] = [
+  { id: 'days', label: 'Days' },
+  { id: 'plan', label: 'Cities, checklist & notes' },
+]
+
 export function TripPage({ tripId }: { tripId: string }) {
+  const [view, setView] = useState<OverviewView>('days')
   // `null` = not found; `undefined` = still loading.
   const trip = useLiveQuery(async () => (await db.trips.get(tripId)) ?? null, [tripId])
   const days = useLiveQuery(() => db.days.where('tripId').equals(tripId).sortBy('date'), [tripId])
@@ -27,6 +35,7 @@ export function TripPage({ tripId }: { tripId: string }) {
   const legs = useLiveQuery(() => db.legs.where('tripId').equals(tripId).toArray(), [tripId])
   const expenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
+  const options = useLiveQuery(() => db.options.where('tripId').equals(tripId).toArray(), [tripId])
   useRefreshStalePlaces(places)
 
   const overview = useMemo(() => {
@@ -56,8 +65,17 @@ export function TripPage({ tripId }: { tripId: string }) {
     <TripLayout trip={trip} active="itinerary">
       <TripHeader key={trip.id} trip={trip} dayCount={days.length} />
 
-      <div className="overview-grid">
-        <section className="section">
+      {/* Phones only: switch between the days and the rest of the plan. */}
+      <div className="segmented overview-switch" role="radiogroup" aria-label="View">
+        {VIEWS.map((v) => (
+          <button key={v.id} type="button" role="radio" aria-checked={view === v.id} className={view === v.id ? 'active' : ''} onClick={() => setView(v.id)}>
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={`overview-grid show-${view}`}>
+        <section className="section overview-days">
           <h2 className="section-title">Itinerary</h2>
           <ol className="day-cards">
             {days.map((day, i) => {
@@ -81,7 +99,7 @@ export function TripPage({ tripId }: { tripId: string }) {
         </section>
 
         <div className="overview-side">
-          <StaysEditor trip={trip} stays={stays} expenses={expenses?.filter((e) => !e.dayId) ?? []} />
+          <StaysEditor trip={trip} stays={stays} expenses={expenses?.filter((e) => !e.dayId) ?? []} options={options ?? []} />
 
           <a className="card budget-link" href={href({ page: 'budget', tripId: trip.id })}>
             <span className="row between">

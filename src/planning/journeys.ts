@@ -227,13 +227,13 @@ function sameCity(a: string, b: string): boolean {
 }
 
 /**
- * Booked journeys on a route. A missing end matches anything that isn't one
- * of the trip's cities (e.g. arriving from home).
+ * Booked journeys (or transport options) on a route. A missing end matches
+ * anything that isn't one of the trip's cities (e.g. arriving from home).
  */
-export function journeysOnRoute(expenses: Expense[], stays: Stay[], from?: string, to?: string): Expense[] {
+export function journeysOnRoute<T extends { journey?: Journey }>(items: T[], stays: Stay[], from?: string, to?: string): T[] {
   const isTripCity = (name: string) => stays.some((s) => sameCity(name, s.city))
   const matches = (name: string, city: string | undefined) => (city ? sameCity(name, city) : !isTripCity(name))
-  return expenses.filter((e) => e.journey && matches(e.journey.from, from) && matches(e.journey.to, to))
+  return items.filter((e) => e.journey && matches(e.journey.from, from) && matches(e.journey.to, to))
 }
 
 /** Booked journeys leaving on a given date. */

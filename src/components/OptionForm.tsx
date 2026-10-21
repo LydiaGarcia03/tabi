@@ -3,7 +3,7 @@ import type { Journey, OptionKind, Trip, TripOption } from '../db/model'
 import { addOption, deleteOption, updateOption } from '../db/options'
 import { optionPhotos, setOptionPhotos } from '../db/photos'
 import { cleanJourney, JOURNEY_LABEL, journeyCarriers } from '../planning/journeys'
-import { CATEGORY_HINT, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
+import { CATEGORY_PRESETS, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
 import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
 import { LocateSearch } from './LocateSearch'
@@ -22,6 +22,46 @@ interface Props {
 /** "Emirates · Navegantes → Osaka", "Gol + Qatar Airways · Navegantes → Osaka", "Shinkansen · Osaka → Tokyo" */
 function transportName(journey: Journey): string {
   return `${journeyCarriers(journey).join(' + ') || JOURNEY_LABEL[journey.mode]} · ${journey.from} → ${journey.to}`
+}
+
+/** The type as one-tap choices (like the transport modes), or typed with "Other…". */
+function TypePicker({ presets, value, onChange }: { presets: string[]; value: string; onChange: (value: string) => void }) {
+  const [typing, setTyping] = useState(value !== '' && !presets.includes(value))
+  return (
+    <div className="field">
+      <span className="field-label">Type</span>
+      <div className="chip-picker" role="radiogroup" aria-label="Type">
+        {presets.map((p) => (
+          <button
+            key={p}
+            type="button"
+            role="radio"
+            aria-checked={!typing && value === p}
+            className={!typing && value === p ? 'active' : ''}
+            onClick={() => {
+              setTyping(false)
+              onChange(value === p ? '' : p)
+            }}
+          >
+            {p}
+          </button>
+        ))}
+        <button
+          type="button"
+          role="radio"
+          aria-checked={typing}
+          className={typing ? 'active' : ''}
+          onClick={() => {
+            setTyping(!typing)
+            onChange('')
+          }}
+        >
+          Other…
+        </button>
+      </div>
+      {typing && <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Type it" aria-label="Type" autoFocus />}
+    </div>
+  )
 }
 
 /** Adds or edits something being considered. */
@@ -91,8 +131,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   }
 
   return (
-    <form className="card option-form" onSubmit={submit}>
-      <h2>{option ? `Edit ${KIND_SINGULAR[kind].toLowerCase()}` : 'New option'}</h2>
+    <form className="option-form" onSubmit={submit}>
       {!option && (
         <div className="segmented" role="radiogroup" aria-label="Kind">
           {OPTION_KINDS.map((k) => (
@@ -104,7 +143,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       )}
 
       {isTransport ? (
-        <JourneyFields journey={journey} onChange={setJourney} />
+        <JourneyFields journey={journey} onChange={setJourney} planning />
       ) : (
         <div className="field-row">
           <label>
@@ -120,12 +159,9 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
               ))}
             </datalist>
           </label>
-          <label>
-            Type
-            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder={CATEGORY_HINT[kind]} />
-          </label>
         </div>
       )}
+      {!isTransport && <TypePicker presets={CATEGORY_PRESETS[kind]} value={category} onChange={setCategory} />}
 
       <div className="field-row">
         <label>
@@ -208,7 +244,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
         </div>
       )}
 
-      <div className="row wrap">
+      <div className="row wrap sheet-actions">
         <button type="submit" className="primary" disabled={!valid}>
           {option ? 'Save' : 'Add option'}
         </button>

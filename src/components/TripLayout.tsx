@@ -19,14 +19,14 @@ interface Props {
 
 const SECTIONS: { id: TripSection; label: string; icon: IconName }[] = [
   { id: 'itinerary', label: 'Itinerary', icon: 'calendar' },
-  { id: 'logbook', label: 'Logbook', icon: 'pin' },
+  { id: 'logbook', label: 'Logbook', icon: 'book' },
   { id: 'options', label: 'Options', icon: 'sparkle' },
   { id: 'budget', label: 'Budget', icon: 'wallet' },
 ]
 
 /**
  * Frame of every trip page: on wide screens a sidebar with the sections and
- * all the days; on phones, tabs above the content.
+ * all the days; on phones, a navigation bar at the bottom.
  */
 export function TripLayout({ trip, active, children }: Props) {
   const days = useLiveQuery(() => db.days.where('tripId').equals(trip.id).sortBy('date'), [trip.id])
@@ -84,19 +84,19 @@ export function TripLayout({ trip, active, children }: Props) {
           </ol>
         </aside>
 
-        <div className="trip-content">
-          <nav className="trip-tabs" aria-label="Trip sections">
-            <a className="trip-tabs-back" href={href({ page: 'trips' })} aria-label="All trips">
-              <Icon name="back" size={16} />
+        <div className="trip-content">{children}</div>
+
+        {/* Phones and tablets: Android-style navigation bar, within thumb reach. */}
+        <nav className="bottom-nav" aria-label="Trip sections">
+          {SECTIONS.map((s) => (
+            <a key={s.id} href={sectionHref(s.id)} className={section === s.id ? 'active' : ''} aria-current={section === s.id ? 'page' : undefined}>
+              <span className="bottom-nav-icon">
+                <Icon name={s.icon} size={22} />
+              </span>
+              {s.label}
             </a>
-            {SECTIONS.map((s) => (
-              <a key={s.id} href={sectionHref(s.id)} className={section === s.id ? 'active' : ''}>
-                {s.label}
-              </a>
-            ))}
-          </nav>
-          {children}
-        </div>
+          ))}
+        </nav>
       </div>
     </CityColorsContext.Provider>
   )
@@ -113,7 +113,8 @@ function SidebarCity({ label, city }: { label: string; city: string }) {
 
 /** Small colored city tag. */
 export function CityTag({ city }: { city: string }) {
-  const hue = useCityHue(city.split(' → ')[0])
+  // "Osaka → Okinawa" and "Kyoto · day trip" take the first city's color.
+  const hue = useCityHue(city.split(/ → | · /)[0])
   return (
     <span className="city-tag" style={{ ['--hue' as string]: hue }}>
       {city}

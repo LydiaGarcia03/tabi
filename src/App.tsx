@@ -1,6 +1,9 @@
 import { APIProvider } from '@vis.gl/react-google-maps'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Icon, Logo } from './components/Icon'
+import { formatDate } from './dates'
+import { db } from './db/db'
 import { BudgetPage } from './pages/BudgetPage'
 import { DayPage } from './pages/DayPage'
 import { LogbookPage } from './pages/LogbookPage'
@@ -21,9 +24,12 @@ export default function App() {
   const route = useRoute()
   const online = useOnline()
 
+  const tripId = 'tripId' in route ? route.tripId : null
+
   const content = (
-    <div className={`shell${WIDE_PAGES.includes(route.page) ? ' wide' : ''}`}>
+    <div className={`shell${WIDE_PAGES.includes(route.page) ? ' wide' : ''}${tripId ? ' in-trip' : ''}`}>
       <header className="app-bar">
+        {tripId && <TripBarTitle tripId={tripId} />}
         <a className="brand" href={href({ page: 'trips' })}>
           <Logo />
           <span>
@@ -56,6 +62,29 @@ export default function App() {
     </APIProvider>
   ) : (
     content
+  )
+}
+
+/**
+ * On phones, inside a trip the bar shows where you are (like a native app):
+ * back to all trips and the trip's name. Computers have the sidebar instead.
+ */
+function TripBarTitle({ tripId }: { tripId: string }) {
+  const trip = useLiveQuery(() => db.trips.get(tripId), [tripId])
+  return (
+    <span className="app-bar-trip">
+      <a className="icon-button" href={href({ page: 'trips' })} aria-label="All trips">
+        <Icon name="back" size={20} />
+      </a>
+      <a className="app-bar-trip-name" href={href({ page: 'trip', tripId })}>
+        <strong>{trip?.name}</strong>
+        {trip && (
+          <span className="muted">
+            {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
+          </span>
+        )}
+      </a>
+    </span>
   )
 }
 

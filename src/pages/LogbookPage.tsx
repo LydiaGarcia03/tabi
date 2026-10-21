@@ -88,7 +88,7 @@ export function LogbookPage({ tripId }: { tripId: string }) {
   return (
     <TripLayout trip={trip} active="logbook">
       <header className="hero">
-        <p className="hero-kicker">{trip.name}</p>
+        <p className="hero-kicker trip-kicker">{trip.name}</p>
         <h1>Logbook</h1>
       </header>
       <p className="muted small logbook-intro">
@@ -173,8 +173,8 @@ export function LogbookPage({ tripId }: { tripId: string }) {
         </>
       )}
       <p className="muted small">
-        Want the map offline too? Export the trip to Organic Maps (itinerary page → Export) — the pins and drawn routes
-        work there without internet.{' '}
+        Want a map without internet too? On a day's page, switch to <strong>Offline map</strong> and download it for the
+        trip (with internet, before you go).{' '}
         <a href={href({ page: 'trip', tripId })}>Go to the itinerary</a>
       </p>
     </TripLayout>

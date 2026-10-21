@@ -190,11 +190,25 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
   )
 }
 
-/** Mode, route, time, carrier and class: shared by bookings and transport options. */
-export function JourneyFields({ journey, onChange }: { journey: Journey; onChange: (journey: Journey) => void }) {
+/**
+ * Mode, route, time, carrier and class: shared by bookings and transport options.
+ * `planning` (options): the departure time and number are only known once the
+ * ticket is bought, so they stay folded under "More details".
+ */
+export function JourneyFields({
+  journey,
+  onChange,
+  planning = false,
+}: {
+  journey: Journey
+  onChange: (journey: Journey) => void
+  planning?: boolean
+}) {
   const set = (changes: Partial<Journey>) => onChange({ ...journey, ...changes })
   const isFlight = journey.mode === 'flight'
   const hasLegs = !!journey.legs?.length
+  const [details, setDetails] = useState(!planning || !!journey.time || !!journey.number)
+  const numberLabel = isFlight ? 'Flight number' : journey.mode === 'shinkansen' || journey.mode === 'train' ? 'Train' : 'Number'
   // With legs, the main airline is picked among theirs (the one flown longest by default).
   const airline = isFlight ? findAirline(hasLegs ? withLegSummary(journey).carrier : journey.carrier) : undefined
 
@@ -241,8 +255,13 @@ export function JourneyFields({ journey, onChange }: { journey: Journey; onChang
           </div>
           <div className="field-row">
             <label>
-              Departure time
-              <input type="time" value={journey.time ?? ''} onChange={(e) => set({ time: e.target.value || undefined })} />
+              {isFlight ? 'Airline' : 'Operator'}
+              <input
+                value={journey.carrier ?? ''}
+                list={isFlight ? 'airline-names' : undefined}
+                onChange={(e) => set({ carrier: e.target.value })}
+                placeholder={isFlight ? 'Emirates' : 'JR Central'}
+              />
             </label>
             <label>
               Total time (hours)
@@ -256,21 +275,22 @@ export function JourneyFields({ journey, onChange }: { journey: Journey; onChang
               />
             </label>
           </div>
-          <div className="field-row">
-            <label>
-              {isFlight ? 'Airline' : 'Operator'}
-              <input
-                value={journey.carrier ?? ''}
-                list={isFlight ? 'airline-names' : undefined}
-                onChange={(e) => set({ carrier: e.target.value })}
-                placeholder={isFlight ? 'Emirates' : 'JR Central'}
-              />
-            </label>
-            <label>
-              {isFlight ? 'Flight number' : journey.mode === 'shinkansen' || journey.mode === 'train' ? 'Train' : 'Number'}
-              <input value={journey.number ?? ''} onChange={(e) => set({ number: e.target.value })} placeholder={isFlight ? 'EK262' : 'Nozomi 21'} />
-            </label>
-          </div>
+          {details ? (
+            <div className="field-row">
+              <label>
+                Departure time
+                <input type="time" value={journey.time ?? ''} onChange={(e) => set({ time: e.target.value || undefined })} />
+              </label>
+              <label>
+                {numberLabel}
+                <input value={journey.number ?? ''} onChange={(e) => set({ number: e.target.value })} placeholder={isFlight ? 'EK262' : 'Nozomi 21'} />
+              </label>
+            </div>
+          ) : (
+            <button type="button" className="link small" onClick={() => setDetails(true)}>
+              More details (departure time, {numberLabel.toLowerCase()}) ▾
+            </button>
+          )}
           <p className="small">
             {journey.stops && <span className="muted">Connections noted: {journey.stops}. </span>}
             <button type="button" className="link" onClick={() => onChange(splitIntoLegs(journey))}>
@@ -333,7 +353,7 @@ function CurrencySelect({ trip, value, onChange }: { trip: Trip; value: string; 
 
 function FormButtons({ valid, label, onCancel }: { valid: boolean; label: string; onCancel: () => void }) {
   return (
-    <div className="row">
+    <div className="row sheet-actions">
       <button type="submit" className="primary" disabled={!valid}>
         {label}
       </button>

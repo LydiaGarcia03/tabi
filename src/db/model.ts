@@ -22,6 +22,8 @@ export interface Trip {
   estimates?: Estimate[]
   /** Reminders and shopping list. */
   checklist?: ChecklistItem[]
+  /** Money already set aside for the trip (updated by hand). */
+  savedMoney?: Money
 }
 
 export interface Estimate {
@@ -50,7 +52,26 @@ export interface Stay {
   startDate: string
   endDate: string
   /** Reference point for distances (a station, the hotel…). */
-  base?: { name: string; lat: number; lng: number }
+  base?: StayBase
+  /** How the city is visited (default "stay"). */
+  kind?: StayKind
+}
+
+/**
+ * - `stay`: you sleep there (hotel nights).
+ * - `day-trip`: there and back the same day, sleeping in the city you're staying in (Kyoto from Osaka).
+ * - `stopover`: visited on the way to the next city, without sleeping there.
+ */
+export type StayKind = 'stay' | 'day-trip' | 'stopover'
+
+export interface StayBase {
+  name: string
+  lat: number
+  lng: number
+  /** What it is (older bases have none). */
+  kind?: 'hotel' | 'station' | 'other'
+  /** The hotel option it was picked from, if any. */
+  optionId?: string
 }
 
 export type OptionKind = 'hotel' | 'restaurant' | 'place' | 'shop' | 'transport'

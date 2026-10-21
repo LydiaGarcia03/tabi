@@ -5,7 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
-import type { Leg, Place } from '../db/model'
+import type { Leg, Place, StayBase } from '../db/model'
+import { baseIcon } from '../db/stays'
 import { drawingPoints, type Drawing } from '../drawing'
 import { segmentColor } from '../format'
 import { drawWalkDot, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT } from '../mapLines'
@@ -17,7 +18,7 @@ import type { LatLng } from '../routing/types'
 import { useIsDark } from '../theme'
 import { useOnline } from '../useOnline'
 
-type Base = LatLng & { name: string; city: string }
+type Base = StayBase & { city: string }
 
 interface Props {
   tripId: string
@@ -282,7 +283,7 @@ function OfflineDayMap({
     const baseMarkers = bases.map((base) => {
       const el = document.createElement('span')
       el.className = 'base-pin'
-      el.textContent = '🏠'
+      el.textContent = baseIcon(base)
       el.title = `Base in ${base.city}: ${base.name}`
       return new maplibregl.Marker({ element: el }).setLngLat([base.lng, base.lat]).addTo(map)
     })
