@@ -5,6 +5,7 @@ import { toBackupJson } from '../export/backup'
 import { toGpx } from '../export/gpx'
 import { buildItinerary } from '../export/itinerary'
 import { toKml } from '../export/kml'
+import { getRapidApiKey } from '../settings'
 
 interface Props {
   tripId: string
@@ -15,6 +16,8 @@ interface Props {
 /** Downloads for offline use: KML/GPX for Organic Maps and, for a trip, the JSON backup. */
 export function ExportCard({ tripId, day }: Props) {
   const [error, setError] = useState('')
+  const [includeKey, setIncludeKey] = useState(false)
+  const hasKey = !!getRapidApiKey()
 
   async function download(kind: 'kml' | 'gpx' | 'backup') {
     setError('')
@@ -25,7 +28,8 @@ export function ExportCard({ tripId, day }: Props) {
       const name = fileSlug(data.trip.name, day ? `day ${day.number}` : '')
       if (kind === 'backup') {
         const date = new Date().toLocaleDateString('en-CA') // Local "YYYY-MM-DD".
-        downloadFile(`${name}-backup-${date}.json`, toBackupJson(data), 'application/json')
+        const key = includeKey ? getRapidApiKey() : null
+        downloadFile(`${name}-backup-${date}.json`, toBackupJson(data, key), 'application/json')
         return
       }
       const itinerary = buildItinerary(data, day && [day.id])
@@ -59,8 +63,21 @@ export function ExportCard({ tripId, day }: Props) {
       </div>
       {!day && (
         <p className="muted small">
-          The backup has the whole trip. Import it on another device (Trips → Import backup) to move or restore it.
+          The backup has the whole trip. Import it on another device (Trips → Import a backup) to move or restore it.
         </p>
+      )}
+      {!day && hasKey && (
+        <>
+          <label className="check">
+            <input type="checkbox" checked={includeKey} onChange={(e) => setIncludeKey(e.target.checked)} />
+            Include my NAVITIME key in the backup
+          </label>
+          {includeKey && (
+            <p className="warning small">
+              The file will contain your key: keep it private (send it only to yourself) and don't share it.
+            </p>
+          )}
+        </>
       )}
       {error && <p className="error">{error}</p>}
     </section>

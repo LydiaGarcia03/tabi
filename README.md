@@ -84,7 +84,7 @@ The production build installs a service worker (offline cache). To test it witho
 
 - **Install:** open the app on the phone and choose *Add to Home screen* (Android Chrome: menu ⋮ → *Install app*; iPhone Safari: Share → *Add to Home Screen*). Open it once while online; after that it works without internet.
 - **Offline maps:** on the trip or day page, tap **Organic Maps (KML)** and open the file with [Organic Maps](https://organicmaps.app/) (download the Japan map in Organic Maps beforehand).
-- **Phone ↔ PC:** **Backup (JSON)** on one device, **Import backup** on the other.
+- **Phone ↔ PC:** **Backup (JSON)** on one device, **Import a backup** on the other. Tick *Include my NAVITIME key* to carry the RapidAPI key too (then keep that file private).
 
 ## Deployment
 

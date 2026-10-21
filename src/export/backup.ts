@@ -11,15 +11,24 @@ interface BackupFile extends TripData {
   format: typeof FORMAT
   version: number
   exportedAt: string
+  /** Device settings, only when the user chose to include them (the file is then private). */
+  settings?: { rapidApiKey?: string }
 }
 
-export function toBackupJson(data: TripData): string {
+export interface ParsedBackup {
+  data: TripData
+  /** NAVITIME (RapidAPI) key carried in the file, if any. */
+  rapidApiKey?: string
+}
+
+export function toBackupJson(data: TripData, rapidApiKey?: string | null): string {
   const file: BackupFile = { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), ...data }
+  if (rapidApiKey) file.settings = { rapidApiKey }
   return JSON.stringify(file, null, 2)
 }
 
 /** Reads a backup file; throws a readable error if it isn't one. */
-export function parseBackup(text: string): TripData {
+export function parseBackup(text: string): ParsedBackup {
   let file: Partial<BackupFile>
   try {
     file = JSON.parse(text)
@@ -34,7 +43,11 @@ export function parseBackup(text: string): TripData {
   if (!trip?.id || ![days, places, legs, expenses].every(Array.isArray)) {
     throw new Error('This backup is incomplete or damaged.')
   }
-  return { trip, days: days!, places: places!, legs: legs!, expenses: expenses! }
+  const key = file.settings?.rapidApiKey
+  return {
+    data: { trip, days: days!, places: places!, legs: legs!, expenses: expenses! },
+    rapidApiKey: typeof key === 'string' && key.trim() ? key.trim() : undefined,
+  }
 }
 
 export async function tripExists(tripId: string): Promise<boolean> {

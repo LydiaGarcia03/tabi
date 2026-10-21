@@ -1,11 +1,11 @@
 import { useState, type ChangeEvent } from 'react'
-import type { TripData } from '../db/tripData'
-import { importBackup, parseBackup, tripExists } from '../export/backup'
+import { importBackup, parseBackup, tripExists, type ParsedBackup } from '../export/backup'
 import { navigate } from '../router'
+import { setRapidApiKey } from '../settings'
 
 /** Restores a trip from a backup file (from this or another device). */
 export function ImportBackup() {
-  const [conflict, setConflict] = useState<TripData | null>(null)
+  const [conflict, setConflict] = useState<ParsedBackup | null>(null)
   const [error, setError] = useState('')
 
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
@@ -15,28 +15,33 @@ export function ImportBackup() {
     setError('')
     setConflict(null)
     try {
-      const data = parseBackup(await file.text())
-      if (await tripExists(data.trip.id)) setConflict(data)
-      else await save(data, 'replace')
+      const backup = parseBackup(await file.text())
+      if (await tripExists(backup.data.trip.id)) setConflict(backup)
+      else await save(backup, 'replace')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
   }
 
-  async function save(data: TripData, mode: 'replace' | 'copy') {
-    const tripId = await importBackup(data, mode)
+  async function save(backup: ParsedBackup, mode: 'replace' | 'copy') {
+    const tripId = await importBackup(backup.data, mode)
+    // The key travels with the trip only when the user included it on export.
+    if (backup.rapidApiKey) setRapidApiKey(backup.rapidApiKey)
     navigate({ page: 'trip', tripId })
   }
 
   return (
     <section className="import-backup">
-      <p className="muted small">Open a backup file (.json) exported from Tabi on this or another device.</p>
+      <p className="muted small">
+        Open a backup file (.json) exported from Tabi on this or another device. If it includes your NAVITIME key, the key
+        is saved on this device too.
+      </p>
       <input type="file" accept=".json,application/json" onChange={onFile} aria-label="Backup file" />
       {conflict && (
         <div className="import-conflict">
           <p>
-            “{conflict.trip.name}” is already on this device. Replace it with the backup (changes made here since then
-            are lost), or keep both?
+            “{conflict.data.trip.name}” is already on this device. Replace it with the backup (changes made here since
+            then are lost), or keep both?
           </p>
           <div className="row wrap">
             <button type="button" className="danger" onClick={() => save(conflict, 'replace')}>
