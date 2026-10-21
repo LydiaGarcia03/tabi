@@ -13,7 +13,10 @@ export async function updateOption(id: string, changes: Partial<Omit<TripOption,
 }
 
 export async function deleteOption(id: string): Promise<void> {
-  await db.options.delete(id)
+  await db.transaction('rw', db.options, db.photos, async () => {
+    await db.photos.where('optionId').equals(id).delete()
+    await db.options.delete(id)
+  })
 }
 
 /** Adds a located option to a day as a place (keeping a link to it) and marks it chosen. */

@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { upgradeExpense, upgradeOption } from './migrations'
-import type { Day, Expense, Leg, Place, Stay, Trip, TripOption } from './model'
+import type { Day, Expense, Leg, OptionPhoto, Place, Stay, Trip, TripOption } from './model'
 
 export const db = new Dexie('tabi') as Dexie & {
   trips: EntityTable<Trip, 'id'>
@@ -10,6 +10,7 @@ export const db = new Dexie('tabi') as Dexie & {
   expenses: EntityTable<Expense, 'id'>
   stays: EntityTable<Stay, 'id'>
   options: EntityTable<TripOption, 'id'>
+  photos: EntityTable<OptionPhoto, 'id'>
 }
 
 // Only indexed fields are listed; every other field is stored as well.
@@ -36,6 +37,10 @@ db.version(5)
     await tx.table('expenses').toCollection().modify((expense) => void upgradeExpense(expense))
     await tx.table('options').toCollection().modify((option) => void upgradeOption(option))
   })
+// Photos of options, kept apart so the options list stays light.
+db.version(6).stores({
+  photos: 'id, tripId, optionId',
+})
 
 /** Asks the browser not to evict our data when the device is low on space. */
 export async function requestPersistentStorage(): Promise<void> {

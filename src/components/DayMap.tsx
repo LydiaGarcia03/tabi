@@ -1,7 +1,7 @@
 import { AdvancedMarker, Map, Pin, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useEffect, useMemo } from 'react'
 import { legKey } from '../db/legs'
-import type { Leg, Place } from '../db/model'
+import type { Leg, Place, Stay } from '../db/model'
 import { drawingPoints, type Drawing } from '../drawing'
 import { MODE_COLOR } from '../format'
 import type { LatLng } from '../routing/types'
@@ -22,9 +22,13 @@ interface Props {
   fallbackCenter?: { lat: number; lng: number }
   /** Segment being drawn by hand, if any. */
   drawing?: Drawing | null
+  /** Bases of the day's cities (hotel, station…), shown with their own pin. Two on a travel day. */
+  bases?: Base[]
 }
 
-export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing }: Props) {
+type Base = NonNullable<Stay['base']> & { city: string }
+
+export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, bases = [] }: Props) {
   const dark = useIsDark()
   return (
     <div className="day-map">
@@ -56,9 +60,16 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
             />
           </AdvancedMarker>
         ))}
+        {bases.map((base) => (
+          <AdvancedMarker key={`${base.city}|${base.lat},${base.lng}`} position={base} title={`Base in ${base.city}: ${base.name}`} zIndex={-1}>
+            <span className="base-pin" aria-hidden="true">
+              🏠
+            </span>
+          </AdvancedMarker>
+        ))}
         <LegLines places={places} legs={legs} />
         {drawing && <DraftLayer drawing={drawing} />}
-        <FitToPlaces places={places} />
+        <FitToPlaces places={[...places, ...bases]} />
       </Map>
     </div>
   )
@@ -166,10 +177,10 @@ function dottedLine(map: google.maps.Map, path: LatLng[], color: string, opacity
   })
 }
 
-/** Fits the map to the places whenever the set of places changes (not on edits). */
-function FitToPlaces({ places }: { places: Place[] }) {
+/** Fits the map to the places (and bases) whenever their set changes (not on edits). */
+function FitToPlaces({ places }: { places: (LatLng & { id?: string })[] }) {
   const map = useMap(DAY_MAP_ID)
-  const key = places.map((p) => `${p.id}:${p.lat},${p.lng}`).sort().join('|')
+  const key = places.map((p) => `${p.id ?? ''}:${p.lat},${p.lng}`).sort().join('|')
   useEffect(() => {
     if (!map || places.length === 0) return
     if (places.length === 1) {

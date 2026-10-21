@@ -3,19 +3,25 @@
 
 import { db } from '../db/db'
 import { upgradeExpense, upgradeOption } from '../db/migrations'
+import type { OptionPhoto } from '../db/model'
 import type { TripData } from '../db/tripData'
 
 const FORMAT = 'tabi-trip'
 /**
  * 2 added stays and options (version 1 files have neither: read as empty).
  * 3 replaced flights with journeys (older files are converted on import).
+ * 4 added option photos (older files have none).
  */
-const VERSION = 3
+const VERSION = 4
 
-interface BackupFile extends TripData {
+/** In the file, a photo's image is a "data:image/jpeg;base64,…" URL. */
+type PhotoInFile = Omit<OptionPhoto, 'image'> & { image: string }
+
+interface BackupFile extends Omit<TripData, 'photos'> {
   format: typeof FORMAT
   version: number
   exportedAt: string
+  photos?: PhotoInFile[]
   /** Device settings, only when the user chose to include them (the file is then private). */
   settings?: { rapidApiKey?: string }
 }
@@ -26,8 +32,9 @@ export interface ParsedBackup {
   rapidApiKey?: string
 }
 
-export function toBackupJson(data: TripData, rapidApiKey?: string | null): string {
-  const file: BackupFile = { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), ...data }
+export async function toBackupJson(data: TripData, rapidApiKey?: string | null): Promise<string> {
+  const photos = await Promise.all(data.photos.map(async (p) => ({ ...p, image: await blobToDataUrl(p.image) })))
+  const file: BackupFile = { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), ...data, photos }
   if (rapidApiKey) file.settings = { rapidApiKey }
   return JSON.stringify(file, null, 2)
 }
@@ -44,8 +51,8 @@ export function parseBackup(text: string): ParsedBackup {
   if (typeof file.version !== 'number' || file.version > VERSION) {
     throw new Error('This backup was made by a newer version of Tabi. Reload the app to update it, then try again.')
   }
-  const { trip, days, places, legs, expenses, stays = [], options = [] } = file
-  if (!trip?.id || ![days, places, legs, expenses, stays, options].every(Array.isArray)) {
+  const { trip, days, places, legs, expenses, stays = [], options = [], photos = [] } = file
+  if (!trip?.id || ![days, places, legs, expenses, stays, options, photos].every(Array.isArray)) {
     throw new Error('This backup is incomplete or damaged.')
   }
   const key = file.settings?.rapidApiKey
@@ -59,6 +66,7 @@ export function parseBackup(text: string): ParsedBackup {
       expenses: expenses!.map((e) => upgradeExpense(e)),
       stays,
       options: options.map((o) => upgradeOption(o)),
+      photos: photos.filter((p) => typeof p.image === 'string').map((p) => ({ ...p, image: dataUrlToBlob(p.image) })),
     },
     rapidApiKey: typeof key === 'string' && key.trim() ? key.trim() : undefined,
   }
@@ -75,8 +83,9 @@ export async function tripExists(tripId: string): Promise<boolean> {
  */
 export async function importBackup(data: TripData, mode: 'replace' | 'copy'): Promise<string> {
   const saved = mode === 'copy' ? withNewIds(data) : data
-  await db.transaction('rw', [db.trips, db.days, db.places, db.legs, db.expenses, db.stays, db.options], async () => {
+  await db.transaction('rw', [db.trips, db.days, db.places, db.legs, db.expenses, db.stays, db.options, db.photos], async () => {
     const id = saved.trip.id
+    await db.photos.where('tripId').equals(id).delete()
     await db.options.where('tripId').equals(id).delete()
     await db.stays.where('tripId').equals(id).delete()
     await db.expenses.where('tripId').equals(id).delete()
@@ -90,6 +99,7 @@ export async function importBackup(data: TripData, mode: 'replace' | 'copy'): Pr
     await db.expenses.bulkAdd(saved.expenses)
     await db.stays.bulkAdd(saved.stays)
     await db.options.bulkAdd(saved.options)
+    await db.photos.bulkAdd(saved.photos)
   })
   return saved.trip.id
 }
@@ -123,5 +133,22 @@ function withNewIds(data: TripData): TripData {
       placeId: o.placeId && remap(o.placeId),
       expenseId: o.expenseId && remap(o.expenseId),
     })),
+    photos: data.photos.map((p) => ({ ...p, id: remap(p.id), tripId, optionId: remap(p.optionId) })),
   }
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64 = ''] = dataUrl.split(',')
+  const type = /^data:([^;]+)/.exec(header)?.[1] ?? 'image/jpeg'
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+  return new Blob([bytes], { type })
 }

@@ -38,7 +38,8 @@ export async function updateTrip(id: string, changes: Partial<Omit<Trip, 'id' | 
 }
 
 export async function deleteTrip(id: string): Promise<void> {
-  await db.transaction('rw', [db.trips, db.days, db.places, db.legs, db.expenses, db.stays, db.options], async () => {
+  await db.transaction('rw', [db.trips, db.days, db.places, db.legs, db.expenses, db.stays, db.options, db.photos], async () => {
+    await db.photos.where('tripId').equals(id).delete()
     await db.options.where('tripId').equals(id).delete()
     await db.stays.where('tripId').equals(id).delete()
     await db.expenses.where('tripId').equals(id).delete()

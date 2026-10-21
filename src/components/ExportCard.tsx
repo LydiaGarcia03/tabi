@@ -29,7 +29,7 @@ export function ExportCard({ tripId, day }: Props) {
       if (kind === 'backup') {
         const date = new Date().toLocaleDateString('en-CA') // Local "YYYY-MM-DD".
         const key = includeKey ? getRapidApiKey() : null
-        downloadFile(`${name}-backup-${date}.json`, toBackupJson(data, key), 'application/json')
+        downloadFile(`${name}-backup-${date}.json`, await toBackupJson(data, key), 'application/json')
         return
       }
       const itinerary = buildItinerary(data, day && [day.id])
@@ -63,7 +63,7 @@ export function ExportCard({ tripId, day }: Props) {
       </div>
       {!day && (
         <p className="muted small">
-          The backup has the whole trip. Import it on another device (Trips → Import a backup) to move or restore it.
+          The backup has the whole trip, photos included. Import it on another device (Trips → Import a backup) to move or restore it.
         </p>
       )}
       {!day && hasKey && (

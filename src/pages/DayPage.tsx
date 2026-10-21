@@ -9,7 +9,7 @@ import { ExportCard } from '../components/ExportCard'
 import { DrawToolbar } from '../components/DrawToolbar'
 import { DayStrip } from '../components/DayStrip'
 import { CityTag, TripLayout } from '../components/TripLayout'
-import { cityLabel } from '../db/stays'
+import { cityLabel, staysOn } from '../db/stays'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Icon } from '../components/Icon'
 import { LegItem } from '../components/LegItem'
@@ -133,6 +133,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                   onMapClick={onMapClick}
                   fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
                   drawing={drawing}
+                  bases={(stays ? staysOn(stays, day.date) : []).flatMap((s) => (s.base ? [{ ...s.base, city: s.city }] : []))}
                 />
               </ErrorBoundary>
               {drawing && <DrawToolbar drawing={drawing} onChange={setDrawing} />}

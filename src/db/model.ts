@@ -89,6 +89,17 @@ export interface TripOption {
   createdAt: string
 }
 
+/** A photo of an option (hotel room, menu, view…), uploaded by the user and resized on the device. */
+export interface OptionPhoto {
+  id: string
+  tripId: string
+  optionId: string
+  /** Position among the option's photos (0 first). */
+  order: number
+  /** JPEG image. */
+  image: Blob
+}
+
 export interface Day {
   id: string
   tripId: string

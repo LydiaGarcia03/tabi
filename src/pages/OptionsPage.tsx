@@ -5,6 +5,7 @@ import { HotelForm, JourneyForm, type BookingValues } from '../components/Bookin
 import { Icon } from '../components/Icon'
 import { checkedForFare, describeBag, describeChecked, findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
+import { PhotoStrip } from '../components/Photos'
 import { Stars } from '../components/Stars'
 import { CityTag, TripLayout } from '../components/TripLayout'
 import { formatDay } from '../dates'
@@ -38,6 +39,14 @@ export function OptionsPage({ tripId }: { tripId: string }) {
   const days = useLiveQuery(() => db.days.where('tripId').equals(tripId).sortBy('date'), [tripId])
   const placeIds = useLiveQuery(async () => new Set(await db.places.where('tripId').equals(tripId).primaryKeys()), [tripId])
   const expenseIds = useLiveQuery(async () => new Set(await db.expenses.where('tripId').equals(tripId).primaryKeys()), [tripId])
+  // Images are Blobs: the browser reads their bytes only when one is shown.
+  const photos = useLiveQuery(async () => {
+    const byOption = new Map<string, Blob[]>()
+    for (const p of await db.photos.where('tripId').equals(tripId).sortBy('order')) {
+      byOption.set(p.optionId, [...(byOption.get(p.optionId) ?? []), p.image])
+    }
+    return byOption
+  }, [tripId])
 
   const [kind, setKind] = useState<OptionKind | 'all'>('all')
   const [city, setCity] = useState('')
@@ -68,11 +77,11 @@ export function OptionsPage({ tripId }: { tripId: string }) {
     return compareOptions(shown, trip, stays, weights).sort((a, b) => order(a).localeCompare(order(b)))
   }, [trip, options, stays, kind, city, showDiscarded, weights])
 
-  if (trip === undefined || !options || !stays || !days || !placeIds || !expenseIds) return null
+  if (trip === undefined || !options || !stays || !days || !placeIds || !expenseIds || !photos) return null
   if (!trip) return <NotFound />
 
   const counts = Object.fromEntries(OPTION_KINDS.map((k) => [k, options.filter((o) => o.kind === k && o.status !== 'discarded').length]))
-  const context = { trip, stays, days, placeIds, expenseIds, onEdit: (o: TripOption) => setEditing(o) }
+  const context = { trip, stays, days, placeIds, expenseIds, photos, onEdit: (o: TripOption) => setEditing(o) }
   // Airlines in the transport options, highlighted in the airline guide.
   const myAirlines = [
     ...new Set(
@@ -163,6 +172,8 @@ interface Context {
   days: Day[]
   placeIds: Set<string>
   expenseIds: Set<string>
+  /** Photos by option id. */
+  photos: Map<string, Blob[]>
   onEdit: (option: TripOption) => void
 }
 
@@ -227,7 +238,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
   )
 }
 
-function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, onEdit }: { item: Scored; group: Group } & Context) {
+function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photos, onEdit }: { item: Scored; group: Group } & Context) {
   const { option } = item
   const [choosing, setChoosing] = useState(false)
   const journey = option.journey
@@ -265,6 +276,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, onEdi
                   .join(' · ')
               : [option.category, option.hours].filter(Boolean).join(' · ')}
           </span>
+          <PhotoStrip images={photos.get(option.id) ?? []} name={option.name} />
           {inPlan && <span className="tag in-plan">{option.expenseId ? 'Booked' : 'In the itinerary'}</span>}
           {item.badges.length > 0 && (
             <span className="badges">

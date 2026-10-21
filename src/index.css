@@ -1084,6 +1084,20 @@ button:disabled {
   margin: 0;
 }
 
+/* The city's base (Cities on the itinerary page): a square tile, unlike the numbered place pins. */
+.base-pin {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #1f1b17;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  font-size: 16px;
+  line-height: 1;
+}
+
 /* Points of a segment being drawn (map markers, centered on the point). */
 .draft-dot {
   display: block;
@@ -1689,6 +1703,109 @@ button.icon-toggle.on {
 
 .option-form .segmented {
   margin-bottom: 4px;
+}
+
+/* --- Option photos ------------------------------------------------------- */
+
+.photo-strip {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+button.photo-thumb {
+  padding: 0;
+  min-height: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.photo-thumb img,
+.photo-picker-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.photo-picker-item {
+  margin: 0;
+  width: 104px;
+}
+
+.photo-picker-item img {
+  height: 78px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.photo-picker-item figcaption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+button.photo-add {
+  width: 104px;
+  height: 78px;
+  border-style: dashed;
+  font-size: 0.85rem;
+}
+
+.photo-picker > p {
+  margin: 4px 0 0;
+}
+
+dialog.photo-viewer {
+  max-width: min(96vw, 1100px);
+  max-height: 94vh;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: #111;
+  color: #f4efe8;
+  overflow: hidden;
+}
+
+dialog.photo-viewer::backdrop {
+  background: rgb(0 0 0 / 0.75);
+}
+
+.photo-viewer img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(94vh - 56px);
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.photo-viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.photo-viewer-bar span {
+  flex: 1;
+  text-align: center;
+}
+
+.photo-viewer-bar button {
+  background: #2a2724;
+  border-color: #3a3530;
+  color: inherit;
 }
 
 /* On phones the comparison table becomes one card per option. */

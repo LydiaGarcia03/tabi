@@ -1,11 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Journey, OptionKind, Trip, TripOption } from '../db/model'
 import { addOption, deleteOption, updateOption } from '../db/options'
+import { optionPhotos, setOptionPhotos } from '../db/photos'
 import { cleanJourney, JOURNEY_LABEL } from '../planning/journeys'
 import { CATEGORY_HINT, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
 import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
 import { LocateSearch } from './LocateSearch'
+import { PhotoPicker } from './Photos'
 import { Stars } from './Stars'
 
 interface Props {
@@ -42,6 +44,13 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   )
   const [journey, setJourney] = useState<Journey>(option?.journey ?? { mode: 'flight', from: '', to: '' })
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // Saved only when changed, so saving before they finish loading never drops them.
+  const [photos, setPhotos] = useState<Blob[] | null>(null)
+  const [savedPhotos, setSavedPhotos] = useState<Blob[] | null>(option ? null : [])
+
+  useEffect(() => {
+    if (option) void optionPhotos(option.id).then((list) => setSavedPhotos(list.map((p) => p.image)))
+  }, [option])
 
   const isTransport = kind === 'transport'
   const valid = isTransport ? journey.from.trim() !== '' && journey.to.trim() !== '' : name.trim() !== ''
@@ -74,8 +83,9 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       googleFetchedAt: isTransport ? undefined : location?.googleFetchedAt,
       journey: isTransport ? cleanJourney(journey) : undefined,
     }
+    const id = option ? option.id : await addOption({ ...values, tripId: trip.id, status: 'idea' })
     if (option) await updateOption(option.id, values)
-    else await addOption({ ...values, tripId: trip.id, status: 'idea' })
+    if (photos) await setOptionPhotos({ id, tripId: trip.id }, photos)
     onDone()
   }
 
@@ -174,6 +184,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
         Link
         <input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
       </label>
+      {savedPhotos && <PhotoPicker images={photos ?? savedPhotos} onChange={setPhotos} />}
 
       {!isTransport && (
         <div className="field">
