@@ -33,7 +33,7 @@ export async function addOptionToDay(option: TripOption, dayId: string): Promise
   await updateOption(option.id, { status: 'chosen', placeId })
 }
 
-/** Books a hotel or flight option as a trip-wide expense and marks it chosen. */
+/** Books a hotel or transport option as a trip-wide expense and marks it chosen. */
 export async function bookOption(option: TripOption, expense: Omit<Expense, 'id'>): Promise<void> {
   const expenseId = crypto.randomUUID()
   await db.transaction('rw', db.expenses, db.options, async () => {

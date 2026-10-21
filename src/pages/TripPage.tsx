@@ -15,6 +15,7 @@ import type { Trip } from '../db/model'
 import { cityLabel } from '../db/stays'
 import { deleteTrip, orderPlaces, updateTrip } from '../db/trips'
 import { useRefreshStalePlaces } from '../places/refresh'
+import { journeysOn } from '../planning/journeys'
 import { href, navigate } from '../router'
 import { useDraft } from '../useDraft'
 
@@ -68,6 +69,7 @@ export function TripPage({ tripId }: { tripId: string }) {
                     day={day}
                     number={i + 1}
                     city={cityLabel(stays, day.date)}
+                    journeys={journeysOn(expenses ?? [], day.date).map((e) => e.journey!)}
                     places={info.places}
                     travelMinutes={info.travelMinutes}
                     budget={info.budget}
@@ -79,7 +81,7 @@ export function TripPage({ tripId }: { tripId: string }) {
         </section>
 
         <div className="overview-side">
-          <StaysEditor trip={trip} stays={stays} />
+          <StaysEditor trip={trip} stays={stays} expenses={expenses?.filter((e) => !e.dayId) ?? []} />
 
           <a className="card budget-link" href={href({ page: 'budget', tripId: trip.id })}>
             <span className="row between">
@@ -87,7 +89,7 @@ export function TripPage({ tripId }: { tripId: string }) {
               <Icon name="forward" size={16} />
             </span>
             <MoneyTotals totals={overview.total.total} trip={trip} />
-            <span className="muted small">Flights, hotels, estimates vs. booked</span>
+            <span className="muted small">Transport, hotels, estimates vs. booked</span>
           </a>
 
           <Checklist trip={trip} />

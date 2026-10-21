@@ -53,7 +53,7 @@ export interface Stay {
   base?: { name: string; lat: number; lng: number }
 }
 
-export type OptionKind = 'hotel' | 'restaurant' | 'place' | 'shop' | 'flight'
+export type OptionKind = 'hotel' | 'restaurant' | 'place' | 'shop' | 'transport'
 export type OptionStatus = 'idea' | 'favorite' | 'chosen' | 'discarded'
 
 /** Something being considered (hotel, restaurant, place…), to compare and pick. */
@@ -64,7 +64,7 @@ export interface TripOption {
   status: OptionStatus
   name: string
   city?: string
-  /** Hotel: per night; restaurant: per person; place: ticket; flight: per ticket. */
+  /** Hotel: per night; restaurant: per person; place: ticket; transport: per ticket. */
   price?: Money
   /** Hotel: total for the stay, when known (overrides price × nights). */
   totalPrice?: Money
@@ -81,7 +81,8 @@ export interface TripOption {
   googlePlaceId?: string
   address?: string
   googleFetchedAt?: string
-  flight?: Flight
+  /** For transport options: mode, route, airline, fare… */
+  journey?: Journey
   /** What was created from this option (a place in a day, a booking). */
   placeId?: string
   expenseId?: string
@@ -151,8 +152,8 @@ export interface Expense {
   notes?: string
   /** Set for hotel stays (category "lodging"). */
   hotel?: HotelStay
-  /** Set for flights (category "transport"). */
-  flight?: Flight
+  /** Set for a trip between cities: flight, shinkansen… (category "transport"). */
+  journey?: Journey
 }
 
 export interface HotelStay {
@@ -165,15 +166,29 @@ export interface HotelStay {
   perNight?: number
 }
 
-export interface Flight {
-  /** Airport or city, e.g. "GRU" or "São Paulo". */
+export type JourneyMode = 'flight' | 'shinkansen' | 'train' | 'bus' | 'ferry' | 'car'
+
+/** Getting from one city to another (or from home): a flight, a shinkansen… */
+export interface Journey {
+  mode: JourneyMode
+  /** City or airport/station, e.g. "Navegantes (NVT)" or "Shin-Osaka". */
   from: string
   to: string
   /** "YYYY-MM-DD" and "HH:mm", local time at departure. */
   date?: string
   time?: string
-  /** Airline and/or flight number, e.g. "LATAM LA8070". */
-  flightNumber?: string
+  /** Airline or operator. Airline names that match the airline guide show its baggage rules. */
+  carrier?: string
+  /** Flight or train number: "EK262", "Nozomi 21". */
+  number?: string
+  /** Cabin or car class: "Economy", "Premium economy", "Green Car"… */
+  cabin?: string
+  /** Fare family ("Saver", "Classic", "Light"): decides the checked baggage. */
+  fare?: string
+  /** Door-to-door time of the whole trip, connections included. */
+  durationHours?: number
+  /** Connections, e.g. "via Dubai". */
+  stops?: string
 }
 
 /** One step of a leg, e.g. "walk 400 m" or "Ginza Line from Kanda to Asakusa". */

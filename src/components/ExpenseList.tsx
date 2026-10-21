@@ -4,7 +4,8 @@ import { addDays, daysBetween, formatDay } from '../dates'
 import { addExpense, deleteExpense, updateExpense } from '../db/expenses'
 import type { Expense, ExpenseCategory, Trip } from '../db/model'
 import { formatMoney } from '../format'
-import { FlightForm, HotelForm, type BookingValues } from './BookingForms'
+import { journeyDetails, journeyTitle } from '../planning/journeys'
+import { HotelForm, JourneyForm, type BookingValues } from './BookingForms'
 
 interface Props {
   trip: Trip
@@ -13,11 +14,11 @@ interface Props {
   expenses: Expense[]
 }
 
-type Editing = string | 'new' | 'new-hotel' | 'new-flight' | null
+type Editing = string | 'new' | 'new-hotel' | 'new-journey' | null
 
 /**
  * Free-form expenses with add / edit / delete. Trip-wide lists also have
- * hotels and flights, grouped, with their own forms.
+ * hotels and journeys (flights, shinkansen…), grouped, with their own forms.
  */
 export function ExpenseList({ trip, dayId, expenses }: Props) {
   const [editing, setEditing] = useState<Editing>(null)
@@ -28,8 +29,8 @@ export function ExpenseList({ trip, dayId, expenses }: Props) {
     setEditing(null)
   }
   const update = (id: string) => async (values: BookingValues) => {
-    // Clear hotel/flight details the new values don't have.
-    await updateExpense(id, { hotel: undefined, flight: undefined, ...values })
+    // Clear hotel/journey details the new values don't have.
+    await updateExpense(id, { hotel: undefined, journey: undefined, ...values })
     setEditing(null)
   }
 
@@ -44,22 +45,22 @@ export function ExpenseList({ trip, dayId, expenses }: Props) {
     const props = { trip, expense, onSave: update(expense.id), onCancel: () => setEditing(null) }
     return (
       <li key={expense.id}>
-        {expense.hotel ? <HotelForm {...props} /> : expense.flight ? <FlightForm {...props} /> : <ExpenseForm {...props} />}
+        {expense.hotel ? <HotelForm {...props} /> : expense.journey ? <JourneyForm {...props} /> : <ExpenseForm {...props} />}
       </li>
     )
   }
 
-  const flights = expenses.filter((e) => e.flight).sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+  const journeys = expenses.filter((e) => e.journey).sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
   const hotels = expenses.filter((e) => e.hotel).sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
-  const others = expenses.filter((e) => !e.flight && !e.hotel)
+  const others = expenses.filter((e) => !e.journey && !e.hotel)
 
   return (
     <div className="expenses">
       {expenses.length === 0 && editing === null && <p className="muted small">No expenses yet.</p>}
 
-      {tripWide && flights.length > 0 && (
-        <ExpenseGroup title="Flights">
-          <ul className="expense-list">{flights.map(renderItem)}</ul>
+      {tripWide && journeys.length > 0 && (
+        <ExpenseGroup title="Transport between cities">
+          <ul className="expense-list">{journeys.map(renderItem)}</ul>
         </ExpenseGroup>
       )}
       {tripWide && hotels.length > 0 && (
@@ -68,21 +69,21 @@ export function ExpenseList({ trip, dayId, expenses }: Props) {
         </ExpenseGroup>
       )}
       {(others.length > 0 || !tripWide) && (
-        <ExpenseGroup title={tripWide && (flights.length || hotels.length) ? 'Other' : undefined}>
+        <ExpenseGroup title={tripWide && (journeys.length || hotels.length) ? 'Other' : undefined}>
           <ul className="expense-list">{(tripWide ? others : expenses).map(renderItem)}</ul>
         </ExpenseGroup>
       )}
 
       {editing === 'new' && <ExpenseForm trip={trip} defaultCategory={dayId ? 'food' : 'other'} onSave={create} onCancel={() => setEditing(null)} />}
       {editing === 'new-hotel' && <HotelForm trip={trip} onSave={create} onCancel={() => setEditing(null)} />}
-      {editing === 'new-flight' && <FlightForm trip={trip} onSave={create} onCancel={() => setEditing(null)} />}
+      {editing === 'new-journey' && <JourneyForm trip={trip} onSave={create} onCancel={() => setEditing(null)} />}
 
       {editing === null && (
         <div className="row wrap">
           {tripWide && (
             <>
-              <button type="button" onClick={() => setEditing('new-flight')}>
-                + ✈️ Flight
+              <button type="button" onClick={() => setEditing('new-journey')}>
+                + ✈️🚅 Transport
               </button>
               <button type="button" onClick={() => setEditing('new-hotel')}>
                 + 🏨 Hotel
@@ -113,7 +114,7 @@ function ExpenseGroup({ title, aside, children }: { title?: string; aside?: Reac
 }
 
 function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void }) {
-  const { hotel, flight } = expense
+  const { hotel, journey } = expense
   let title = `${CATEGORY_ICON[expense.category]} ${expense.description}`
   const details: string[] = []
   if (hotel) {
@@ -121,10 +122,10 @@ function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void 
     if (hotel.checkIn && hotel.checkOut) details.push(`${formatDay(hotel.checkIn)} → ${formatDay(hotel.checkOut)}`)
     details.push(`${hotel.nights} ${hotel.nights === 1 ? 'night' : 'nights'}`)
     if (hotel.perNight != null) details.push(`${formatMoney({ amount: hotel.perNight, currency: expense.amount.currency })}/night`)
-  } else if (flight) {
-    title = `✈️ ${flight.from} → ${flight.to}`
-    if (flight.date) details.push(`${formatDay(flight.date)}${flight.time ? ` ${flight.time}` : ''}`)
-    if (flight.flightNumber) details.push(flight.flightNumber)
+  } else if (journey) {
+    title = journeyTitle(journey)
+    if (journey.date) details.push(`${formatDay(journey.date)}${journey.time ? ` ${journey.time}` : ''}`)
+    details.push(...journeyDetails(journey))
   }
   if (expense.notes) details.push(expense.notes)
 
@@ -173,9 +174,9 @@ function NightsCoverage({ trip, hotels }: { trip: Trip; hotels: Expense[] }) {
   )
 }
 
-/** Flights by departure, hotels by check-in; undated ones last. */
+/** Journeys by departure, hotels by check-in; undated ones last. */
 function sortKey(expense: Expense): string {
-  if (expense.flight) return `${expense.flight.date ?? '9999'} ${expense.flight.time ?? ''}`
+  if (expense.journey) return `${expense.journey.date ?? '9999'} ${expense.journey.time ?? ''}`
   return expense.hotel?.checkIn ?? '9999'
 }
 

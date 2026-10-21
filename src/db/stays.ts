@@ -45,12 +45,3 @@ export function stayOfCity(stays: Stay[], city: string | undefined): Stay | unde
   return [...stays].sort((a, b) => a.startDate.localeCompare(b.startDate)).find((s) => s.city.trim().toLowerCase() === key)
 }
 
-/** Well-separated hues, so neighbouring cities never look alike. */
-const CITY_HUES = [0, 210, 130, 280, 35, 175, 330, 60, 240, 100]
-
-/** A stable color (hue) per city, for tags. */
-export function cityHue(city: string): number {
-  let hash = 0
-  for (const ch of city.trim().toLowerCase()) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
-  return CITY_HUES[hash % CITY_HUES.length]
-}

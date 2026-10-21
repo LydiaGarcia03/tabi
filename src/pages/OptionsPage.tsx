@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
-import { FlightForm, HotelForm, type BookingValues } from '../components/BookingForms'
+import { AirlineGuideTable } from '../components/AirlineGuide'
+import { HotelForm, JourneyForm, type BookingValues } from '../components/BookingForms'
 import { Icon } from '../components/Icon'
+import { checkedForFare, describeBag, describeChecked, findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
 import { Stars } from '../components/Stars'
 import { CityTag, TripLayout } from '../components/TripLayout'
@@ -12,6 +14,7 @@ import { addOptionToDay, bookOption, updateOption } from '../db/options'
 import { cityLabel, stayNights, stayOfCity } from '../db/stays'
 import { formatMoney } from '../format'
 import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, type Weights } from '../planning/compare'
+import { formatHours, JOURNEY_ICON, journeyDetails } from '../planning/journeys'
 import { KIND_ICON, KIND_PLURAL, OPTION_KINDS } from '../planning/optionKinds'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
@@ -23,6 +26,7 @@ const BADGE_LABEL: Record<Badge, string> = {
   best: '🏆 Best match',
   cheapest: '💰 Cheapest',
   closest: '📍 Closest',
+  fastest: '⚡ Fastest',
   'top-rated': '⭐ Your top',
 }
 
@@ -69,6 +73,15 @@ export function OptionsPage({ tripId }: { tripId: string }) {
 
   const counts = Object.fromEntries(OPTION_KINDS.map((k) => [k, options.filter((o) => o.kind === k && o.status !== 'discarded').length]))
   const context = { trip, stays, days, placeIds, expenseIds, onEdit: (o: TripOption) => setEditing(o) }
+  // Airlines in the transport options, highlighted in the airline guide.
+  const myAirlines = [
+    ...new Set(
+      options
+        .filter((o) => o.journey?.mode === 'flight' && o.status !== 'discarded')
+        .map((o) => findAirline(o.journey!.carrier)?.name)
+        .filter((n): n is string => !!n),
+    ),
+  ]
 
   return (
     <TripLayout trip={trip} active="options">
@@ -84,8 +97,8 @@ export function OptionsPage({ tripId }: { tripId: string }) {
         )}
       </header>
       <p className="muted small options-intro">
-        Hotels, restaurants, places, shops and flights you're considering. Compare them by city, mark favorites ☆, pick
-        one ✓ (adds it to a day or books it) or discard ✕.
+        Hotels, restaurants, places, shops and transport (flights, shinkansen…) you're considering. Compare them by city
+        or route, mark favorites ☆, pick one ✓ (adds it to a day or books it) or discard ✕.
       </p>
 
       {editing && (
@@ -138,6 +151,8 @@ export function OptionsPage({ tripId }: { tripId: string }) {
       {groups.map((group) => (
         <OptionGroup key={group.key} group={group} {...context} />
       ))}
+
+      {(kind === 'transport' || (kind === 'all' && counts.transport > 0)) && <AirlineGuideTable highlight={myAirlines} />}
     </TripLayout>
   )
 }
@@ -154,7 +169,7 @@ interface Context {
 function OptionGroup({ group, ...context }: { group: Group } & Context) {
   const { trip } = context
   const nights = group.kind === 'hotel' && group.stay ? stayNights(group.stay, trip) : null
-  const isFlight = group.kind === 'flight'
+  const isTransport = group.kind === 'transport'
   const sorted = [...group.items].sort(
     (a, b) =>
       Number(a.option.status === 'discarded') - Number(b.option.status === 'discarded') ||
@@ -165,15 +180,17 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
     <section className="card option-group">
       <header className="option-group-header">
         <h2>
-          {KIND_ICON[group.kind]} {KIND_PLURAL[group.kind]}
+          {KIND_ICON[group.kind]} {isTransport ? group.route || 'Transport' : KIND_PLURAL[group.kind]}
           {group.city && <CityTag city={group.city} />}
         </h2>
         <p className="muted small">
           {nights &&
             `${nights.nights} ${nights.nights === 1 ? 'night' : 'nights'} (${formatDay(nights.checkIn)} → ${formatDay(nights.checkOut)}) · `}
-          {group.reference
-            ? `Distances from ${group.reference.name}`
-            : !isFlight && 'Set a base for this city (Cities, on the itinerary page) to compare distances'}
+          {isTransport
+            ? 'Compared by price, total travel time and your rating. Baggage from the airline guide below.'
+            : group.reference
+              ? `Distances from ${group.reference.name}`
+              : 'Set a base for this city (Cities, on the itinerary page) to compare distances'}
         </p>
       </header>
 
@@ -184,7 +201,15 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
               <th>Name</th>
               <th className="num">{group.kind === 'hotel' ? 'Per night' : group.kind === 'restaurant' ? 'Per person' : 'Price'}</th>
               {group.kind === 'hotel' && <th className="num">Stay total</th>}
-              {!isFlight && <th className="num">Distance</th>}
+              {isTransport ? (
+                <>
+                  <th className="num">Time</th>
+                  <th>Baggage (economy)</th>
+                  <th>Legroom</th>
+                </>
+              ) : (
+                <th className="num">Distance</th>
+              )}
               <th>Rating</th>
               <th>Score</th>
               <th>Why</th>
@@ -205,9 +230,12 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
 function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, onEdit }: { item: Scored; group: Group } & Context) {
   const { option } = item
   const [choosing, setChoosing] = useState(false)
-  const isFlight = group.kind === 'flight'
+  const journey = option.journey
+  const isTransport = group.kind === 'transport'
+  const airline = journey?.mode === 'flight' ? findAirline(journey.carrier) : undefined
+  const fareRule = airline ? checkedForFare(airline, journey?.fare) : undefined
   const inPlan = (option.placeId && placeIds.has(option.placeId)) || (option.expenseId && expenseIds.has(option.expenseId))
-  const columns = 6 + (group.kind === 'hotel' ? 1 : 0) + (isFlight ? 0 : 1)
+  const columns = 7 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 2 : 0)
 
   const setStatus = (status: OptionStatus) => updateOption(option.id, { status: option.status === status ? 'idea' : status })
 
@@ -227,9 +255,15 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, onEdi
             )}
           </span>
           <span className="muted small">
-            {[option.category, isFlight && option.flight?.date && `${formatDay(option.flight.date)} ${option.flight.time ?? ''}`, option.hours]
-              .filter(Boolean)
-              .join(' · ')}
+            {journey
+              ? [
+                  JOURNEY_ICON[journey.mode],
+                  journey.date && `${formatDay(journey.date)} ${journey.time ?? ''}`,
+                  ...journeyDetails({ ...journey, carrier: undefined, durationHours: undefined }),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : [option.category, option.hours].filter(Boolean).join(' · ')}
           </span>
           {inPlan && <span className="tag in-plan">{option.expenseId ? 'Booked' : 'In the itinerary'}</span>}
           {item.badges.length > 0 && (
@@ -251,7 +285,46 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, onEdi
             {item.nights != null && item.total && <span className="muted small"> ({item.nights}×)</span>}
           </td>
         )}
-        {!isFlight && (
+        {isTransport ? (
+          <>
+            <td className="num" data-label="Time">
+              {journey?.durationHours != null ? formatHours(journey.durationHours) : '—'}
+            </td>
+            <td className="baggage-cell" data-label="Baggage (economy)">
+              {airline ? (
+                <span className="small">
+                  <span>Personal: {describeBag(airline.personalItem)}</span>
+                  <span>
+                    Carry-on: {describeBag(airline.carryOn)}
+                    {airline.carryOn.note && <span className="muted"> ({airline.carryOn.note})</span>}
+                  </span>
+                  <span>
+                    Checked:{' '}
+                    {fareRule
+                      ? describeChecked(fareRule)
+                      : airline.checked.map((r) => `${r.fare.replace(/^Economy /, '')} ${describeChecked(r)}`).join(' · ')}
+                    {fareRule?.note && <span className={/confirm/i.test(fareRule.note) ? 'warning' : 'muted'}> ({fareRule.note})</span>}
+                  </span>
+                  {airline.cabinNote && <span className="muted">{airline.cabinNote}</span>}
+                </span>
+              ) : (
+                <span className="muted small">
+                  {journey?.mode !== 'flight' ? '—' : journey.carrier ? 'airline not in the guide' : 'set the airline (Edit)'}
+                </span>
+              )}
+            </td>
+            <td data-label="Legroom">
+              {airline?.legroom ? (
+                <span className="small">
+                  {airline.legroom.economy && <span>Eco {airline.legroom.economy}</span>}
+                  {airline.legroom.premiumEconomy && <span>Premium {airline.legroom.premiumEconomy}</span>}
+                </span>
+              ) : (
+                <span className="muted">—</span>
+              )}
+            </td>
+          </>
+        ) : (
           <td className="num" data-label="Distance">
             {item.distanceKm == null ? (option.lat == null ? <span className="muted small">not located</span> : '—') : formatKm(item.distanceKm)}
           </td>
@@ -318,7 +391,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, onEdi
   )
 }
 
-/** Picking an option: hotels and flights become bookings; the rest goes into a day. */
+/** Picking an option: hotels and transport become bookings; the rest goes into a day. */
 function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: Trip; stays: Stay[]; days: Day[]; onDone: () => void }) {
   const { option } = item
   const stay = stayOfCity(stays, option.city)
@@ -355,7 +428,7 @@ function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: 
     )
   }
 
-  if (option.kind === 'flight') {
+  if (option.kind === 'transport') {
     const initial = {
       id: '',
       tripId: trip.id,
@@ -363,12 +436,12 @@ function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: 
       description: option.name,
       amount: option.price ?? { amount: 0, currency: trip.displayCurrency },
       notes: option.notes,
-      flight: { ...option.flight!, flightNumber: option.category },
+      journey: option.journey ?? { mode: 'flight', from: '', to: '' },
     } satisfies Expense
     return (
       <div className="choose-panel">
-        <p className="small">Book it: it goes to the budget as a flight.</p>
-        <FlightForm trip={trip} expense={initial} onSave={book} onCancel={onDone} />
+        <p className="small">Book it: it goes to the budget (check the date, time and price).</p>
+        <JourneyForm trip={trip} expense={initial} onSave={book} onCancel={onDone} />
       </div>
     )
   }
@@ -425,7 +498,7 @@ function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: 
 function WeightsPanel({ weights, onChange }: { weights: Weights; onChange: (w: Weights) => void }) {
   const sliders: { key: keyof Weights; label: string }[] = [
     { key: 'price', label: 'Price' },
-    { key: 'distance', label: 'Distance' },
+    { key: 'distance', label: 'Distance / travel time' },
     { key: 'rating', label: 'Your rating' },
   ]
   return (

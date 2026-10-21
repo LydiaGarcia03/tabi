@@ -206,8 +206,9 @@ function vehicleToMode(type: string | null | undefined): SegmentMode {
       return 'subway'
     case 'RAIL':
     case 'HEAVY_RAIL':
-    case 'COMMUTER_TRAIN':
     case 'HIGH_SPEED_TRAIN':
+      return 'shinkansen'
+    case 'COMMUTER_TRAIN':
     case 'LONG_DISTANCE_TRAIN':
     case 'MONORAIL':
     case 'TRAM':

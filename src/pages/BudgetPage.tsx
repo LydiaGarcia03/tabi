@@ -46,7 +46,7 @@ export function BudgetPage({ tripId }: { tripId: string }) {
             <BudgetBreakdown budget={budget} trip={trip} title="Trip budget" />
           </section>
           <section className="card">
-            <h2>Flights, hotels &amp; trip-wide costs</h2>
+            <h2>Transport, hotels &amp; trip-wide costs</h2>
             <p className="muted small">Costs not tied to one day. Day costs (tickets, fares, meals) are on each day.</p>
             <ExpenseList trip={trip} expenses={expenses.filter((e) => !e.dayId)} />
           </section>

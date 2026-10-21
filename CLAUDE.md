@@ -139,6 +139,14 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
   - Budget page: trip totals, flights/hotels/other trip-wide costs, and estimates vs. booked per category in the display currency (`displayAmount`, only when exact).
   - Lydia's spreadsheet was converted once into an import file (in her Downloads, not in the repo: personal data) by a throwaway script.
 
+- **Phase 9 — Transport between cities & airline guide** (done):
+  - Flights became **journeys** (`Journey`: mode flight / shinkansen / train / bus / ferry / car, from, to, date, time, carrier, number, cabin, fare, durationHours, stops) on `Expense.journey` and `TripOption.journey`; option kind `flight` → `transport`. Dexie v5 and backup format v3 convert old data (`src/db/migrations.ts`, also applied to older backup files on import).
+  - `JourneyForm` / `JourneyFields` (`BookingForms.tsx`). The Cities card shows how you get between consecutive cities (plus arrival and return) from booked journeys, with "+ How you'll go" prefilled (`journeysOnRoute`); day cards show journeys leaving that day.
+  - Transport options are grouped by route; the score uses total travel time in place of distance ("⚡ Fastest" badge).
+  - **Airline guide** (`src/data/airlines.ts`, shown by `AirlineGuide.tsx`): personal item, carry-on and checked baggage by fare (sizes and weights), premium economy, legroom, notes, what to confirm and source links, for airlines flying Brazil → Japan with a connection (Emirates, Qatar, Turkish, Ethiopian, Air France, KLM, Lufthansa, ANA, JAL) and inside Japan (ANA, Peach, Jetstar Japan). **Researched by hand on 2026-10-20** — no API exists and scraping is not allowed; airline sites block automated reading. Update it by researching again (official pages first) and bump `AIRLINE_GUIDE_UPDATED`. Never present it as authoritative: rules vary by fare and route.
+  - `shinkansen` is also a segment mode inside days (🚅): NAVITIME lines with 新幹線 / "superexpress" and Google `HIGH_SPEED_TRAIN` map to it.
+  - City tag colors follow the trip's visiting order (`src/cityColors.ts`, context from `TripLayout`).
+
 ## Working agreements
 
 - Lydia is not a professional developer: explain steps simply (in Portuguese), give exact commands, and say which files changed and why.

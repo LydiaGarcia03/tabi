@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from 'react'
+import { AIRLINES, findAirline } from '../data/airlines'
 import { daysBetween } from '../dates'
-import type { Expense, Trip } from '../db/model'
+import type { Expense, Journey, Trip } from '../db/model'
 import { formatMoney } from '../format'
+import { CABIN_HINTS, cleanJourney, JOURNEY_ICON, JOURNEY_LABEL, JOURNEY_MODES } from '../planning/journeys'
+import { BaggageSummary } from './AirlineGuide'
 
 /** What a booking form saves (the trip and day are added by the caller). */
-export type BookingValues = Pick<Expense, 'category' | 'description' | 'amount' | 'notes' | 'hotel' | 'flight'>
+export type BookingValues = Pick<Expense, 'category' | 'description' | 'amount' | 'notes'> &
+  Partial<Pick<Expense, 'hotel' | 'journey'>>
 
 interface FormProps {
   trip: Trip
@@ -130,65 +134,36 @@ export function HotelForm({ trip, expense, onSave, onCancel }: FormProps) {
   )
 }
 
-/** Flight: from, to, when, flight number and price. */
-export function FlightForm({ trip, expense, onSave, onCancel }: FormProps) {
-  const flight = expense?.flight
-  const [from, setFrom] = useState(flight?.from ?? '')
-  const [to, setTo] = useState(flight?.to ?? '')
-  const [date, setDate] = useState(flight ? (flight.date ?? '') : trip.startDate)
-  const [time, setTime] = useState(flight?.time ?? '')
-  const [flightNumber, setFlightNumber] = useState(flight?.flightNumber ?? '')
+/** A trip between cities (flight, shinkansen…) booked as a trip-wide expense. */
+export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
+  const [journey, setJourney] = useState<Journey>(
+    expense?.journey ?? { mode: 'flight', from: '', to: '', date: trip.startDate },
+  )
   const [price, setPrice] = useState(expense ? String(expense.amount.amount) : '')
   const [currency, setCurrency] = useState(expense?.amount.currency ?? trip.displayCurrency)
   const [notes, setNotes] = useState(expense?.notes ?? '')
   const priceValue = Number(price)
-  const valid = from.trim() !== '' && to.trim() !== '' && price.trim() !== '' && Number.isFinite(priceValue) && priceValue >= 0
+  const valid =
+    journey.from.trim() !== '' && journey.to.trim() !== '' && price.trim() !== '' && Number.isFinite(priceValue) && priceValue >= 0
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
     await onSave({
       category: 'transport',
-      description: `${from.trim()} → ${to.trim()}`,
+      description: `${journey.from.trim()} → ${journey.to.trim()}`,
       amount: { amount: priceValue, currency },
       notes: notes.trim() || undefined,
-      flight: {
-        from: from.trim(),
-        to: to.trim(),
-        date: date || undefined,
-        time: time || undefined,
-        flightNumber: flightNumber.trim() || undefined,
-      },
+      journey: cleanJourney(journey),
     })
   }
 
   return (
     <form className="expense-form booking-form" onSubmit={submit}>
-      <h4>✈️ Flight</h4>
-      <div className="field-row">
-        <label>
-          From
-          <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="GRU · São Paulo" autoFocus />
-        </label>
-        <label>
-          To
-          <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="HND · Tokyo" />
-        </label>
-      </div>
-      <div className="field-row">
-        <label>
-          Date
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <label>
-          Departure time
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-        </label>
-      </div>
-      <label>
-        Airline / flight number
-        <input value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} placeholder="LATAM LA8070" />
-      </label>
+      <h4>
+        {JOURNEY_ICON[journey.mode]} {JOURNEY_LABEL[journey.mode]}
+      </h4>
+      <JourneyFields journey={journey} onChange={setJourney} />
       <div className="field-row">
         <label>
           Price
@@ -198,10 +173,123 @@ export function FlightForm({ trip, expense, onSave, onCancel }: FormProps) {
       </div>
       <label>
         Notes
-        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Booking code, baggage, per person…" />
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Booking code, seats, per person…" />
       </label>
-      <FormButtons valid={valid} label="Save flight" onCancel={onCancel} />
+      <FormButtons valid={valid} label="Save" onCancel={onCancel} />
     </form>
+  )
+}
+
+/** Mode, route, time, carrier and class: shared by bookings and transport options. */
+export function JourneyFields({ journey, onChange }: { journey: Journey; onChange: (journey: Journey) => void }) {
+  const set = (changes: Partial<Journey>) => onChange({ ...journey, ...changes })
+  const isFlight = journey.mode === 'flight'
+  const airline = isFlight ? findAirline(journey.carrier) : undefined
+
+  return (
+    <>
+      <div className="segmented" role="radiogroup" aria-label="Mode">
+        {JOURNEY_MODES.map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={journey.mode === m}
+            className={journey.mode === m ? 'active' : ''}
+            onClick={() => set({ mode: m })}
+          >
+            {JOURNEY_ICON[m]} {JOURNEY_LABEL[m]}
+          </button>
+        ))}
+      </div>
+      <div className="field-row">
+        <label>
+          From
+          <input value={journey.from} onChange={(e) => set({ from: e.target.value })} placeholder={isFlight ? 'Navegantes (NVT)' : 'Shin-Osaka'} />
+        </label>
+        <label>
+          To
+          <input value={journey.to} onChange={(e) => set({ to: e.target.value })} placeholder={isFlight ? 'Osaka (KIX)' : 'Tokyo'} />
+        </label>
+      </div>
+      <div className="field-row">
+        <label>
+          Date
+          <input type="date" value={journey.date ?? ''} onChange={(e) => set({ date: e.target.value || undefined })} />
+        </label>
+        <label>
+          Departure time
+          <input type="time" value={journey.time ?? ''} onChange={(e) => set({ time: e.target.value || undefined })} />
+        </label>
+        <label>
+          Total time (hours)
+          <input
+            type="number"
+            min="0"
+            step="0.25"
+            inputMode="decimal"
+            value={journey.durationHours ?? ''}
+            onChange={(e) => set({ durationHours: e.target.value === '' ? undefined : Number(e.target.value) })}
+          />
+        </label>
+      </div>
+      <div className="field-row">
+        <label>
+          {isFlight ? 'Airline' : 'Operator'}
+          <input
+            value={journey.carrier ?? ''}
+            list={isFlight ? 'airline-names' : undefined}
+            onChange={(e) => set({ carrier: e.target.value })}
+            placeholder={isFlight ? 'Emirates' : 'JR Central'}
+          />
+          {isFlight && (
+            <datalist id="airline-names">
+              {AIRLINES.map((a) => (
+                <option key={a.name} value={a.name} />
+              ))}
+            </datalist>
+          )}
+        </label>
+        <label>
+          {isFlight ? 'Flight number' : journey.mode === 'shinkansen' || journey.mode === 'train' ? 'Train' : 'Number'}
+          <input value={journey.number ?? ''} onChange={(e) => set({ number: e.target.value })} placeholder={isFlight ? 'EK262' : 'Nozomi 21'} />
+        </label>
+      </div>
+      <div className="field-row">
+        <label>
+          Class
+          <input value={journey.cabin ?? ''} list={`cabins-${journey.mode}`} onChange={(e) => set({ cabin: e.target.value })} />
+          <datalist id={`cabins-${journey.mode}`}>
+            {CABIN_HINTS[journey.mode].map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </label>
+        {isFlight && (
+          <label>
+            Fare
+            <input
+              value={journey.fare ?? ''}
+              list="fare-names"
+              onChange={(e) => set({ fare: e.target.value })}
+              placeholder="Saver, Classic, Light…"
+            />
+            {airline && (
+              <datalist id="fare-names">
+                {airline.checked.map((r) => (
+                  <option key={r.fare} value={r.fare} />
+                ))}
+              </datalist>
+            )}
+          </label>
+        )}
+        <label>
+          Connections
+          <input value={journey.stops ?? ''} onChange={(e) => set({ stops: e.target.value })} placeholder={isFlight ? 'via Dubai' : 'Direct'} />
+        </label>
+      </div>
+      {airline && <BaggageSummary airline={airline} fare={journey.fare} />}
+    </>
   )
 }
 

@@ -207,7 +207,8 @@ function moveToMode(section: NtMove): SegmentMode {
   if (move.includes('ferry') || move.includes('ship')) return 'ferry'
   if (move === 'car') return 'taxi'
   if (move.includes('train')) {
-    const names = `${section.transport?.company?.name ?? ''} ${section.line_name ?? ''}`
+    const names = `${section.transport?.company?.name ?? ''} ${section.line_name ?? ''} ${section.transport?.name ?? ''}`
+    if (/新幹線|shinkansen/i.test(names) || move.includes('superexpress')) return 'shinkansen'
     return /metro|subway|toei|地下鉄|メトロ|都営/i.test(names) ? 'subway' : 'train'
   }
   return 'other'

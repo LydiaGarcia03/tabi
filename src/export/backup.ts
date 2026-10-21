@@ -2,11 +2,15 @@
 // PC and the phone (export on one, import on the other).
 
 import { db } from '../db/db'
+import { upgradeExpense, upgradeOption } from '../db/migrations'
 import type { TripData } from '../db/tripData'
 
 const FORMAT = 'tabi-trip'
-/** 2 added stays and options (version 1 files have neither: read as empty). */
-const VERSION = 2
+/**
+ * 2 added stays and options (version 1 files have neither: read as empty).
+ * 3 replaced flights with journeys (older files are converted on import).
+ */
+const VERSION = 3
 
 interface BackupFile extends TripData {
   format: typeof FORMAT
@@ -46,7 +50,16 @@ export function parseBackup(text: string): ParsedBackup {
   }
   const key = file.settings?.rapidApiKey
   return {
-    data: { trip, days: days!, places: places!, legs: legs!, expenses: expenses!, stays, options },
+    data: {
+      trip,
+      days: days!,
+      places: places!,
+      legs: legs!,
+      // Older files may still have flights instead of journeys.
+      expenses: expenses!.map((e) => upgradeExpense(e)),
+      stays,
+      options: options.map((o) => upgradeOption(o)),
+    },
     rapidApiKey: typeof key === 'string' && key.trim() ? key.trim() : undefined,
   }
 }

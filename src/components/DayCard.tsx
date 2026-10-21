@@ -1,6 +1,7 @@
 import type { Budget } from '../budget'
 import { dateParts } from '../dates'
-import type { Day, Place, Trip } from '../db/model'
+import type { Day, Journey, Place, Trip } from '../db/model'
+import { journeyTitle } from '../planning/journeys'
 import { formatDuration } from '../format'
 import { href } from '../router'
 import { MoneyTotals } from './BudgetView'
@@ -12,6 +13,8 @@ interface Props {
   number: number
   /** "Osaka", "Osaka → Okinawa" or "". */
   city: string
+  /** Booked journeys leaving that day (flight, shinkansen…). */
+  journeys: Journey[]
   /** The day's places in visiting order. */
   places: Place[]
   /** Minutes of travel between the places (from the legs' segments). */
@@ -20,7 +23,7 @@ interface Props {
 }
 
 /** One day in the trip overview: calendar badge, title, route at a glance, totals. */
-export function DayCard({ trip, day, number, city, places, travelMinutes, budget }: Props) {
+export function DayCard({ trip, day, number, city, journeys, places, travelMinutes, budget }: Props) {
   const { weekday, day: dayOfMonth, month } = dateParts(day.date)
   const outside = day.date < trip.startDate || day.date > trip.endDate
   const shown = places.slice(0, 4)
@@ -39,6 +42,12 @@ export function DayCard({ trip, day, number, city, places, travelMinutes, budget
           {city && <CityTag city={city} />}
           {outside && <span className="tag">outside trip dates</span>}
         </span>
+        {journeys.map((j, i) => (
+          <span key={i} className="day-card-journey small">
+            {journeyTitle(j)}
+            {j.time && <span className="muted"> · {j.time}</span>}
+          </span>
+        ))}
         {/* Without a title, the route itself is the title. */}
         {day.title ? (
           <span className="day-card-title">{day.title}</span>

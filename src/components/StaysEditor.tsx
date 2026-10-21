@@ -1,15 +1,27 @@
 import { useState, type FormEvent } from 'react'
 import { daysBetween, formatDay } from '../dates'
-import type { Stay, Trip } from '../db/model'
+import { addExpense } from '../db/expenses'
+import type { Expense, Stay, Trip } from '../db/model'
 import { addStay, deleteStay, updateStay } from '../db/stays'
+import { JOURNEY_ICON, journeyDetails, journeysOnRoute } from '../planning/journeys'
+import { href } from '../router'
+import { JourneyForm } from './BookingForms'
 import { LocateSearch } from './LocateSearch'
 import { CityTag } from './TripLayout'
 
-/** The trip split by city: which days are spent where. */
-export function StaysEditor({ trip, stays }: { trip: Trip; stays: Stay[] }) {
+/**
+ * The trip split by city: which days are spent where, and how you get from
+ * one city to the next (arrival and return included).
+ */
+export function StaysEditor({ trip, stays, expenses }: { trip: Trip; stays: Stay[]; expenses: Expense[] }) {
   const [editing, setEditing] = useState<string | 'new' | null>(null)
   const sorted = [...stays].sort((a, b) => a.startDate.localeCompare(b.startDate))
   const last = sorted.at(-1)
+  const transfer = (key: string, from: Stay | undefined, to: Stay | undefined) => (
+    <li key={key} className="transfer-row">
+      <Transfer trip={trip} stays={sorted} expenses={expenses} from={from} to={to} />
+    </li>
+  )
 
   return (
     <section className="card">
@@ -18,7 +30,8 @@ export function StaysEditor({ trip, stays }: { trip: Trip; stays: Stay[] }) {
         <p className="muted small">Split the trip by city (e.g. Osaka 30 Mar – 1 Apr): days show their city, and hotel options get their total for the stay.</p>
       )}
       <ul className="stay-list">
-        {sorted.map((stay) =>
+        {sorted.length > 0 && transfer('arrival', undefined, sorted[0])}
+        {sorted.map((stay, i) => [
           editing === stay.id ? (
             <li key={stay.id}>
               <StayForm trip={trip} stay={stay} onDone={() => setEditing(null)} />
@@ -40,7 +53,8 @@ export function StaysEditor({ trip, stays }: { trip: Trip; stays: Stay[] }) {
               </span>
             </li>
           ),
-        )}
+          transfer(`after-${stay.id}`, stay, sorted[i + 1]),
+        ])}
       </ul>
       {editing === 'new' ? (
         <StayForm
@@ -56,6 +70,81 @@ export function StaysEditor({ trip, stays }: { trip: Trip; stays: Stay[] }) {
         )
       )}
     </section>
+  )
+}
+
+/** How you get from one city to the next (or arrive / go home): booked journeys, or a button to add one. */
+function Transfer({
+  trip,
+  stays,
+  expenses,
+  from,
+  to,
+}: {
+  trip: Trip
+  stays: Stay[]
+  expenses: Expense[]
+  from?: Stay
+  to?: Stay
+}) {
+  const [adding, setAdding] = useState(false)
+  const booked = journeysOnRoute(expenses, stays, from?.city, to?.city)
+  const label = !from ? `Getting to ${to!.city}` : !to ? `Going home from ${from.city}` : `${from.city} → ${to.city}`
+
+  if (adding) {
+    const initial = {
+      id: '',
+      tripId: trip.id,
+      category: 'transport',
+      description: '',
+      amount: { amount: 0, currency: trip.displayCurrency },
+      journey: {
+        mode: from && to ? 'shinkansen' : 'flight',
+        from: from?.city ?? '',
+        to: to?.city ?? '',
+        // Leave on the first day of the next city (or the last day of the trip).
+        date: to?.startDate ?? from?.endDate,
+      },
+    } satisfies Expense
+    return (
+      <JourneyForm
+        trip={trip}
+        expense={initial}
+        onSave={async (values) => {
+          await addExpense({ ...values, tripId: trip.id })
+          setAdding(false)
+        }}
+        onCancel={() => setAdding(false)}
+      />
+    )
+  }
+
+  return (
+    <span className="transfer">
+      <span className="transfer-rail" aria-hidden="true" />
+      <span className="transfer-body small">
+        {booked.length > 0 ? (
+          booked.map((e) => (
+            <span key={e.id} className="transfer-booked">
+              {JOURNEY_ICON[e.journey!.mode]} {label}
+              <span className="muted">
+                {' · '}
+                {[e.journey!.date && formatDay(e.journey!.date), e.journey!.time, ...journeyDetails(e.journey!)].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+          ))
+        ) : (
+          <>
+            <span className="muted">{label}</span>{' '}
+            <button type="button" className="link" onClick={() => setAdding(true)}>
+              + How you'll go
+            </button>
+            {' · '}
+            <a href={href({ page: 'options', tripId: trip.id })}>compare options</a>
+          </>
+        )}
+      </span>
+    </span>
   )
 }
 

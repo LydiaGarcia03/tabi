@@ -1,13 +1,13 @@
 import type { OptionKind, OptionStatus } from '../db/model'
 
-export const OPTION_KINDS: OptionKind[] = ['hotel', 'restaurant', 'place', 'shop', 'flight']
+export const OPTION_KINDS: OptionKind[] = ['hotel', 'restaurant', 'place', 'shop', 'transport']
 
 export const KIND_ICON: Record<OptionKind, string> = {
   hotel: '🏨',
   restaurant: '🍜',
   place: '⛩️',
   shop: '🛍️',
-  flight: '✈️',
+  transport: '✈️',
 }
 
 export const KIND_PLURAL: Record<OptionKind, string> = {
@@ -15,7 +15,7 @@ export const KIND_PLURAL: Record<OptionKind, string> = {
   restaurant: 'Restaurants',
   place: 'Places',
   shop: 'Shops',
-  flight: 'Flights',
+  transport: 'Transport',
 }
 
 export const KIND_SINGULAR: Record<OptionKind, string> = {
@@ -23,7 +23,7 @@ export const KIND_SINGULAR: Record<OptionKind, string> = {
   restaurant: 'Restaurant',
   place: 'Place',
   shop: 'Shop',
-  flight: 'Flight',
+  transport: 'Transport',
 }
 
 /** What the price means for each kind. */
@@ -32,7 +32,7 @@ export const PRICE_LABEL: Record<OptionKind, string> = {
   restaurant: 'Price per person',
   place: 'Ticket',
   shop: 'Budget',
-  flight: 'Price per ticket',
+  transport: 'Price per ticket',
 }
 
 export const CATEGORY_HINT: Record<OptionKind, string> = {
@@ -40,7 +40,7 @@ export const CATEGORY_HINT: Record<OptionKind, string> = {
   restaurant: 'Ramen, sushi, izakaya…',
   place: 'Temple, park, museum…',
   shop: 'Records, anime, souvenirs…',
-  flight: 'Airline',
+  transport: '',
 }
 
 export const STATUS_LABEL: Record<OptionStatus, string> = {

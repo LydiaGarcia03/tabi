@@ -24,7 +24,7 @@ export function directionsUrl(from: Place, to: Place, segments: Segment[]): stri
 
 function travelMode(segments: Segment[]): 'transit' | 'walking' | 'driving' {
   const modes = new Set(segments.map((s) => s.mode))
-  if (['bus', 'train', 'subway', 'ferry'].some((m) => modes.has(m as Segment['mode']))) return 'transit'
+  if (['bus', 'train', 'shinkansen', 'subway', 'ferry'].some((m) => modes.has(m as Segment['mode']))) return 'transit'
   if (modes.has('taxi')) return 'driving'
   if (modes.has('walk')) return 'walking'
   return 'transit'

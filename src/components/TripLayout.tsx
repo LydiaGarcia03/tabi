@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
+import { CityColorsContext, cityHueMap, useCityHue } from '../cityColors'
 import { dateParts } from '../dates'
 import { db } from '../db/db'
 import type { Trip } from '../db/model'
-import { cityHue, cityLabel, staysOn } from '../db/stays'
+import { cityLabel, staysOn } from '../db/stays'
 import { href } from '../router'
 import { Icon, type IconName } from './Icon'
 
@@ -29,6 +30,8 @@ const SECTIONS: { id: TripSection; label: string; icon: IconName }[] = [
 export function TripLayout({ trip, active, children }: Props) {
   const days = useLiveQuery(() => db.days.where('tripId').equals(trip.id).sortBy('date'), [trip.id])
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(trip.id).toArray(), [trip.id])
+  // The trip's cities get distinct colors in visiting order.
+  const hues = useMemo(() => cityHueMap(stays ?? []), [stays])
   const section = typeof active === 'string' ? active : 'itinerary'
   const dayId = typeof active === 'string' ? null : active.dayId
 
@@ -36,74 +39,82 @@ export function TripLayout({ trip, active, children }: Props) {
     id === 'itinerary' ? href({ page: 'trip', tripId: trip.id }) : href({ page: id, tripId: trip.id })
 
   return (
-    <div className="trip-layout">
-      <aside className="trip-sidebar">
-        <a className="sidebar-back" href={href({ page: 'trips' })}>
-          <Icon name="back" size={16} /> All trips
-        </a>
-        <a className="sidebar-trip" href={href({ page: 'trip', tripId: trip.id })}>
-          {trip.name}
-        </a>
-        <nav className="sidebar-nav" aria-label="Trip sections">
-          {SECTIONS.map((s) => (
-            <a key={s.id} href={sectionHref(s.id)} className={section === s.id && !dayId ? 'active' : ''}>
-              <Icon name={s.icon} /> {s.label}
-            </a>
-          ))}
-        </nav>
-        <p className="sidebar-heading">Days</p>
-        <ol className="sidebar-days">
-          {days?.map((day, i) => {
-            const { weekday, day: dom, month } = dateParts(day.date)
-            const city = stays ? cityLabel(stays, day.date) : ''
-            const hue = stays ? staysOn(stays, day.date)[0]?.city : undefined
-            return (
-              <li key={day.id}>
-                <a
-                  href={href({ page: 'day', tripId: trip.id, dayId: day.id })}
-                  className={day.id === dayId ? 'active' : ''}
-                  title={day.title || undefined}
-                >
-                  <span className="sidebar-day-number">D{i + 1}</span>
-                  <span className="sidebar-day-text">
-                    <span>
-                      {weekday} {dom} {month}
-                    </span>
-                    {city && (
-                      <span className="sidebar-day-city" style={hue ? { ['--hue' as string]: cityHue(hue) } : undefined}>
-                        {city}
-                      </span>
-                    )}
-                  </span>
-                  {day.placeIds.length > 0 && <span className="sidebar-day-count">{day.placeIds.length}</span>}
-                </a>
-              </li>
-            )
-          })}
-        </ol>
-      </aside>
-
-      <div className="trip-content">
-        <nav className="trip-tabs" aria-label="Trip sections">
-          <a className="trip-tabs-back" href={href({ page: 'trips' })} aria-label="All trips">
-            <Icon name="back" size={16} />
+    <CityColorsContext.Provider value={hues}>
+      <div className="trip-layout">
+        <aside className="trip-sidebar">
+          <a className="sidebar-back" href={href({ page: 'trips' })}>
+            <Icon name="back" size={16} /> All trips
           </a>
-          {SECTIONS.map((s) => (
-            <a key={s.id} href={sectionHref(s.id)} className={section === s.id ? 'active' : ''}>
-              {s.label}
+          <a className="sidebar-trip" href={href({ page: 'trip', tripId: trip.id })}>
+            {trip.name}
+          </a>
+          <nav className="sidebar-nav" aria-label="Trip sections">
+            {SECTIONS.map((s) => (
+              <a key={s.id} href={sectionHref(s.id)} className={section === s.id && !dayId ? 'active' : ''}>
+                <Icon name={s.icon} /> {s.label}
+              </a>
+            ))}
+          </nav>
+          <p className="sidebar-heading">Days</p>
+          <ol className="sidebar-days">
+            {days?.map((day, i) => {
+              const { weekday, day: dom, month } = dateParts(day.date)
+              const city = stays ? cityLabel(stays, day.date) : ''
+              const firstCity = stays ? staysOn(stays, day.date)[0]?.city : undefined
+              return (
+                <li key={day.id}>
+                  <a
+                    href={href({ page: 'day', tripId: trip.id, dayId: day.id })}
+                    className={day.id === dayId ? 'active' : ''}
+                    title={day.title || undefined}
+                  >
+                    <span className="sidebar-day-number">D{i + 1}</span>
+                    <span className="sidebar-day-text">
+                      <span>
+                        {weekday} {dom} {month}
+                      </span>
+                      {city && firstCity && <SidebarCity label={city} city={firstCity} />}
+                    </span>
+                    {day.placeIds.length > 0 && <span className="sidebar-day-count">{day.placeIds.length}</span>}
+                  </a>
+                </li>
+              )
+            })}
+          </ol>
+        </aside>
+
+        <div className="trip-content">
+          <nav className="trip-tabs" aria-label="Trip sections">
+            <a className="trip-tabs-back" href={href({ page: 'trips' })} aria-label="All trips">
+              <Icon name="back" size={16} />
             </a>
-          ))}
-        </nav>
-        {children}
+            {SECTIONS.map((s) => (
+              <a key={s.id} href={sectionHref(s.id)} className={section === s.id ? 'active' : ''}>
+                {s.label}
+              </a>
+            ))}
+          </nav>
+          {children}
+        </div>
       </div>
-    </div>
+    </CityColorsContext.Provider>
+  )
+}
+
+function SidebarCity({ label, city }: { label: string; city: string }) {
+  const hue = useCityHue(city)
+  return (
+    <span className="sidebar-day-city" style={{ ['--hue' as string]: hue }}>
+      {label}
+    </span>
   )
 }
 
 /** Small colored city tag. */
 export function CityTag({ city }: { city: string }) {
+  const hue = useCityHue(city.split(' → ')[0])
   return (
-    <span className="city-tag" style={{ ['--hue' as string]: cityHue(city.split(' → ')[0]) }}>
+    <span className="city-tag" style={{ ['--hue' as string]: hue }}>
       {city}
     </span>
   )

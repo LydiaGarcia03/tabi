@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import type { OptionKind, Trip, TripOption } from '../db/model'
+import type { Journey, OptionKind, Trip, TripOption } from '../db/model'
 import { addOption, deleteOption, updateOption } from '../db/options'
+import { cleanJourney, JOURNEY_LABEL } from '../planning/journeys'
 import { CATEGORY_HINT, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
 import type { Money } from '../routing/types'
+import { JourneyFields } from './BookingForms'
 import { LocateSearch } from './LocateSearch'
 import { Stars } from './Stars'
 
@@ -13,6 +15,11 @@ interface Props {
   option?: TripOption
   defaults?: { kind?: OptionKind; city?: string }
   onDone: () => void
+}
+
+/** "Emirates · Navegantes → Osaka", "Shinkansen · Osaka → Tokyo" */
+function transportName(journey: Journey): string {
+  return `${journey.carrier || JOURNEY_LABEL[journey.mode]} · ${journey.from} → ${journey.to}`
 }
 
 /** Adds or edits something being considered. */
@@ -33,14 +40,11 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       ? { lat: option.lat, lng: option.lng, address: option.address, googlePlaceId: option.googlePlaceId, googleFetchedAt: option.googleFetchedAt }
       : null,
   )
-  const [from, setFrom] = useState(option?.flight?.from ?? '')
-  const [to, setTo] = useState(option?.flight?.to ?? '')
-  const [date, setDate] = useState(option?.flight?.date ?? '')
-  const [time, setTime] = useState(option?.flight?.time ?? '')
+  const [journey, setJourney] = useState<Journey>(option?.journey ?? { mode: 'flight', from: '', to: '' })
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const isFlight = kind === 'flight'
-  const valid = isFlight ? from.trim() !== '' && to.trim() !== '' : name.trim() !== ''
+  const isTransport = kind === 'transport'
+  const valid = isTransport ? journey.from.trim() !== '' && journey.to.trim() !== '' : name.trim() !== ''
   const currencies = [...new Set([trip.displayCurrency, trip.baseCurrency, currency])]
 
   const money = (text: string): Money | undefined => {
@@ -53,21 +57,22 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
     if (!valid) return
     const values = {
       kind,
-      name: isFlight ? name.trim() || `${from.trim()} → ${to.trim()}` : name.trim(),
-      city: city.trim() || undefined,
-      category: category.trim() || undefined,
+      // A transport option is named after its carrier (or mode) and route.
+      name: isTransport ? transportName(cleanJourney(journey)) : name.trim(),
+      city: isTransport ? undefined : city.trim() || undefined,
+      category: isTransport ? undefined : category.trim() || undefined,
       price: money(price),
       totalPrice: kind === 'hotel' ? money(total) : undefined,
       rating,
       hours: hours.trim() || undefined,
       link: link.trim() || undefined,
       notes: notes.trim() || undefined,
-      lat: isFlight ? undefined : location?.lat,
-      lng: isFlight ? undefined : location?.lng,
-      address: isFlight ? undefined : location?.address,
-      googlePlaceId: isFlight ? undefined : location?.googlePlaceId,
-      googleFetchedAt: isFlight ? undefined : location?.googleFetchedAt,
-      flight: isFlight ? { from: from.trim(), to: to.trim(), date: date || undefined, time: time || undefined } : undefined,
+      lat: isTransport ? undefined : location?.lat,
+      lng: isTransport ? undefined : location?.lng,
+      address: isTransport ? undefined : location?.address,
+      googlePlaceId: isTransport ? undefined : location?.googlePlaceId,
+      googleFetchedAt: isTransport ? undefined : location?.googleFetchedAt,
+      journey: isTransport ? cleanJourney(journey) : undefined,
     }
     if (option) await updateOption(option.id, values)
     else await addOption({ ...values, tripId: trip.id, status: 'idea' })
@@ -87,33 +92,8 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
         </div>
       )}
 
-      {isFlight ? (
-        <>
-          <div className="field-row">
-            <label>
-              From
-              <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Navegantes (NVT)" autoFocus />
-            </label>
-            <label>
-              To
-              <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Osaka (KIX)" />
-            </label>
-          </div>
-          <div className="field-row">
-            <label>
-              Date
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </label>
-            <label>
-              Departure time
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </label>
-            <label>
-              Airline / route
-              <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="LATAM via Doha" />
-            </label>
-          </div>
-        </>
+      {isTransport ? (
+        <JourneyFields journey={journey} onChange={setJourney} />
       ) : (
         <div className="field-row">
           <label>
@@ -195,7 +175,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
         <input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
       </label>
 
-      {!isFlight && (
+      {!isTransport && (
         <div className="field">
           <span className="field-label">Location (for distances and to add it to a day)</span>
           {location ? (

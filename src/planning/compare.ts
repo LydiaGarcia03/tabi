@@ -17,7 +17,7 @@ export interface Weights {
 /** 0 = ignore, 1 = low, 2 = normal, 3 = high. */
 export const DEFAULT_WEIGHTS: Weights = { price: 2, distance: 2, rating: 2 }
 
-export type Badge = 'cheapest' | 'closest' | 'top-rated' | 'best'
+export type Badge = 'cheapest' | 'closest' | 'fastest' | 'top-rated' | 'best'
 
 export interface Scored {
   option: TripOption
@@ -28,6 +28,8 @@ export interface Scored {
   /** Amount compared on price, in the display currency. */
   compareAmount: number | null
   distanceKm: number | null
+  /** Transport: total travel time (takes the place of distance in the score). */
+  durationHours: number | null
   /** 0–100, null when nothing can be compared. */
   score: number | null
   badges: Badge[]
@@ -37,23 +39,33 @@ export interface Group {
   key: string
   kind: OptionKind
   city: string
+  /** Transport: "Navegantes → Osaka" (transport is grouped by route, not city). */
+  route?: string
   stay?: Stay
   /** Where distances are measured from. */
   reference?: { name: string; lat: number; lng: number }
   items: Scored[]
 }
 
-/** Splits options into kind + city groups and scores each group. */
+/** "navegantes → osaka" for grouping (airport codes and case ignored). */
+function routeKey(option: TripOption): string {
+  const norm = (s: string | undefined) => (s ?? '').toLowerCase().replace(/\(.*?\)/g, '').trim()
+  return `${norm(option.journey?.from)} → ${norm(option.journey?.to)}`
+}
+
+/** Splits options into kind + city (or route) groups and scores each group. */
 export function compareOptions(options: TripOption[], trip: Trip, stays: Stay[], weights: Weights): Group[] {
   const groups = new Map<string, TripOption[]>()
   for (const option of options) {
-    const key = `${option.kind}|${(option.city ?? '').trim().toLowerCase()}`
+    const where = option.kind === 'transport' ? routeKey(option) : (option.city ?? '').trim().toLowerCase()
+    const key = `${option.kind}|${where}`
     groups.set(key, [...(groups.get(key) ?? []), option])
   }
 
   return [...groups.entries()].map(([key, list]) => {
     const kind = list[0].kind
     const city = list[0].city?.trim() ?? ''
+    const route = kind === 'transport' && list[0].journey ? `${list[0].journey.from} → ${list[0].journey.to}` : undefined
     const stay = stayOfCity(stays, city)
     const reference = referencePoint(kind, stay, options, city)
     const nights = stay ? stayNights(stay, trip).nights : undefined
@@ -67,11 +79,20 @@ export function compareOptions(options: TripOption[], trip: Trip, stays: Stay[],
       const compareAmount = money ? displayAmount({ [money.currency]: money.amount }, trip) : null
       const distance =
         reference && option.lat != null && option.lng != null ? distanceKm(reference, { lat: option.lat, lng: option.lng }) : null
-      return { option, total, nights: kind === 'hotel' && !option.totalPrice ? nights : undefined, compareAmount, distanceKm: distance, score: null, badges: [] }
+      return {
+        option,
+        total,
+        nights: kind === 'hotel' && !option.totalPrice ? nights : undefined,
+        compareAmount,
+        distanceKm: distance,
+        durationHours: option.journey?.durationHours ?? null,
+        score: null,
+        badges: [],
+      }
     })
 
     score(items.filter((i) => i.option.status !== 'discarded'), weights)
-    return { key, kind, city, stay, reference, items }
+    return { key, kind, city, route, stay, reference, items }
   })
 }
 
@@ -80,7 +101,7 @@ export function compareOptions(options: TripOption[], trip: Trip, stays: Stay[],
  * else from the chosen hotel in that city, or the base.
  */
 function referencePoint(kind: OptionKind, stay: Stay | undefined, options: TripOption[], city: string) {
-  if (kind === 'flight') return undefined
+  if (kind === 'transport') return undefined
   if (kind !== 'hotel') {
     const hotel = options.find(
       (o) => o.kind === 'hotel' && o.status === 'chosen' && o.lat != null && (o.city ?? '').trim().toLowerCase() === city.toLowerCase(),
@@ -108,8 +129,9 @@ function score(items: Scored[], weights: Weights): void {
     items.map((i) => i.compareAmount),
     true,
   )
+  // Distance for places; travel time for transport (same weight).
   const distance = norm(
-    items.map((i) => i.distanceKm),
+    items.map((i) => i.distanceKm ?? i.durationHours),
     true,
   )
   // Ratings are absolute (1 = 0, 5 = 1), not relative to the group.
@@ -137,6 +159,7 @@ function score(items: Scored[], weights: Weights): void {
   }
   award('cheapest', (i) => i.compareAmount, true)
   award('closest', (i) => i.distanceKm, true)
+  award('fastest', (i) => i.durationHours, true)
   award('top-rated', (i) => i.option.rating ?? null, false)
   award('best', (i) => i.score, false)
 }

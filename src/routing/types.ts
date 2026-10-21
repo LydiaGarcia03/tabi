@@ -2,7 +2,7 @@
 // ones) is hidden behind RouteProvider and returns these shapes, so the rest
 // of the app never depends on a specific API.
 
-export type SegmentMode = 'walk' | 'bus' | 'train' | 'subway' | 'taxi' | 'ferry' | 'other'
+export type SegmentMode = 'walk' | 'bus' | 'train' | 'shinkansen' | 'subway' | 'taxi' | 'ferry' | 'other'
 
 export interface LatLng {
   lat: number

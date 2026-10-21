@@ -113,6 +113,7 @@ Tabi is designed to run at **zero cost**:
 - [x] **Phase 6 — Polish:** redesign, mobile UX, dark mode, share and print a day
 - [x] **Phase 7 — Opening hours & optimized order:** opening hours and visit time per place, best visiting order for a day
 - [x] **Phase 8 — Planning workspace:** wide desktop layout, cities, options board to compare hotels/restaurants/places, estimates vs. booked, checklist
+- [x] **Phase 9 — Transport between cities & airline guide:** flights, shinkansen and more between cities; compare airlines by baggage, premium economy and legroom
 
 ## Data and attribution
 

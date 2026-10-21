@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import { upgradeExpense, upgradeOption } from './migrations'
 import type { Day, Expense, Leg, Place, Stay, Trip, TripOption } from './model'
 
 export const db = new Dexie('tabi') as Dexie & {
@@ -28,6 +29,13 @@ db.version(4).stores({
   stays: 'id, tripId',
   options: 'id, tripId',
 })
+// Flights became journeys (flight, shinkansen, train…).
+db.version(5)
+  .stores({})
+  .upgrade(async (tx) => {
+    await tx.table('expenses').toCollection().modify((expense) => void upgradeExpense(expense))
+    await tx.table('options').toCollection().modify((option) => void upgradeOption(option))
+  })
 
 /** Asks the browser not to evict our data when the device is low on space. */
 export async function requestPersistentStorage(): Promise<void> {
