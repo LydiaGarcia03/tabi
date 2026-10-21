@@ -414,8 +414,8 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
           >
             ✕
           </button>
-          <button type="button" className="link" onClick={() => onEdit(option)}>
-            Edit
+          <button type="button" className="ghost icon-button option-edit" onClick={() => onEdit(option)} aria-label={`Edit ${option.name}`} title="Edit">
+            <Icon name="edit" size={19} weight={2.4} />
           </button>
         </td>
       </tr>

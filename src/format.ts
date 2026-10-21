@@ -20,6 +20,22 @@ export function formatDistance(meters: number | undefined): string {
   return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`
 }
 
+// A number, or several joined by a range or a size ("32–34", "17.8 x 13.8 x 7.9"), then the unit.
+const IMPERIAL = /(\d+(?:\.\d+)?(?:\s*[–x×-]\s*\d+(?:\.\d+)?)*)\s*(inches|inch|in\b|"|″|pounds|pound|lbs|lb\b)/gi
+
+/**
+ * The app is metric: any "32–34 in", "17.8 x 13.8 x 7.9 in" or "22 lb" in a
+ * text (e.g. copied from an airline's page) is shown in cm or kg, rounded.
+ */
+export function metric(text: string): string {
+  return text.replace(IMPERIAL, (_, numbers: string, unit: string) => {
+    const inches = !/^(pounds?|lbs?)$/i.test(unit)
+    const factor = inches ? 2.54 : 0.4536
+    const converted = numbers.replace(/\d+(?:\.\d+)?/g, (n) => String(Math.round(Number(n) * factor)))
+    return `${converted} ${inches ? 'cm' : 'kg'}`
+  })
+}
+
 export function formatMoney(money: Money | undefined): string {
   if (!money) return '—'
   return new Intl.NumberFormat('en', { style: 'currency', currency: money.currency }).format(money.amount)

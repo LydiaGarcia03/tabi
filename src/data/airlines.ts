@@ -1,8 +1,11 @@
+import { metric } from '../format'
+
 // Airline guide: baggage (personal item, carry-on, checked by fare), premium
 // economy and legroom, for airlines flying Brazil → Japan (with a connection),
 // inside Brazil (the first flight) and inside Japan. Researched by hand from the airlines' own pages — no API
 // exists for this and scraping is not allowed. Rules change: every entry says
 // what still needs confirming, and links its sources. Update by asking Claude.
+// Metric only: sizes in cm and weights in kg (convert inches × 2.54, pounds × 0.4536).
 
 export const AIRLINE_GUIDE_UPDATED = '2026-10-21'
 
@@ -42,7 +45,7 @@ export interface AirlineInfo {
   /** Limits per checked bag. */
   checkedMax?: BagRule
   premiumEconomy: 'yes' | 'no' | 'some aircraft'
-  /** Seat pitch, as published (varies by aircraft). */
+  /** Seat pitch in cm (airlines publish inches: × 2.54), varies by aircraft. */
   legroom?: { economy?: string; premiumEconomy?: string }
   notes: string[]
   /** What the sources didn't settle: check before buying. */
@@ -50,7 +53,7 @@ export interface AirlineInfo {
   sources: string[]
 }
 
-export const AIRLINES: AirlineInfo[] = [
+const RESEARCHED: AirlineInfo[] = [
   {
     code: 'EK',
     name: 'Emirates',
@@ -69,7 +72,7 @@ export const AIRLINES: AirlineInfo[] = [
     ],
     checkedMax: { kg: 23, note: 'Piece concept on flights to/from the Americas' },
     premiumEconomy: 'some aircraft',
-    legroom: { economy: '32–34 in', premiumEconomy: '~40 in' },
+    legroom: { economy: '81–86 cm', premiumEconomy: '~102 cm' },
     notes: ['Brazil (Americas) routes use the piece concept: number of bags, 23 kg each.'],
     toConfirm: ['Saver allowance on Americas routes (1 or 2 bags)', 'Whether your flights have Premium Economy (A380/A350 only)'],
     sources: [
@@ -97,7 +100,7 @@ export const AIRLINES: AirlineInfo[] = [
     ],
     checkedMax: { linearCm: 158, kg: 23, note: 'Piece concept on flights to/from the Americas' },
     premiumEconomy: 'no',
-    legroom: { economy: '31–32 in' },
+    legroom: { economy: '79–81 cm' },
     notes: ['Japan-only routes use a weight concept (20–35 kg total); a Brazil-origin ticket follows the piece rules above.'],
     toConfirm: ['10 kg Brazil carry-on applies to your ticket'],
     sources: ['https://www.qatarairways.com/en/baggage/allowance.html', 'https://www.qatarairways.com/en/optional-services-and-fees.html'],
@@ -118,7 +121,7 @@ export const AIRLINES: AirlineInfo[] = [
     ],
     checkedMax: { linearCm: 158, kg: 23 },
     premiumEconomy: 'no',
-    legroom: { economy: '~32 in' },
+    legroom: { economy: '~81 cm' },
     notes: ['Flights to/from Brazil use the piece concept; guides say 2 bags for Brazil, but EcoFly may include fewer.'],
     toConfirm: ['Number of bags for your fare from Brazil (an old notice said 32 kg per bag from Brazil)'],
     sources: [
@@ -207,7 +210,7 @@ export const AIRLINES: AirlineInfo[] = [
     ],
     checkedMax: { linearCm: 158, kg: 23 },
     premiumEconomy: 'yes',
-    legroom: { premiumEconomy: '38–39 in' },
+    legroom: { premiumEconomy: '97–99 cm' },
     notes: [],
     toConfirm: ['Classic/Flex bags on Brazil routes'],
     sources: ['https://www.lufthansa.com/us/en/carry-on-baggage', 'https://www.lufthansa.com/us/en/freigepaeck-regeln'],
@@ -229,7 +232,7 @@ export const AIRLINES: AirlineInfo[] = [
     ],
     checkedMax: { linearCm: 158, kg: 23 },
     premiumEconomy: 'yes',
-    legroom: { economy: '34 in', premiumEconomy: '38 in' },
+    legroom: { economy: '86 cm', premiumEconomy: '97 cm' },
     notes: ['International flights (e.g. US → Japan connections).'],
     toConfirm: ['Pieces for your fare'],
     sources: [
@@ -385,6 +388,27 @@ export const AIRLINES: AirlineInfo[] = [
     sources: ['https://www.voeazul.com.br/br/pt/sua-viagem/planeje/bagagens'],
   },
 ]
+
+const bagMetric = <T extends BagRule | null>(bag: T): T => (bag?.note ? { ...bag, note: metric(bag.note) } : bag)
+
+/**
+ * The guide, metric everywhere: any inches or pounds left in a text copied
+ * from an airline's page are shown in cm or kg.
+ */
+export const AIRLINES: AirlineInfo[] = RESEARCHED.map((a) => ({
+  ...a,
+  personalItem: bagMetric(a.personalItem),
+  carryOn: bagMetric(a.carryOn),
+  cabinNote: a.cabinNote && metric(a.cabinNote),
+  checked: a.checked.map((r) => (r.note ? { ...r, note: metric(r.note) } : r)),
+  checkedMax: a.checkedMax && bagMetric(a.checkedMax),
+  legroom: a.legroom && {
+    economy: a.legroom.economy && metric(a.legroom.economy),
+    premiumEconomy: a.legroom.premiumEconomy && metric(a.legroom.premiumEconomy),
+  },
+  notes: a.notes.map(metric),
+  toConfirm: a.toConfirm.map(metric),
+}))
 
 /** The airline guide entry for a carrier name, if known ("emirates", "LATAM"…). */
 export function findAirline(carrier: string | undefined, scope?: AirlineInfo['scope']): AirlineInfo | undefined {

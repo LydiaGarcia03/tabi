@@ -1760,10 +1760,10 @@ button:disabled {
 }
 
 .cr-edit {
-  width: 32px;
-  height: 32px;
-  margin-top: -6px;
-  color: var(--muted);
+  width: 36px;
+  height: 36px;
+  margin-top: -8px;
+  color: var(--accent);
 }
 
 .stay-base {
@@ -2025,8 +2025,15 @@ button.icon-toggle.on {
   color: var(--accent-text);
 }
 
-.option-actions .link {
-  margin-left: 6px;
+/* The same pencil as the cities: in the logo's red, bold strokes. */
+.option-actions .option-edit {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--accent);
 }
 
 .choose-row td {

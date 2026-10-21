@@ -166,14 +166,14 @@ function toPlan(path: Edge[], checkedBags: number): FlightPlan {
   }
 }
 
-/** Premium economy on offer and published legroom (31 in = 0, 34 in = 1). */
+/** Premium economy on offer and published legroom (79 cm = 0, 86 cm = 1). */
 function comfortOf(airlines: AirlineInfo[]): number {
   if (airlines.length === 0) return 0
   const long = airlines.filter((a) => a.scope === 'international')
   const list = long.length ? long : airlines
   const premium = list.reduce((sum, a) => sum + (a.premiumEconomy === 'yes' ? 1 : a.premiumEconomy === 'some aircraft' ? 0.5 : 0), 0) / list.length
   const pitches = list.map((a) => Number(/(\d+)/.exec(a.legroom?.economy ?? '')?.[1])).filter((n) => n > 0)
-  const legroom = pitches.length ? Math.min(1, Math.max(0, (Math.min(...pitches) - 31) / 3)) : 0.5
+  const legroom = pitches.length ? Math.min(1, Math.max(0, (Math.min(...pitches) - 79) / 7)) : 0.5
   return (premium + legroom) / 2
 }
 

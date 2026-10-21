@@ -140,7 +140,7 @@ const BASE_LABEL: Record<NonNullable<StayBase['kind']>, string> = { hotel: 'Hote
 function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" className="ghost icon-button cr-edit" onClick={onClick} aria-label={label} title={label}>
-      <Icon name="edit" size={16} />
+      <Icon name="edit" size={19} weight={2.4} />
     </button>
   )
 }
