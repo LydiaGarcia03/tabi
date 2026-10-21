@@ -349,6 +349,10 @@ function BasePicker({
   const cityHotels = hotels.filter(
     (h) => h.status !== 'discarded' && (h.city ?? '').trim().toLowerCase() === city.toLowerCase(),
   )
+  // A hotel base comes from one of the options or from a map search.
+  const [source, setSource] = useState<'option' | 'search'>(
+    base?.kind === 'hotel' && !base.optionId ? 'search' : cityHotels.length > 0 || !base ? 'option' : 'search',
+  )
 
   return (
     <div className="field stay-base">
@@ -373,53 +377,72 @@ function BasePicker({
         ))}
       </div>
 
-      {kind === 'hotel' && cityHotels.length > 0 && (
-        <div className="chip-picker base-hotels" role="radiogroup" aria-label="Your hotel options">
-          {cityHotels.map((h) => {
-            const located = h.lat != null && h.lng != null
-            return (
-              <button
-                key={h.id}
-                type="button"
-                role="radio"
-                aria-checked={base?.optionId === h.id}
-                className={base?.optionId === h.id ? 'active' : ''}
-                disabled={!located}
-                title={located ? h.address : 'No location yet: edit the option to find it on the map'}
-                onClick={() => onChange({ name: h.name, lat: h.lat!, lng: h.lng!, kind: 'hotel', optionId: h.id })}
+      {kind === 'hotel' && (
+        <div className="base-sources" role="radiogroup" aria-label="Where the hotel comes from">
+          <label className="check base-source">
+            <input type="radio" name="hotel-source" checked={source === 'option'} onChange={() => setSource('option')} />
+            From my hotel options
+          </label>
+          {source === 'option' && (
+            <div className="base-source-body">
+              <select
+                value={base?.optionId && cityHotels.some((h) => h.id === base.optionId) ? base.optionId : ''}
+                disabled={cityHotels.length === 0}
+                onChange={(e) => {
+                  const h = cityHotels.find((o) => o.id === e.target.value)
+                  if (h && h.lat != null && h.lng != null) onChange({ name: h.name, lat: h.lat, lng: h.lng, kind: 'hotel', optionId: h.id })
+                }}
+                aria-label="Your hotel options"
               >
-                {h.status === 'chosen' ? '✓ ' : h.status === 'favorite' ? '★ ' : ''}
-                {h.name}
-              </button>
-            )
-          })}
+                {cityHotels.length === 0 ? (
+                  <option value="">— No hotel options for {city || 'this city'} —</option>
+                ) : (
+                  <>
+                    <option value="">Choose one…</option>
+                    {cityHotels.map((h) => (
+                      <option key={h.id} value={h.id} disabled={h.lat == null || h.lng == null}>
+                        {h.status === 'chosen' ? '✓ ' : h.status === 'favorite' ? '★ ' : ''}
+                        {h.name}
+                        {h.lat == null ? ' (no location yet)' : ''}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              {cityHotels.some((h) => h.lat == null) && (
+                <p className="muted small">Options without a location can't be picked: edit them in Options to find them on the map.</p>
+              )}
+            </div>
+          )}
+          <label className="check base-source">
+            <input type="radio" name="hotel-source" checked={source === 'search'} onChange={() => setSource('search')} />
+            Search on the map
+          </label>
+          {source === 'search' && (
+            <div className="base-source-body">
+              <LocateSearch
+                near={city || undefined}
+                placeholder="Hotel name (e.g. Super Hotel Namba)"
+                onPick={(p) => onChange({ name: p.name, lat: p.lat, lng: p.lng, kind: 'hotel' })}
+              />
+            </div>
+          )}
+          <p className="muted small">
+            With a hotel as base, restaurants and places are measured from it; hotel options aren't compared by distance
+            (pick a station for that).
+          </p>
         </div>
       )}
-      {kind === 'hotel' && cityHotels.some((h) => h.lat == null) && (
-        <p className="muted small">Greyed out: options without a location yet (edit them in Options to find them on the map).</p>
-      )}
-      {kind === 'hotel' && (
-        <p className="muted small">
-          With a hotel as base, restaurants and places are measured from it; hotel options aren't compared by distance
-          (pick a station for that).
-        </p>
-      )}
 
-      <LocateSearch
-        key={kind}
-        initialQuery={kind === 'station' && city ? `${city} station` : ''}
-        near={city || undefined}
-        placeholder={
-          kind === 'hotel'
-            ? cityHotels.length > 0
-              ? 'Or search another hotel by name'
-              : 'Hotel name (e.g. Super Hotel Namba)'
-            : kind === 'station'
-              ? 'Station name (e.g. Shin-Osaka)'
-              : 'Name of the place'
-        }
-        onPick={(p) => onChange({ name: p.name, lat: p.lat, lng: p.lng, kind })}
-      />
+      {kind !== 'hotel' && (
+        <LocateSearch
+          key={kind}
+          initialQuery={kind === 'station' && city ? `${city} station` : ''}
+          near={city || undefined}
+          placeholder={kind === 'station' ? 'Station name (e.g. Shin-Osaka)' : 'Name of the place'}
+          onPick={(p) => onChange({ name: p.name, lat: p.lat, lng: p.lng, kind })}
+        />
+      )}
     </div>
   )
 }

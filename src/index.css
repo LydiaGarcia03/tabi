@@ -1668,6 +1668,26 @@ button:disabled {
   line-height: 1.6;
 }
 
+/* Hotel base: from the options (dropdown) or from a map search. */
+.base-sources {
+  display: grid;
+  gap: 6px;
+}
+
+.base-source {
+  margin: 4px 0 0;
+}
+
+.base-source-body {
+  display: grid;
+  gap: 4px;
+  padding-left: 26px;
+}
+
+.base-source-body p {
+  margin: 0;
+}
+
 .cr-options {
   color: var(--muted);
 }
