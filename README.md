@@ -13,6 +13,7 @@
 - **Day-by-day itinerary** — each day is an ordered list of places, shown as pins on a Google map.
 - **Rich place notes** — historical context, tickets to have at hand, opening hours, tips.
 - **Multi-modal routes between places** — build each leg from A to B as a chain of segments, each with its own mode of transport (e.g. *walk 400 m to the main street → bus line 7 to B*). Draw it yourself or ask for a suggested route.
+- **Opening hours & best order** — type each place's opening hours and visit time; Tabi warns about visits that don't fit and suggests the best visiting order for the day (computed on the device, no API).
 - **Budget** — costs for places, transport, lodging and extras, with totals per day and per trip (JPY ↔ BRL).
 - **Offline-first** — installable as an app on the phone (PWA); the whole itinerary stays readable without internet.
 - **Export to Organic Maps** — KML/GPX export with pins and routes for fully offline maps during the trip.
@@ -108,7 +109,7 @@ Tabi is designed to run at **zero cost**:
 - [x] **Phase 4 — Budget:** costs and totals, JPY ↔ BRL
 - [x] **Phase 5 — Offline & export:** PWA, KML/GPX for Organic Maps, JSON backup
 - [x] **Phase 6 — Polish:** redesign, mobile UX, dark mode, share and print a day
-- [ ] **Phase 7 — Opening hours & optimized order:** opening hours and visit time per place, best visiting order for a day
+- [x] **Phase 7 — Opening hours & optimized order:** opening hours and visit time per place, best visiting order for a day
 
 ## Data and attribution
 

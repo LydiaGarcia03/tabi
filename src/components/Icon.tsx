@@ -16,6 +16,8 @@ const PATHS = {
   wallet: 'M4 7h14a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V7zM4 7l11-3v3M16 13.5h.01',
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5',
   download: 'M12 4v11M8 11l4 4 4-4M5 19h14',
+  door: 'M6 20V5a1 1 0 011-1h10a1 1 0 011 1v15M4 20h16M14.5 12h.01',
+  sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z',
 } as const
 
 export type IconName = keyof typeof PATHS

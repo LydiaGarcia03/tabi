@@ -45,6 +45,25 @@ export interface Place {
   plannedTime?: string
   /** Entry fee, ticket… (counted as "activities" in the budget). */
   cost?: Money
+  /** Opening hours, entered by the user. Absent = unknown (treated as always open). */
+  openingHours?: OpeningHours
+  /** How long the visit takes, in minutes. */
+  visitMinutes?: number
+}
+
+/** "HH:mm" local times. A close at or before the open time ends after midnight ("00:00" = midnight). */
+export interface TimeRange {
+  open: string
+  close: string
+}
+
+export interface OpeningHours {
+  /** Index 0 = Sunday … 6 = Saturday; null = closed that day. */
+  days: (TimeRange | null)[]
+  /** Entered day by day (otherwise the same hours every open day). */
+  perDay?: boolean
+  /** Free text, e.g. "last entry 16:30", "closed on holidays". */
+  note?: string
 }
 
 export type ExpenseCategory = 'lodging' | 'transport' | 'food' | 'activities' | 'shopping' | 'other'

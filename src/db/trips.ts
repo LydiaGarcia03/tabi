@@ -113,6 +113,21 @@ export async function movePlaceInDay(dayId: string, placeId: string, delta: -1 |
   })
 }
 
+/**
+ * Sets the visiting order of a day (e.g. a suggested order) and, if given,
+ * each place's planned time. Legs are per place pair, so they are kept.
+ */
+export async function applyDayOrder(dayId: string, placeIds: string[], plannedTimes?: Map<string, string>): Promise<void> {
+  await db.transaction('rw', db.days, db.places, async () => {
+    const day = await db.days.get(dayId)
+    if (!day) return
+    // Keep any place that is not in the new list (shouldn't happen) at the end.
+    const rest = day.placeIds.filter((id) => !placeIds.includes(id))
+    await db.days.update(dayId, { placeIds: [...placeIds, ...rest] })
+    for (const [id, plannedTime] of plannedTimes ?? []) await db.places.update(id, { plannedTime })
+  })
+}
+
 /** Moves a place to the end of another day of the same trip. */
 export async function movePlaceToDay(placeId: string, toDayId: string): Promise<void> {
   await db.transaction('rw', db.days, db.places, async () => {

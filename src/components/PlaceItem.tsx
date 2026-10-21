@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { formatDay } from '../dates'
 import type { Day, Place } from '../db/model'
 import { deletePlace, movePlaceInDay, movePlaceToDay, updatePlace } from '../db/trips'
-import { formatMoney } from '../format'
+import { formatDuration, formatMoney } from '../format'
 import { placeUrl } from '../googleMapsLinks'
+import { DEFAULT_VISIT_MINUTES, describeWindow, timeConflict, weekdayOf, windowFor } from '../planning/hours'
 import { Icon } from './Icon'
+import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { useDraft } from '../useDraft'
 
 interface Props {
@@ -14,11 +16,15 @@ interface Props {
   days: Day[]
   /** Trip currency, used for a new cost. */
   currency: string
+  /** Date of the day, "YYYY-MM-DD" (for that weekday's opening hours). */
+  date: string
   selected: boolean
   onSelect: () => void
 }
 
-export function PlaceItem({ place, index, count, days, currency, selected, onSelect }: Props) {
+export function PlaceItem({ place, index, count, days, currency, date, selected, onSelect }: Props) {
+  const hours = describeWindow(windowFor(place.openingHours, weekdayOf(date)))
+  const conflict = timeConflict(place, date)
   return (
     <li className={`place-item${selected ? ' selected' : ''}`}>
       <button type="button" className="place-header" onClick={onSelect} aria-expanded={selected}>
@@ -27,11 +33,17 @@ export function PlaceItem({ place, index, count, days, currency, selected, onSel
         </span>
         <span className="place-title">
           <span className="place-name">{place.name}</span>
-          {(place.plannedTime || place.cost) && (
+          {(place.plannedTime || place.cost || hours || place.visitMinutes) && (
             <span className="place-meta">
               {place.plannedTime && (
                 <span className="meta">
                   <Icon name="clock" size={14} /> {place.plannedTime}
+                </span>
+              )}
+              {place.visitMinutes != null && <span className="meta">{formatDuration(place.visitMinutes)} visit</span>}
+              {hours && (
+                <span className="meta">
+                  <Icon name="door" size={14} /> {hours}
                 </span>
               )}
               {place.cost && (
@@ -41,13 +53,16 @@ export function PlaceItem({ place, index, count, days, currency, selected, onSel
               )}
             </span>
           )}
+          {conflict && <span className="warning small">⚠ {conflict}</span>}
           {!selected && place.notes && <span className="muted small place-notes-preview">{place.notes}</span>}
         </span>
         <span className="place-chevron" aria-hidden="true">
           <Icon name="down" size={16} />
         </span>
       </button>
-      {selected && <PlaceEditor key={place.id} place={place} index={index} count={count} days={days} currency={currency} />}
+      {selected && (
+        <PlaceEditor key={place.id} place={place} index={index} count={count} days={days} currency={currency} date={date} />
+      )}
     </li>
   )
 }
@@ -60,6 +75,11 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
     const amount = Number(value)
     if (value.trim() === '') void updatePlace(place.id, { cost: undefined })
     else if (Number.isFinite(amount) && amount >= 0) void updatePlace(place.id, { cost: { amount, currency: costCurrency } })
+  })
+  const [visit, setVisit] = useDraft(place.visitMinutes != null ? String(place.visitMinutes) : '', (value) => {
+    const minutes = Number(value)
+    if (value.trim() === '') void updatePlace(place.id, { visitMinutes: undefined })
+    else if (Number.isFinite(minutes) && minutes >= 0) void updatePlace(place.id, { visitMinutes: Math.round(minutes) })
   })
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -80,6 +100,18 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
           />
         </label>
         <label>
+          Visit (min)
+          <input
+            type="number"
+            min="0"
+            step="5"
+            inputMode="numeric"
+            placeholder={String(DEFAULT_VISIT_MINUTES)}
+            value={visit}
+            onChange={(e) => setVisit(e.target.value)}
+          />
+        </label>
+        <label>
           Cost ({costCurrency})
           <input
             type="number"
@@ -92,6 +124,7 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
           />
         </label>
       </div>
+      <OpeningHoursEditor value={place.openingHours} onChange={(openingHours) => updatePlace(place.id, { openingHours })} />
       <label>
         Notes
         <textarea

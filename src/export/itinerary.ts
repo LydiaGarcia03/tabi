@@ -8,6 +8,7 @@ import type { TripData } from '../db/tripData'
 import { orderPlaces } from '../db/trips'
 import { MODE_COLOR, MODE_LABEL, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
 import { translateExit } from '../i18n/japaneseNames'
+import { describeWindow, weekdayOf, windowFor } from '../planning/hours'
 
 export interface ItineraryPoint {
   name: string
@@ -71,6 +72,8 @@ export function buildItinerary(data: TripData, dayIds?: string[]): Itinerary {
 function placeDescription(day: Day, dayNumber: number, place: Place, previous: Place | undefined, arriving: Segment[]): string {
   const parts = [`Day ${dayNumber} · ${formatDay(day.date)}${day.title ? ` · ${day.title}` : ''}`]
   if (place.plannedTime) parts.push(`Time: ${place.plannedTime}`)
+  const hours = hoursText(place, day.date)
+  if (hours) parts.push(hours)
   if (place.address) parts.push(place.address)
   if (place.cost) parts.push(`Cost: ${formatMoney(place.cost)}`)
   if (previous && arriving.length > 0) {
@@ -78,6 +81,14 @@ function placeDescription(day: Day, dayNumber: number, place: Place, previous: P
   }
   if (place.notes.trim()) parts.push(place.notes.trim())
   return parts.join('\n\n')
+}
+
+/** "Open 09:00–17:00 (last entry 16:30)" for the day's weekday, or "" when unknown. */
+export function hoursText(place: Place, date: string): string {
+  const window = describeWindow(windowFor(place.openingHours, weekdayOf(date)))
+  if (!window) return ''
+  const note = place.openingHours?.note ? ` (${place.openingHours.note})` : ''
+  return window === 'Closed' ? `Closed this day${note}` : `Open ${window}${note}`
 }
 
 /** One segment in one or two lines, e.g. "🚇 Ginza Line: Kanda (Exit 2) → Asakusa · 10:02–10:15 · 13 min · ¥178". */

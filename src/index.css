@@ -436,7 +436,8 @@ button:disabled {
 }
 
 .segmented button.active {
-  background: var(--surface);
+  background: var(--accent);
+  color: var(--on-accent);
   box-shadow: var(--shadow);
 }
 
@@ -1074,6 +1075,158 @@ button:disabled {
 
 .draft-dot.end {
   background: #b5332e;
+}
+
+/* --- Opening hours & optimized order ------------------------------------- */
+
+.warning {
+  color: var(--error);
+  font-weight: 600;
+}
+
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+label.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.hours-editor {
+  margin: 12px 0 4px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.hours-editor legend {
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0 4px;
+}
+
+.closed-days {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.closed-days > span {
+  margin-right: 4px;
+}
+
+button.day-toggle {
+  min-height: 32px;
+  padding: 4px 9px;
+  font-size: 0.8rem;
+}
+
+button.day-toggle.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  text-decoration: line-through;
+}
+
+.hours-days {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.hours-days li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 40px;
+}
+
+.hours-days label.hours-day-open {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  width: 64px;
+}
+
+.hours-day-times {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hours-day-times input {
+  padding: 6px 8px;
+}
+
+.list-toolbar {
+  min-height: 38px;
+}
+
+.optimize-panel {
+  border-color: var(--accent);
+}
+
+.optimize-panel .row {
+  margin-top: 8px;
+}
+
+.optimize-result {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 8px;
+}
+
+.optimize-result p {
+  margin: 0;
+}
+
+.optimize-compare {
+  display: grid;
+  gap: 2px;
+}
+
+.schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.schedule li {
+  display: grid;
+}
+
+.schedule-travel {
+  padding-left: 58px;
+}
+
+.schedule-stop {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.schedule-time {
+  flex: none;
+  width: 48px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-text);
 }
 
 /* --- Budget -------------------------------------------------------------- */

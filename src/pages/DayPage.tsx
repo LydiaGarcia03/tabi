@@ -11,6 +11,7 @@ import { DayStrip } from '../components/DayStrip'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Icon } from '../components/Icon'
 import { LegItem } from '../components/LegItem'
+import { OptimizePanel } from '../components/OptimizePanel'
 import { PlaceItem } from '../components/PlaceItem'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { formatDay } from '../dates'
@@ -22,6 +23,7 @@ import type { Drawing } from '../drawing'
 import { dayText, shareText } from '../export/shareText'
 import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
 import { useRefreshStalePlaces } from '../places/refresh'
+import { timeConflict } from '../planning/hours'
 import { href } from '../router'
 import { useDraft } from '../useDraft'
 import { useOnline } from '../useOnline'
@@ -46,6 +48,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const [pending, setPending] = useState<PendingAdd | null>(null)
   const [drawing, setDrawing] = useState<Drawing | null>(null)
   const [mapOpen, setMapOpen] = useState(true)
+  const [optimizing, setOptimizing] = useState(false)
   const mapStatus = useApiLoadingStatus()
   const online = useOnline()
   useRefreshStalePlaces(dayPlaces)
@@ -54,6 +57,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   if (!day || !trip) return <NotFound />
 
   const places = orderPlaces(day, dayPlaces)
+  const conflicts = places.filter((p) => timeConflict(p, day.date)).length
   const index = days.findIndex((d) => d.id === day.id)
   const prev = days[index - 1]
   const next = days[index + 1]
@@ -145,6 +149,25 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
         </div>
 
         <div className="day-list-column">
+          {places.length >= 2 &&
+            (optimizing ? (
+              <OptimizePanel day={day} places={places} legs={legs} onClose={() => setOptimizing(false)} />
+            ) : (
+              <div className="row between list-toolbar">
+                <span className="muted small">
+                  {places.length} places
+                  {conflicts > 0 && (
+                    <span className="warning">
+                      {' '}
+                      · {conflicts} opening-hours {conflicts === 1 ? 'conflict' : 'conflicts'}
+                    </span>
+                  )}
+                </span>
+                <button type="button" className="ghost" onClick={() => setOptimizing(true)}>
+                  <Icon name="sparkle" /> Optimize order
+                </button>
+              </div>
+            ))}
           <ol className="timeline">
             {places.length === 0 && (
               <li className="empty-state">
@@ -163,6 +186,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                     count={places.length}
                     days={days}
                     currency={trip.baseCurrency}
+                    date={day.date}
                     selected={place.id === selectedId}
                     onSelect={() => setSelectedId(place.id === selectedId ? null : place.id)}
                   />

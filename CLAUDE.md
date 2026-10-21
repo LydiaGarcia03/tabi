@@ -124,9 +124,11 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
   - Day page: list left + sticky map right on wide screens; map on top on phones, with "Hide map" (hidden with CSS, never unmounted: unmounting costs a new map load and can throw offline).
   - Share = Web Share API with a plain-text day (`src/export/shareText.ts`), clipboard fallback. Print = `window.print()` with print CSS (itinerary + budget only).
   - Icons are hand-drawn SVG paths in `src/components/Icon.tsx` (no icon dependency).
-- **Phase 7 — Opening hours & optimized order** (planned, not started):
-  - Opening hours per place, **entered manually by Lydia** (her decision: no extra Google data; `regularOpeningHours` would be the Places Enterprise SKU, only 1,000 free/month). Plus a visit duration per place.
-  - "Optimize order" for a day: best visiting order respecting opening hours and visit durations, with travel time **estimated from distance** (free, offline); shown as a suggestion with arrival times, applied only if accepted (legs are per place pair, so they survive reordering).
+- **Phase 7 — Opening hours & optimized order** (done):
+  - `Place.openingHours` (`days[0..6]`, Sunday first, `null` = closed; `perDay` remembers the "varies by day" editor mode; optional `note`) and `Place.visitMinutes` (default 60). **Entered manually by Lydia** (her decision: no extra Google data; `regularOpeningHours` would be the Places Enterprise SKU, only 1,000 free/month). No schema version needed (fields aren't indexed). A close at/before the open time means after midnight.
+  - `src/planning/hours.ts`: windows in minutes, `timeConflict` (closed that weekday / planned time outside hours) shown on place cards and counted above the day list. Hours are also in the KML descriptions and the shared text.
+  - `src/planning/optimize.ts`: travel time = saved leg durations when present, else distance × 1.3 (walk ≤ 1.5 km at 4.5 km/h, else transit 12 min + 22 km/h). Schedule waits for openings; cost = conflicts, then minutes past closing, then finish time, then travel. Exact (all permutations, Heap's algorithm) up to 8 movable places, else local search (move one place / reverse a stretch) from the current and nearest-neighbor orders. Places closed that day are left out of the route (listed at the end). Options: start time, keep first, keep last.
+  - `OptimizePanel` shows suggested vs current schedule; "Apply" uses `applyDayOrder` (order + optional planned times; never on closed places). Nothing changes until applied.
 
 ## Working agreements
 
