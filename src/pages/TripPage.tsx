@@ -3,11 +3,13 @@ import { useMemo, useState } from 'react'
 import { dayBudget, expensesBudget, mergeBudgets } from '../budget'
 import { BudgetBreakdown, MoneyTotals } from '../components/BudgetView'
 import { ExpenseList } from '../components/ExpenseList'
+import { ExportCard } from '../components/ExportCard'
 import { formatDay } from '../dates'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Trip } from '../db/model'
 import { deleteTrip, updateTrip } from '../db/trips'
+import { useRefreshStalePlaces } from '../places/refresh'
 import { href, navigate } from '../router'
 import { useDraft } from '../useDraft'
 
@@ -18,6 +20,7 @@ export function TripPage({ tripId }: { tripId: string }) {
   const places = useLiveQuery(() => db.places.where('tripId').equals(tripId).toArray(), [tripId])
   const legs = useLiveQuery(() => db.legs.where('tripId').equals(tripId).toArray(), [tripId])
   const expenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
+  useRefreshStalePlaces(places)
 
   const budgets = useMemo(() => {
     if (!days || !places || !legs || !expenses) return null
@@ -80,6 +83,7 @@ export function TripPage({ tripId }: { tripId: string }) {
         <p className="muted small">Costs not tied to one day: hotel, rail pass, insurance…</p>
         <ExpenseList trip={trip} expenses={budgets.tripWide} />
       </section>
+      <ExportCard tripId={trip.id} />
       <DeleteTrip trip={trip} />
     </>
   )

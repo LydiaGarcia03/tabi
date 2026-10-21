@@ -4,6 +4,7 @@ import { chooseAlternative, deleteLeg, saveLeg, toSegments } from '../db/legs'
 import type { Leg, Place, Segment } from '../db/model'
 import type { Drawing } from '../drawing'
 import { MODE_ICON, formatDuration, formatMoney } from '../format'
+import { directionsUrl } from '../googleMapsLinks'
 import { translateRouteResult } from '../i18n/japaneseNames'
 import { computeWalkingRoute } from '../routing/googleProvider'
 import { navitimeProvider, suggestionDate } from '../routing/providers'
@@ -257,11 +258,16 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
         />
       )}
 
-      {leg && (
-        <button type="button" className="link" onClick={() => deleteLeg(leg.id)}>
-          Clear this leg
-        </button>
-      )}
+      <div className="row wrap">
+        <a href={directionsUrl(from, to, segments)} target="_blank" rel="noreferrer">
+          Open in Google Maps
+        </a>
+        {leg && (
+          <button type="button" className="link" onClick={() => deleteLeg(leg.id)}>
+            Clear this leg
+          </button>
+        )}
+      </div>
     </div>
   )
 }

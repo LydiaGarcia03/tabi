@@ -77,6 +77,14 @@ npm run build
 npm run preview
 ```
 
+The production build installs a service worker (offline cache). To test it without affecting the dev server on port 5177, preview on another port: `npx vite preview --port 5178`.
+
+### Using it during the trip
+
+- **Install:** open the app on the phone and choose *Add to Home screen* (Android Chrome: menu ⋮ → *Install app*; iPhone Safari: Share → *Add to Home Screen*). Open it once while online; after that it works without internet.
+- **Offline maps:** on the trip or day page, tap **Organic Maps (KML)** and open the file with [Organic Maps](https://organicmaps.app/) (download the Japan map in Organic Maps beforehand).
+- **Phone ↔ PC:** **Backup (JSON)** on one device, **Import backup** on the other.
+
 ## Deployment
 
 Every push to `main` builds and deploys the app to GitHub Pages through GitHub Actions.
@@ -98,7 +106,7 @@ Tabi is designed to run at **zero cost**:
 - [x] **Phase 2 — Core planner:** trips, days, place search, pins, notes
 - [x] **Phase 3 — Legs:** segment editor, suggested routes and hand-drawn segments on the map
 - [x] **Phase 4 — Budget:** costs and totals, JPY ↔ BRL
-- [ ] **Phase 5 — Offline & export:** PWA, KML/GPX for Organic Maps, JSON backup
+- [x] **Phase 5 — Offline & export:** PWA, KML/GPX for Organic Maps, JSON backup
 - [ ] **Phase 6 — Polish:** mobile UX, dark mode, sharing
 
 ## Data and attribution

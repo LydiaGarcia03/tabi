@@ -1,11 +1,13 @@
-import type { MapMouseEvent } from '@vis.gl/react-google-maps'
+import { APILoadingStatus, useApiLoadingStatus, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Fragment, useMemo, useState } from 'react'
 import { dayBudget } from '../budget'
 import { BudgetBreakdown } from '../components/BudgetView'
 import { DayMap } from '../components/DayMap'
 import { ExpenseList } from '../components/ExpenseList'
+import { ExportCard } from '../components/ExportCard'
 import { DrawToolbar } from '../components/DrawToolbar'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LegItem } from '../components/LegItem'
 import { PlaceItem } from '../components/PlaceItem'
 import { PlaceSearch } from '../components/PlaceSearch'
@@ -16,8 +18,10 @@ import type { Day } from '../db/model'
 import { addPlace, orderPlaces, updateDay } from '../db/trips'
 import type { Drawing } from '../drawing'
 import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
+import { useRefreshStalePlaces } from '../places/refresh'
 import { href } from '../router'
 import { useDraft } from '../useDraft'
+import { useOnline } from '../useOnline'
 import { NotFound } from './TripPage'
 
 type PendingAdd =
@@ -38,6 +42,9 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const [openLeg, setOpenLeg] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingAdd | null>(null)
   const [drawing, setDrawing] = useState<Drawing | null>(null)
+  const mapStatus = useApiLoadingStatus()
+  const online = useOnline()
+  useRefreshStalePlaces(dayPlaces)
 
   if (day === undefined || days === undefined || dayPlaces === undefined || trip === undefined || !dayExpenses) return null
   if (!day || !trip) return <NotFound />
@@ -85,24 +92,34 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
 
       <div className="day-layout">
         <div className="day-map-column">
-          {hasGoogleKey ? (
+          {!hasGoogleKey ? (
+            <p className="error">Map and place search need the Google key (VITE_GOOGLE_MAPS_API_KEY).</p>
+          ) : mapStatus === APILoadingStatus.FAILED || (!online && mapStatus !== APILoadingStatus.LOADED && mapStatus !== APILoadingStatus.AUTH_FAILURE) ? (
+            // Only before the map exists: a map already shown is kept (unmounting
+            // it offline can make Google's code throw).
+            <MapUnavailable online={online} />
+          ) : (
             <>
-              <DayMap
-                places={places}
-                legs={legs}
-                selectedPlaceId={selectedId}
-                onSelectPlace={setSelectedId}
-                onMapClick={onMapClick}
-                fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
-                drawing={drawing}
-              />
+              <ErrorBoundary fallback={<MapUnavailable online={online} />}>
+                <DayMap
+                  places={places}
+                  legs={legs}
+                  selectedPlaceId={selectedId}
+                  onSelectPlace={setSelectedId}
+                  onMapClick={onMapClick}
+                  fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
+                  drawing={drawing}
+                />
+              </ErrorBoundary>
               {drawing && <DrawToolbar drawing={drawing} onChange={setDrawing} />}
               {pending && !drawing && <PendingAddCard pending={pending} onAdd={add} onClose={() => setPending(null)} />}
-              <PlaceSearch onAdd={add} />
-              <p className="muted small">Tip: tap a place on the map to add it, or an empty spot to drop a custom pin.</p>
+              {online && (
+                <>
+                  <PlaceSearch onAdd={add} />
+                  <p className="muted small">Tip: tap a place on the map to add it, or an empty spot to drop a custom pin.</p>
+                </>
+              )}
             </>
-          ) : (
-            <p className="error">Map and place search need the Google key (VITE_GOOGLE_MAPS_API_KEY).</p>
           )}
         </div>
 
@@ -152,6 +169,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             <h3>Expenses this day</h3>
             <ExpenseList trip={trip} dayId={day.id} expenses={dayExpenses} />
           </section>
+
+          <ExportCard tripId={tripId} day={{ id: day.id, number: index + 1 }} />
         </div>
       </div>
     </>
@@ -172,6 +191,24 @@ function DayHeader({ day, number }: { day: Day; number: number }) {
         aria-label="Day title"
       />
     </header>
+  )
+}
+
+function MapUnavailable({ online }: { online: boolean }) {
+  return (
+    <div className="card map-unavailable">
+      <p>
+        {online
+          ? 'The map could not load. Reload the page to try again.'
+          : 'No internet: the map is not available. Your places, routes and notes below are saved on this device.'}
+      </p>
+      <p className="muted small">For a map without internet, export this day to Organic Maps (below).</p>
+      {online && (
+        <button type="button" onClick={() => location.reload()}>
+          Reload
+        </button>
+      )}
+    </div>
   )
 }
 

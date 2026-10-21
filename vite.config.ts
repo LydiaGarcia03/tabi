@@ -1,9 +1,41 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Installable app + offline app shell. Trip data is in IndexedDB, so once
+    // the shell is cached everything saved is readable without internet.
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'Tabi 旅',
+        short_name: 'Tabi',
+        description: 'Plan every step of a trip, and take it offline.',
+        lang: 'en',
+        start_url: '/tabi/',
+        scope: '/tabi/',
+        display: 'standalone',
+        theme_color: '#b5332e',
+        background_color: '#f7f5f2',
+        icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        // The app's own files only. Google map tiles and API responses are
+        // never cached (Google Maps Platform terms).
+        globPatterns: ['**/*.{js,css,html,svg,png}'],
+        // Hash routing: every page is index.html.
+        navigateFallback: 'index.html',
+      },
+    }),
+  ],
   // Served from https://lydiagarcia03.github.io/tabi/
   base: '/tabi/',
   // Port 5177 is the one allowed by the Google API key referrer restriction.

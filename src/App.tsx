@@ -1,15 +1,18 @@
 import { APIProvider } from '@vis.gl/react-google-maps'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { DayPage } from './pages/DayPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TripPage } from './pages/TripPage'
 import { TripsPage } from './pages/TripsPage'
 import { href, useRoute, type Route } from './router'
 import { TransitSpike } from './spike/TransitSpike'
+import { useOnline } from './useOnline'
 
 const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 export default function App() {
   const route = useRoute()
+  const online = useOnline()
 
   const content = (
     <main>
@@ -21,7 +24,14 @@ export default function App() {
         </h1>
         <a href={href({ page: 'settings' })}>Settings</a>
       </header>
-      <Page route={route} />
+      {!online && (
+        <p className="offline-banner small">
+          Offline: showing what is saved on this device. Map, search and route suggestions need internet.
+        </p>
+      )}
+      <ErrorBoundary key={location.hash} fallback={<PageError />}>
+        <Page route={route} />
+      </ErrorBoundary>
       <footer className="muted small">
         Map and place data © Google. Transit routes by NAVITIME JAPAN. Station names from Wikidata.
       </footer>
@@ -34,6 +44,17 @@ export default function App() {
     </APIProvider>
   ) : (
     content
+  )
+}
+
+function PageError() {
+  return (
+    <section className="card">
+      <p>Something went wrong on this page. Your data is safe on this device.</p>
+      <button type="button" onClick={() => location.reload()}>
+        Reload
+      </button>
+    </section>
   )
 }
 

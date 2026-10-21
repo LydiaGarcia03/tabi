@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type FormEvent } from 'react'
+import { ImportBackup } from '../components/ImportBackup'
 import { formatDate } from '../dates'
 import { db } from '../db/db'
 import { createTrip } from '../db/trips'
@@ -27,6 +28,7 @@ export function TripsPage() {
         </ul>
       </section>
       <NewTripForm />
+      <ImportBackup />
     </>
   )
 }

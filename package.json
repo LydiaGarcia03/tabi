@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "names:update": "node scripts/update-japanese-names.mjs"
+    "names:update": "node scripts/update-japanese-names.mjs",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@vis.gl/react-google-maps": "^1.10.1",
@@ -25,6 +26,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.88.0",
     "typescript": "~6.0.3",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vite-plugin-pwa": "^2.0.0"
   }
 }

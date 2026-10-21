@@ -3,6 +3,7 @@ import { formatDay } from '../dates'
 import type { Day, Place } from '../db/model'
 import { deletePlace, movePlaceInDay, movePlaceToDay, updatePlace } from '../db/trips'
 import { formatMoney } from '../format'
+import { placeUrl } from '../googleMapsLinks'
 import { useDraft } from '../useDraft'
 
 interface Props {
@@ -98,7 +99,7 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
         <button type="button" disabled={index === count - 1} onClick={() => movePlaceInDay(place.dayId, place.id, 1)}>
           ↓ Down
         </button>
-        <a className="button" href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
+        <a className="button" href={placeUrl(place)} target="_blank" rel="noreferrer">
           Open in Google Maps
         </a>
         <button
@@ -112,10 +113,4 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
       </div>
     </div>
   )
-}
-
-function googleMapsUrl(place: Place): string {
-  const params = new URLSearchParams({ api: '1', query: `${place.lat},${place.lng}` })
-  if (place.googlePlaceId) params.set('query_place_id', place.googlePlaceId)
-  return `https://www.google.com/maps/search/?${params}`
 }
