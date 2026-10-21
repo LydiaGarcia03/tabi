@@ -5,6 +5,8 @@ import {
   checkedForFare,
   describeBag,
   describeChecked,
+  findAirline,
+  strictestBag,
   type AirlineInfo,
 } from '../data/airlines'
 import { formatDate } from '../dates'
@@ -37,6 +39,45 @@ export function BaggageSummary({ airline, fare }: { airline: AirlineInfo; fare?:
         {rule?.note && <span className="muted"> — {rule.note}</span>}
       </span>
       {airline.toConfirm.length > 0 && <span className="warning">Confirm: {airline.toConfirm.join('; ')}</span>}
+    </div>
+  )
+}
+
+/**
+ * Baggage for a sequence of airlines (e.g. Gol → Qatar → ANA): what fits
+ * every flight, then each airline's own rules. The fare applies to the main one.
+ */
+export function SequenceBaggage({ carriers, main, fare }: { carriers: string[]; main?: string; fare?: string }) {
+  const known = [...new Map(carriers.map((c) => findAirline(c)).filter((a): a is AirlineInfo => !!a).map((a) => [a.name, a])).values()]
+  const unknown = carriers.filter((c) => !findAirline(c))
+  const mainAirline = findAirline(main)
+  if (known.length === 0) {
+    return unknown.length ? <p className="muted small">Not in the airline guide: {unknown.join(', ')} (check their baggage rules on their sites).</p> : null
+  }
+  if (known.length === 1 && unknown.length === 0) return <BaggageSummary airline={known[0]} fare={fare} />
+  const personal = strictestBag(known.map((a) => a.personalItem))
+  const carryOn = strictestBag(known.map((a) => a.carryOn))
+  return (
+    <div className="baggage-summary small">
+      <span className="baggage-title">🧳 To fit every flight ({known.map((a) => a.name).join(' → ')})</span>
+      <span>
+        <strong>Personal item:</strong> {personal ? describeBag(personal) : 'none on some airline: plan for one piece only'}
+      </span>
+      <span>
+        <strong>Carry-on:</strong> {describeBag(carryOn)}
+      </span>
+      <span className="muted">
+        Checked bags: on <strong>one ticket</strong> the main airline's allowance usually applies to the whole trip
+        {mainAirline ? ` (${mainAirline.name}: ${checkedForFare(mainAirline, fare) ? describeChecked(checkedForFare(mainAirline, fare)!) : mainAirline.checked.map((r) => `${r.fare.replace(/^Economy /, '')} ${describeChecked(r)}`).join(' · ')})` : ''}; on{' '}
+        <strong>separate tickets</strong> each airline's own rules apply and you check in again.
+      </span>
+      {unknown.length > 0 && <span className="warning">Not in the guide: {unknown.join(', ')} — check their rules too.</span>}
+      <details>
+        <summary>Each airline's rules</summary>
+        {known.map((a) => (
+          <BaggageSummary key={a.name} airline={a} fare={a.name === mainAirline?.name ? fare : undefined} />
+        ))}
+      </details>
     </div>
   )
 }

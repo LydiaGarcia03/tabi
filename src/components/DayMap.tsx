@@ -1,9 +1,10 @@
-import { AdvancedMarker, Map, Pin, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
+import { AdvancedMarker, Map, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useEffect, useMemo } from 'react'
 import { legKey } from '../db/legs'
 import type { Leg, Place, Stay } from '../db/model'
 import { drawingPoints, type Drawing } from '../drawing'
-import { MODE_COLOR } from '../format'
+import { segmentColor } from '../format'
+import { placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, WALK_DOT_OUTER } from '../mapLines'
 import type { LatLng } from '../routing/types'
 import { useIsDark } from '../theme'
 
@@ -52,11 +53,10 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
             zIndex={place.id === selectedPlaceId ? 1000 : i}
             onClick={() => onSelectPlace(place.id)}
           >
-            <Pin
-              background={place.id === selectedPlaceId ? '#1f1d1a' : '#b5332e'}
-              borderColor="#7f1d1d"
-              glyphColor="#fff"
-              glyphText={String(i + 1)}
+            {/* The same pin as on the offline map; selected = bigger, thick ring in the walking dots' blue. */}
+            <span
+              className="map-pin"
+              dangerouslySetInnerHTML={{ __html: placePinSvg(String(i + 1), { selected: place.id === selectedPlaceId }) }}
             />
           </AdvancedMarker>
         ))}
@@ -90,11 +90,11 @@ function LegLines({ places, legs }: { places: Place[]; legs: Map<string, Leg> })
       const to = places[i + 1]
       const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1)
       if (drawn.length === 0) {
-        lines.push(dottedLine(map, [from, to], '#7f1d1d', 0.5, '10px'))
+        lines.push(undefinedLine(map, [from, to]))
         continue
       }
       for (const segment of drawn) {
-        const color = segment.color ?? MODE_COLOR[segment.mode]
+        const color = segmentColor(segment)
         lines.push(
           segment.mode === 'walk'
             ? walkingLine(map, segment.path, color)
@@ -111,7 +111,7 @@ function LegLines({ places, legs }: { places: Place[]; legs: Map<string, Leg> })
 function DraftLayer({ drawing }: { drawing: Drawing }) {
   const map = useMap(DAY_MAP_ID)
   const path = useMemo(() => drawing.snapped?.path ?? drawingPoints(drawing), [drawing])
-  const color = drawing.color ?? MODE_COLOR[drawing.mode]
+  const color = segmentColor(drawing)
 
   useEffect(() => {
     if (!map || path.length < 2) return
@@ -146,34 +146,66 @@ function DraftLayer({ drawing }: { drawing: Drawing }) {
 // All lines are non-clickable: otherwise they swallow taps meant for the map
 // (adding places, drawing points).
 
+// Same look as the offline map: see mapLines.ts.
+
 function solidLine(map: google.maps.Map, path: LatLng[], color: string) {
-  return new google.maps.Polyline({ map, path, clickable: false, strokeColor: color, strokeOpacity: 0.9, strokeWeight: 5 })
+  return new google.maps.Polyline({
+    map,
+    path,
+    clickable: false,
+    strokeColor: color,
+    strokeOpacity: SOLID_LINE.opacity,
+    strokeWeight: SOLID_LINE.width,
+  })
 }
 
-/** Round dots with a white rim, readable over streets of any color. */
+/** Round dots with a white rim and a soft dark edge, readable over streets of any color. */
 function walkingLine(map: google.maps.Map, path: LatLng[], color: string) {
+  const repeat = `${WALK_DOT.spacing}px`
   return new google.maps.Polyline({
     map,
     path,
     clickable: false,
     strokeOpacity: 0,
     icons: [
+      // Edge first, then the dot on top (same offset and repeat, so they line up).
       {
-        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 1.5, scale: 3.5 },
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: WALK_DOT_OUTER, fillColor: '#000000', fillOpacity: 0.35, strokeOpacity: 0 },
         offset: '0',
-        repeat: '11px',
+        repeat,
+      },
+      {
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: WALK_DOT.radius,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeOpacity: 1,
+          strokeWeight: WALK_DOT.rim,
+        },
+        offset: '0',
+        repeat,
       },
     ],
   })
 }
 
-function dottedLine(map: google.maps.Map, path: LatLng[], color: string, opacity: number, repeat: string) {
+/** "Route not defined yet": short dashes. */
+function undefinedLine(map: google.maps.Map, path: LatLng[]) {
+  const { color, opacity, width, dash, gap } = UNDEFINED_LINE
   return new google.maps.Polyline({
     map,
     path: path.map((p) => ({ lat: p.lat, lng: p.lng })),
     clickable: false,
     strokeOpacity: 0,
-    icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: opacity, strokeColor: color, scale: 2.5 }, offset: '0', repeat }],
+    icons: [
+      {
+        icon: { path: `M 0,0 0,${dash / width}`, strokeOpacity: opacity, strokeColor: color, strokeWeight: width, scale: width },
+        offset: '0',
+        repeat: `${dash + gap}px`,
+      },
+    ],
   })
 }
 

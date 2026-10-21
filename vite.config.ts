@@ -30,7 +30,8 @@ export default defineConfig({
       workbox: {
         // The app's own files only. Google map tiles and API responses are
         // never cached (Google Maps Platform terms).
-        globPatterns: ['**/*.{js,css,html,svg,png}'],
+        // The offline map's data lives in IndexedDB; its worker is the .mjs file.
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png}'],
         // Hash routing: every page is index.html.
         navigateFallback: 'index.html',
       },

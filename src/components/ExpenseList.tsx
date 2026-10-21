@@ -5,6 +5,7 @@ import { addExpense, deleteExpense, updateExpense } from '../db/expenses'
 import type { Expense, ExpenseCategory, Trip } from '../db/model'
 import { formatMoney } from '../format'
 import { journeyDetails, journeyTitle } from '../planning/journeys'
+import { JourneyItinerary } from './JourneyLegs'
 import { HotelForm, JourneyForm, type BookingValues } from './BookingForms'
 
 interface Props {
@@ -134,6 +135,7 @@ function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void 
       <span className="expense-main">
         <span>{title}</span>
         {details.length > 0 && <span className="muted small">{details.join(' · ')}</span>}
+        {journey && <JourneyItinerary journey={journey} />}
       </span>
       <span className="row">
         <strong>{formatMoney(expense.amount)}</strong>

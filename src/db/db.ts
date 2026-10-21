@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { upgradeExpense, upgradeOption } from './migrations'
-import type { Day, Expense, Leg, OptionPhoto, Place, Stay, Trip, TripOption } from './model'
+import type { Day, Expense, Leg, MapArea, MapAsset, MapTile, OptionPhoto, Place, Stay, Trip, TripOption } from './model'
 
 export const db = new Dexie('tabi') as Dexie & {
   trips: EntityTable<Trip, 'id'>
@@ -11,6 +11,9 @@ export const db = new Dexie('tabi') as Dexie & {
   stays: EntityTable<Stay, 'id'>
   options: EntityTable<TripOption, 'id'>
   photos: EntityTable<OptionPhoto, 'id'>
+  mapTiles: EntityTable<MapTile, 'key'>
+  mapAssets: EntityTable<MapAsset, 'key'>
+  mapAreas: EntityTable<MapArea, 'tripId'>
 }
 
 // Only indexed fields are listed; every other field is stored as well.
@@ -40,6 +43,12 @@ db.version(5)
 // Photos of options, kept apart so the options list stays light.
 db.version(6).stores({
   photos: 'id, tripId, optionId',
+})
+// Offline map (OpenStreetMap data from OpenFreeMap): a cache on this device, not part of backups.
+db.version(7).stores({
+  mapTiles: 'key',
+  mapAssets: 'key',
+  mapAreas: 'tripId',
 })
 
 /** Asks the browser not to evict our data when the device is low on space. */

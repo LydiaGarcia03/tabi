@@ -1,6 +1,6 @@
 import { APILoadingStatus, useApiLoadingStatus, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, lazy, Suspense, useMemo, useState } from 'react'
 import { dayBudget } from '../budget'
 import { BudgetBreakdown } from '../components/BudgetView'
 import { DayMap } from '../components/DayMap'
@@ -27,13 +27,20 @@ import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
 import { useRefreshStalePlaces } from '../places/refresh'
 import { timeConflict } from '../planning/hours'
 import { href } from '../router'
+import { loadJson, saveJson } from '../settings'
 import { useDraft } from '../useDraft'
 import { useOnline } from '../useOnline'
 import { NotFound } from './TripPage'
 
+// MapLibre is big: loaded only when the offline map is used (and precached for offline).
+const OfflineMapPanel = lazy(() => import('../components/OfflineMap').then((m) => ({ default: m.OfflineMapPanel })))
+
+type MapProvider = 'google' | 'offline'
+const MAP_PROVIDER_KEY = 'tabi.mapProvider'
+
 type PendingAdd =
   | { kind: 'google'; googlePlaceId: string }
-  | { kind: 'custom'; lat: number; lng: number }
+  | { kind: 'custom'; lat: number; lng: number; name?: string }
 
 export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId: string; hasGoogleKey: boolean }) {
   // `null` = not found; `undefined` = still loading.
@@ -52,6 +59,11 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const [drawing, setDrawing] = useState<Drawing | null>(null)
   const [mapOpen, setMapOpen] = useState(true)
   const [optimizing, setOptimizing] = useState(false)
+  const [mapProvider, setMapProviderState] = useState<MapProvider>(() => loadJson<MapProvider>(MAP_PROVIDER_KEY) ?? 'google')
+  const setMapProvider = (provider: MapProvider) => {
+    setMapProviderState(provider)
+    saveJson(MAP_PROVIDER_KEY, provider)
+  }
   const mapStatus = useApiLoadingStatus()
   const online = useOnline()
   useRefreshStalePlaces(dayPlaces)
@@ -89,6 +101,14 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
     }
   }
 
+  /** A tap on the offline map: a drawing point, or a pin (named after the place tapped, if any). */
+  function onOfflineTap(tap: { lat: number; lng: number; name?: string }) {
+    if (drawing) setDrawing({ ...drawing, taps: [...drawing.taps, { lat: tap.lat, lng: tap.lng }], snapped: undefined })
+    else setPending({ kind: 'custom', ...tap })
+  }
+
+  const bases = (stays ? staysOn(stays, day.date) : []).flatMap((s) => (s.base ? [{ ...s.base, city: s.city }] : []))
+
   return (
     <TripLayout trip={trip} active={{ dayId: day.id }}>
       <DayStrip tripId={tripId} days={days} currentId={day.id} />
@@ -111,12 +131,41 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
 
       <div className="day-layout">
         <div className={`day-map-column${mapOpen ? '' : ' map-collapsed'}`}>
-          {hasGoogleKey && (
+          <div className="row wrap map-buttons">
             <button type="button" className="map-toggle" onClick={() => setMapOpen(!mapOpen)} aria-expanded={mapOpen}>
               <Icon name="map" /> {mapOpen ? 'Hide map' : 'Show map'}
             </button>
-          )}
-          {!hasGoogleKey ? (
+            <button
+              type="button"
+              className={`map-provider${mapProvider === 'offline' ? ' active' : ''}`}
+              aria-pressed={mapProvider === 'offline'}
+              onClick={() => setMapProvider(mapProvider === 'offline' ? 'google' : 'offline')}
+            >
+              {mapProvider === 'offline' ? 'Use Google map' : 'Use offline map'}
+            </button>
+          </div>
+          {mapProvider === 'offline' ? (
+            <>
+              <ErrorBoundary fallback={<p className="error">The offline map failed to load. Reload the page to try again.</p>}>
+                <Suspense fallback={<p className="muted small">Loading the offline map…</p>}>
+                  <OfflineMapPanel
+                    tripId={tripId}
+                    places={places}
+                    legs={legs}
+                    selectedPlaceId={selectedId}
+                    onSelectPlace={setSelectedId}
+                    onTap={onOfflineTap}
+                    drawing={drawing}
+                    bases={bases}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+              {drawing && <DrawToolbar drawing={drawing} onChange={setDrawing} />}
+              {pending && !drawing && <PendingAddCard key={JSON.stringify(pending)} pending={pending} onAdd={add} onClose={() => setPending(null)} />}
+              {online && hasGoogleKey && <PlaceSearch onAdd={add} />}
+              <p className="muted small">Tip: tap the map to drop a pin (tapping a shop or sight names it), or draw a segment.</p>
+            </>
+          ) : !hasGoogleKey ? (
             <p className="error">Map and place search need the Google key (VITE_GOOGLE_MAPS_API_KEY).</p>
           ) : mapStatus === APILoadingStatus.FAILED || (!online && mapStatus !== APILoadingStatus.LOADED && mapStatus !== APILoadingStatus.AUTH_FAILURE) ? (
             // Only before the map exists: a map already shown is kept (unmounting
@@ -133,11 +182,11 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                   onMapClick={onMapClick}
                   fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
                   drawing={drawing}
-                  bases={(stays ? staysOn(stays, day.date) : []).flatMap((s) => (s.base ? [{ ...s.base, city: s.city }] : []))}
+                  bases={bases}
                 />
               </ErrorBoundary>
               {drawing && <DrawToolbar drawing={drawing} onChange={setDrawing} />}
-              {pending && !drawing && <PendingAddCard pending={pending} onAdd={add} onClose={() => setPending(null)} />}
+              {pending && !drawing && <PendingAddCard key={JSON.stringify(pending)} pending={pending} onAdd={add} onClose={() => setPending(null)} />}
               {online && (
                 <>
                   <PlaceSearch onAdd={add} />
@@ -306,7 +355,7 @@ function PendingAddCard({
   onAdd: (place: PlaceResult | { name: string; lat: number; lng: number }) => Promise<void>
   onClose: () => void
 }) {
-  const [name, setName] = useState('')
+  const [name, setName] = useState(pending.kind === 'custom' ? (pending.name ?? '') : '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 

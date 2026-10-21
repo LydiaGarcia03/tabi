@@ -48,7 +48,8 @@ export const MODE_LABEL: Record<SegmentMode, string> = {
 }
 
 export const MODE_COLOR: Record<SegmentMode, string> = {
-  walk: '#374151',
+  // Bright blue, like walking in Google Maps: stands out on light and dark maps.
+  walk: '#1a73e8',
   bus: '#16a34a',
   train: '#2563eb',
   shinkansen: '#0d9488',
@@ -56,4 +57,13 @@ export const MODE_COLOR: Record<SegmentMode, string> = {
   taxi: '#eab308',
   ferry: '#0891b2',
   other: '#f97316',
+}
+
+/**
+ * Color a segment is drawn in: its line's color (e.g. the Ginza Line's
+ * orange), except walking, which is always the walking blue (route
+ * providers send walks in grays that vanish on the map).
+ */
+export function segmentColor(segment: { mode: SegmentMode; color?: string }): string {
+  return segment.mode === 'walk' ? MODE_COLOR.walk : (segment.color ?? MODE_COLOR[segment.mode])
 }

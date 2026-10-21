@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { checkedForFare, describeBag, describeChecked, findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
 import { PhotoStrip } from '../components/Photos'
+import { JourneyItinerary } from '../components/JourneyLegs'
 import { Stars } from '../components/Stars'
 import { CityTag, TripLayout } from '../components/TripLayout'
 import { formatDay } from '../dates'
@@ -15,7 +16,7 @@ import { addOptionToDay, bookOption, updateOption } from '../db/options'
 import { cityLabel, stayNights, stayOfCity } from '../db/stays'
 import { formatMoney } from '../format'
 import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, type Weights } from '../planning/compare'
-import { formatHours, JOURNEY_ICON, journeyDetails } from '../planning/journeys'
+import { formatHours, JOURNEY_ICON, journeyCarriers, journeyDetails } from '../planning/journeys'
 import { KIND_ICON, KIND_PLURAL, OPTION_KINDS } from '../planning/optionKinds'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
@@ -87,7 +88,7 @@ export function OptionsPage({ tripId }: { tripId: string }) {
     ...new Set(
       options
         .filter((o) => o.journey?.mode === 'flight' && o.status !== 'discarded')
-        .map((o) => findAirline(o.journey!.carrier)?.name)
+        .flatMap((o) => journeyCarriers(o.journey!).map((c) => findAirline(c)?.name))
         .filter((n): n is string => !!n),
     ),
   ]
@@ -270,12 +271,14 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
               ? [
                   JOURNEY_ICON[journey.mode],
                   journey.date && `${formatDay(journey.date)} ${journey.time ?? ''}`,
-                  ...journeyDetails({ ...journey, carrier: undefined, durationHours: undefined }),
+                  // Airlines are already in the name; connections are listed below.
+                  ...journeyDetails({ ...journey, carrier: undefined, legs: undefined, durationHours: undefined }),
                 ]
                   .filter(Boolean)
                   .join(' · ')
               : [option.category, option.hours].filter(Boolean).join(' · ')}
           </span>
+          {journey && <JourneyItinerary journey={journey} />}
           <PhotoStrip images={photos.get(option.id) ?? []} name={option.name} />
           {inPlan && <span className="tag in-plan">{option.expenseId ? 'Booked' : 'In the itinerary'}</span>}
           {item.badges.length > 0 && (

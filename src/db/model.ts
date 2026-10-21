@@ -100,6 +100,29 @@ export interface OptionPhoto {
   image: Blob
 }
 
+/** A vector tile of the offline map, "z/x/y" (shared by every trip that covers it). */
+export interface MapTile {
+  key: string
+  data: ArrayBuffer
+}
+
+/** Offline map styles, fonts and icons: "style/liberty", "font/Noto Sans Regular/0-255", "sprite/ofm@2x.png"… */
+export interface MapAsset {
+  key: string
+  data: ArrayBuffer | string
+}
+
+/** What was downloaded for a trip's offline map. */
+export interface MapArea {
+  tripId: string
+  /** Keys of its tiles ("z/x/y"). */
+  tiles: string[]
+  bytes: number
+  downloadedAt: string
+  /** Most detailed zoom level downloaded around the places (the map zooms further by enlarging it). */
+  detailZoom: number
+}
+
 export interface Day {
   id: string
   tripId: string
@@ -200,6 +223,31 @@ export interface Journey {
   durationHours?: number
   /** Connections, e.g. "via Dubai". */
   stops?: string
+  /**
+   * Each flight (or train) of a trip with connections, in order. When set,
+   * from/to/time/number/stops/durationHours are derived from them (see
+   * withLegSummary) and carrier is the main airline (its baggage rules apply).
+   */
+  legs?: JourneyLeg[]
+}
+
+/** One flight of a journey with connections, as shown by Google Flights. */
+export interface JourneyLeg {
+  /** Airport, ideally with its code: "São Paulo (GRU)". */
+  from: string
+  to: string
+  /** "HH:mm" local times. */
+  departTime?: string
+  arriveTime?: string
+  /** Days after the journey's date (Google's "+1", "+2"). */
+  departDay?: number
+  arriveDay?: number
+  /** Time on board in minutes (local times can't give it: time zones differ). */
+  minutes?: number
+  carrier?: string
+  number?: string
+  /** "Airbus A350" */
+  aircraft?: string
 }
 
 /** One step of a leg, e.g. "walk 400 m" or "Ginza Line from Kanda to Asakusa". */

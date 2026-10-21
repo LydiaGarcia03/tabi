@@ -1,4 +1,4 @@
-import { MODE_COLOR, MODE_LABEL, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
+import { MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
 import { translateExit } from '../i18n/japaneseNames'
 import type { RouteSegment } from '../routing/types'
 
@@ -6,7 +6,7 @@ import type { RouteSegment } from '../routing/types'
 export function SegmentView({ segment, notes }: { segment: RouteSegment; notes?: string }) {
   const original = segment.originalNames
   return (
-    <div className="segment-view" style={{ borderLeftColor: segment.color ?? MODE_COLOR[segment.mode] }}>
+    <div className="segment-view" style={{ borderLeftColor: segmentColor(segment) }}>
       <div>
         <strong>{MODE_LABEL[segment.mode]}</strong>
         {segment.lineName && <> · {segment.lineName}</>}

@@ -9,6 +9,7 @@ export type Route =
   | { page: 'day'; tripId: string; dayId: string }
   | { page: 'options'; tripId: string }
   | { page: 'budget'; tripId: string }
+  | { page: 'logbook'; tripId: string }
   | { page: 'settings' }
   | { page: 'transit-spike' }
 
@@ -18,6 +19,7 @@ export function parseRoute(hash: string): Route {
     if (parts[2] === 'day' && parts[3]) return { page: 'day', tripId: parts[1], dayId: parts[3] }
     if (parts[2] === 'options') return { page: 'options', tripId: parts[1] }
     if (parts[2] === 'budget') return { page: 'budget', tripId: parts[1] }
+    if (parts[2] === 'logbook') return { page: 'logbook', tripId: parts[1] }
     return { page: 'trip', tripId: parts[1] }
   }
   if (parts[0] === 'settings') return { page: 'settings' }
@@ -37,6 +39,8 @@ export function href(route: Route): string {
       return `#/trip/${encodeURIComponent(route.tripId)}/options`
     case 'budget':
       return `#/trip/${encodeURIComponent(route.tripId)}/budget`
+    case 'logbook':
+      return `#/trip/${encodeURIComponent(route.tripId)}/logbook`
     case 'settings':
       return '#/settings'
     case 'transit-spike':

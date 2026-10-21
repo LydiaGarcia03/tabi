@@ -8,7 +8,7 @@ import { cityLabel, staysOn } from '../db/stays'
 import { href } from '../router'
 import { Icon, type IconName } from './Icon'
 
-export type TripSection = 'itinerary' | 'options' | 'budget'
+export type TripSection = 'itinerary' | 'logbook' | 'options' | 'budget'
 
 interface Props {
   trip: Trip
@@ -19,6 +19,7 @@ interface Props {
 
 const SECTIONS: { id: TripSection; label: string; icon: IconName }[] = [
   { id: 'itinerary', label: 'Itinerary', icon: 'calendar' },
+  { id: 'logbook', label: 'Logbook', icon: 'pin' },
   { id: 'options', label: 'Options', icon: 'sparkle' },
   { id: 'budget', label: 'Budget', icon: 'wallet' },
 ]

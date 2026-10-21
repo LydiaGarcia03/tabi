@@ -3,8 +3,18 @@ import { AIRLINES, findAirline } from '../data/airlines'
 import { daysBetween } from '../dates'
 import type { Expense, Journey, Trip } from '../db/model'
 import { formatMoney } from '../format'
-import { CABIN_HINTS, cleanJourney, JOURNEY_ICON, JOURNEY_LABEL, JOURNEY_MODES } from '../planning/journeys'
-import { BaggageSummary } from './AirlineGuide'
+import {
+  CABIN_HINTS,
+  cleanJourney,
+  JOURNEY_ICON,
+  JOURNEY_LABEL,
+  JOURNEY_MODES,
+  journeyCarriers,
+  splitIntoLegs,
+  withLegSummary,
+} from '../planning/journeys'
+import { BaggageSummary, SequenceBaggage } from './AirlineGuide'
+import { JourneyLegsEditor } from './JourneyLegs'
 
 /** What a booking form saves (the trip and day are added by the caller). */
 export type BookingValues = Pick<Expense, 'category' | 'description' | 'amount' | 'notes'> &
@@ -143,18 +153,18 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
   const [currency, setCurrency] = useState(expense?.amount.currency ?? trip.displayCurrency)
   const [notes, setNotes] = useState(expense?.notes ?? '')
   const priceValue = Number(price)
-  const valid =
-    journey.from.trim() !== '' && journey.to.trim() !== '' && price.trim() !== '' && Number.isFinite(priceValue) && priceValue >= 0
+  const cleaned = cleanJourney(journey)
+  const valid = cleaned.from !== '' && cleaned.to !== '' && price.trim() !== '' && Number.isFinite(priceValue) && priceValue >= 0
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
     await onSave({
       category: 'transport',
-      description: `${journey.from.trim()} → ${journey.to.trim()}`,
+      description: `${cleaned.from} → ${cleaned.to}`,
       amount: { amount: priceValue, currency },
       notes: notes.trim() || undefined,
-      journey: cleanJourney(journey),
+      journey: cleaned,
     })
   }
 
@@ -184,10 +194,19 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
 export function JourneyFields({ journey, onChange }: { journey: Journey; onChange: (journey: Journey) => void }) {
   const set = (changes: Partial<Journey>) => onChange({ ...journey, ...changes })
   const isFlight = journey.mode === 'flight'
-  const airline = isFlight ? findAirline(journey.carrier) : undefined
+  const hasLegs = !!journey.legs?.length
+  // With legs, the main airline is picked among theirs (the one flown longest by default).
+  const airline = isFlight ? findAirline(hasLegs ? withLegSummary(journey).carrier : journey.carrier) : undefined
 
   return (
     <>
+      {isFlight && (
+        <datalist id="airline-names">
+          {AIRLINES.map((a) => (
+            <option key={a.name} value={a.name} />
+          ))}
+        </datalist>
+      )}
       <div className="segmented" role="radiogroup" aria-label="Mode">
         {JOURNEY_MODES.map((m) => (
           <button
@@ -202,59 +221,64 @@ export function JourneyFields({ journey, onChange }: { journey: Journey; onChang
           </button>
         ))}
       </div>
-      <div className="field-row">
-        <label>
-          From
-          <input value={journey.from} onChange={(e) => set({ from: e.target.value })} placeholder={isFlight ? 'Navegantes (NVT)' : 'Shin-Osaka'} />
-        </label>
-        <label>
-          To
-          <input value={journey.to} onChange={(e) => set({ to: e.target.value })} placeholder={isFlight ? 'Osaka (KIX)' : 'Tokyo'} />
-        </label>
-      </div>
-      <div className="field-row">
-        <label>
-          Date
-          <input type="date" value={journey.date ?? ''} onChange={(e) => set({ date: e.target.value || undefined })} />
-        </label>
-        <label>
-          Departure time
-          <input type="time" value={journey.time ?? ''} onChange={(e) => set({ time: e.target.value || undefined })} />
-        </label>
-        <label>
-          Total time (hours)
-          <input
-            type="number"
-            min="0"
-            step="0.25"
-            inputMode="decimal"
-            value={journey.durationHours ?? ''}
-            onChange={(e) => set({ durationHours: e.target.value === '' ? undefined : Number(e.target.value) })}
-          />
-        </label>
-      </div>
-      <div className="field-row">
-        <label>
-          {isFlight ? 'Airline' : 'Operator'}
-          <input
-            value={journey.carrier ?? ''}
-            list={isFlight ? 'airline-names' : undefined}
-            onChange={(e) => set({ carrier: e.target.value })}
-            placeholder={isFlight ? 'Emirates' : 'JR Central'}
-          />
-          {isFlight && (
-            <datalist id="airline-names">
-              {AIRLINES.map((a) => (
-                <option key={a.name} value={a.name} />
-              ))}
-            </datalist>
-          )}
-        </label>
-        <label>
-          {isFlight ? 'Flight number' : journey.mode === 'shinkansen' || journey.mode === 'train' ? 'Train' : 'Number'}
-          <input value={journey.number ?? ''} onChange={(e) => set({ number: e.target.value })} placeholder={isFlight ? 'EK262' : 'Nozomi 21'} />
-        </label>
-      </div>
+      <label>
+        {hasLegs ? 'Date of the first departure' : 'Date'}
+        <input type="date" value={journey.date ?? ''} onChange={(e) => set({ date: e.target.value || undefined })} />
+      </label>
+      {hasLegs ? (
+        <JourneyLegsEditor journey={journey} onChange={onChange} />
+      ) : (
+        <>
+          <div className="field-row">
+            <label>
+              From
+              <input value={journey.from} onChange={(e) => set({ from: e.target.value })} placeholder={isFlight ? 'Navegantes (NVT)' : 'Shin-Osaka'} />
+            </label>
+            <label>
+              To
+              <input value={journey.to} onChange={(e) => set({ to: e.target.value })} placeholder={isFlight ? 'Osaka (KIX)' : 'Tokyo'} />
+            </label>
+          </div>
+          <div className="field-row">
+            <label>
+              Departure time
+              <input type="time" value={journey.time ?? ''} onChange={(e) => set({ time: e.target.value || undefined })} />
+            </label>
+            <label>
+              Total time (hours)
+              <input
+                type="number"
+                min="0"
+                step="0.25"
+                inputMode="decimal"
+                value={journey.durationHours ?? ''}
+                onChange={(e) => set({ durationHours: e.target.value === '' ? undefined : Number(e.target.value) })}
+              />
+            </label>
+          </div>
+          <div className="field-row">
+            <label>
+              {isFlight ? 'Airline' : 'Operator'}
+              <input
+                value={journey.carrier ?? ''}
+                list={isFlight ? 'airline-names' : undefined}
+                onChange={(e) => set({ carrier: e.target.value })}
+                placeholder={isFlight ? 'Emirates' : 'JR Central'}
+              />
+            </label>
+            <label>
+              {isFlight ? 'Flight number' : journey.mode === 'shinkansen' || journey.mode === 'train' ? 'Train' : 'Number'}
+              <input value={journey.number ?? ''} onChange={(e) => set({ number: e.target.value })} placeholder={isFlight ? 'EK262' : 'Nozomi 21'} />
+            </label>
+          </div>
+          <p className="small">
+            {journey.stops && <span className="muted">Connections noted: {journey.stops}. </span>}
+            <button type="button" className="link" onClick={() => onChange(splitIntoLegs(journey))}>
+              {isFlight ? '+ It has connections: choose the airlines on the way' : '+ It has connections'}
+            </button>
+          </p>
+        </>
+      )}
       <div className="field-row">
         <label>
           Class
@@ -283,12 +307,12 @@ export function JourneyFields({ journey, onChange }: { journey: Journey; onChang
             )}
           </label>
         )}
-        <label>
-          Connections
-          <input value={journey.stops ?? ''} onChange={(e) => set({ stops: e.target.value })} placeholder={isFlight ? 'via Dubai' : 'Direct'} />
-        </label>
       </div>
-      {airline && <BaggageSummary airline={airline} fare={journey.fare} />}
+      {isFlight && hasLegs ? (
+        <SequenceBaggage carriers={journeyCarriers(journey)} main={airline?.name} fare={journey.fare} />
+      ) : (
+        airline && <BaggageSummary airline={airline} fare={journey.fare} />
+      )}
     </>
   )
 }

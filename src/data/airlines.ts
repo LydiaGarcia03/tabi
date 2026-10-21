@@ -333,6 +333,26 @@ export function checkedForFare(airline: AirlineInfo, fare: string | undefined): 
   return airline.checked.find((r) => r.fare.toLowerCase().includes(text) || text.includes(r.fare.toLowerCase().replace('economy ', '')))
 }
 
+/**
+ * A bag that fits every one of these rules: smallest size on each side and
+ * lowest weight. null when some airline allows no separate item.
+ */
+export function strictestBag(bags: (BagRule | null)[]): BagRule | null {
+  if (bags.length === 0 || bags.some((b) => b === null)) return null
+  const rules = bags as BagRule[]
+  const min = (values: (number | undefined)[]) => {
+    const known = values.filter((v): v is number => v != null)
+    return known.length ? Math.min(...known) : undefined
+  }
+  // Sides compared largest with largest, so 55×40×20 and 56×36×23 give 55×36×20.
+  const sides = rules.filter((r) => r.cm).map((r) => [...r.cm!].sort((a, b) => b - a))
+  return {
+    cm: sides.length ? ([0, 1, 2].map((i) => Math.min(...sides.map((s) => s[i]))) as [number, number, number]) : undefined,
+    linearCm: min(rules.map((r) => r.linearCm)),
+    kg: min(rules.map((r) => r.kg)),
+  }
+}
+
 /** "55×40×23 cm · 8 kg" */
 export function describeBag(bag: BagRule | null): string {
   if (!bag) return 'none (one piece only)'

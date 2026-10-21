@@ -3,6 +3,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { Icon, Logo } from './components/Icon'
 import { BudgetPage } from './pages/BudgetPage'
 import { DayPage } from './pages/DayPage'
+import { LogbookPage } from './pages/LogbookPage'
 import { OptionsPage } from './pages/OptionsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TripPage } from './pages/TripPage'
@@ -14,7 +15,7 @@ import { useOnline } from './useOnline'
 const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 /** Pages that use the full width on a computer (trip pages have a sidebar). */
-const WIDE_PAGES: Route['page'][] = ['trip', 'day', 'options', 'budget', 'transit-spike']
+const WIDE_PAGES: Route['page'][] = ['trip', 'day', 'options', 'budget', 'logbook', 'transit-spike']
 
 export default function App() {
   const route = useRoute()
@@ -81,6 +82,8 @@ function Page({ route }: { route: Route }) {
       return <OptionsPage tripId={route.tripId} />
     case 'budget':
       return <BudgetPage tripId={route.tripId} />
+    case 'logbook':
+      return <LogbookPage tripId={route.tripId} />
     case 'settings':
       return <SettingsPage />
     case 'transit-spike':

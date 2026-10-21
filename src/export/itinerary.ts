@@ -6,7 +6,7 @@ import { legKey } from '../db/legs'
 import type { Day, Place, Segment } from '../db/model'
 import type { TripData } from '../db/tripData'
 import { orderPlaces } from '../db/trips'
-import { MODE_COLOR, MODE_LABEL, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
+import { MODE_COLOR, MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
 import { translateExit } from '../i18n/japaneseNames'
 import { describeWindow, weekdayOf, windowFor } from '../planning/hours'
 
@@ -60,7 +60,7 @@ export function buildItinerary(data: TripData, dayIds?: string[]): Itinerary {
           lines.push({
             name: `${prefix}${i} → ${i + 1} ${MODE_LABEL[segment.mode]}${segment.lineName ? ` · ${segment.lineName}` : ''}`,
             description: segmentText(segment),
-            color: toHexColor(segment.color) ?? MODE_COLOR[segment.mode],
+            color: toHexColor(segmentColor(segment)) ?? MODE_COLOR[segment.mode],
             path: segment.path,
           })
         })

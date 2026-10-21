@@ -2,6 +2,7 @@
 // ordered place lists always stay consistent.
 
 import { dateRange } from '../dates'
+import { deleteTripMap } from '../offlineMap/download'
 import { db } from './db'
 import type { Day, Place, Trip } from './model'
 
@@ -48,6 +49,8 @@ export async function deleteTrip(id: string): Promise<void> {
     await db.days.where('tripId').equals(id).delete()
     await db.trips.delete(id)
   })
+  // Its offline map, keeping tiles another trip also uses.
+  await deleteTripMap(id)
 }
 
 /**

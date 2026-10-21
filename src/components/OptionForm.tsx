@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { Journey, OptionKind, Trip, TripOption } from '../db/model'
 import { addOption, deleteOption, updateOption } from '../db/options'
 import { optionPhotos, setOptionPhotos } from '../db/photos'
-import { cleanJourney, JOURNEY_LABEL } from '../planning/journeys'
+import { cleanJourney, JOURNEY_LABEL, journeyCarriers } from '../planning/journeys'
 import { CATEGORY_HINT, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
 import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
@@ -19,9 +19,9 @@ interface Props {
   onDone: () => void
 }
 
-/** "Emirates · Navegantes → Osaka", "Shinkansen · Osaka → Tokyo" */
+/** "Emirates · Navegantes → Osaka", "Gol + Qatar Airways · Navegantes → Osaka", "Shinkansen · Osaka → Tokyo" */
 function transportName(journey: Journey): string {
-  return `${journey.carrier || JOURNEY_LABEL[journey.mode]} · ${journey.from} → ${journey.to}`
+  return `${journeyCarriers(journey).join(' + ') || JOURNEY_LABEL[journey.mode]} · ${journey.from} → ${journey.to}`
 }
 
 /** Adds or edits something being considered. */
@@ -53,7 +53,8 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   }, [option])
 
   const isTransport = kind === 'transport'
-  const valid = isTransport ? journey.from.trim() !== '' && journey.to.trim() !== '' : name.trim() !== ''
+  const cleaned = cleanJourney(journey)
+  const valid = isTransport ? cleaned.from !== '' && cleaned.to !== '' : name.trim() !== ''
   const currencies = [...new Set([trip.displayCurrency, trip.baseCurrency, currency])]
 
   const money = (text: string): Money | undefined => {
@@ -67,7 +68,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
     const values = {
       kind,
       // A transport option is named after its carrier (or mode) and route.
-      name: isTransport ? transportName(cleanJourney(journey)) : name.trim(),
+      name: isTransport ? transportName(cleaned) : name.trim(),
       city: isTransport ? undefined : city.trim() || undefined,
       category: isTransport ? undefined : category.trim() || undefined,
       price: money(price),
@@ -81,7 +82,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       address: isTransport ? undefined : location?.address,
       googlePlaceId: isTransport ? undefined : location?.googlePlaceId,
       googleFetchedAt: isTransport ? undefined : location?.googleFetchedAt,
-      journey: isTransport ? cleanJourney(journey) : undefined,
+      journey: isTransport ? cleaned : undefined,
     }
     const id = option ? option.id : await addOption({ ...values, tripId: trip.id, status: 'idea' })
     if (option) await updateOption(option.id, values)
