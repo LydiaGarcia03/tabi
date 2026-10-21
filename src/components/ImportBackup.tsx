@@ -29,8 +29,7 @@ export function ImportBackup() {
   }
 
   return (
-    <section className="card">
-      <h2>Import backup</h2>
+    <section className="import-backup">
       <p className="muted small">Open a backup file (.json) exported from Tabi on this or another device.</p>
       <input type="file" accept=".json,application/json" onChange={onFile} aria-label="Backup file" />
       {conflict && (

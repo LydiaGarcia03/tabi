@@ -5,6 +5,7 @@ import type { Leg, Place } from '../db/model'
 import { drawingPoints, type Drawing } from '../drawing'
 import { MODE_COLOR } from '../format'
 import type { LatLng } from '../routing/types'
+import { useIsDark } from '../theme'
 
 export const DAY_MAP_ID = 'day-map'
 
@@ -24,11 +25,13 @@ interface Props {
 }
 
 export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing }: Props) {
+  const dark = useIsDark()
   return (
     <div className="day-map">
       <Map
         id={DAY_MAP_ID}
         mapId="DEMO_MAP_ID"
+        colorScheme={dark ? 'DARK' : 'LIGHT'}
         defaultCenter={fallbackCenter ?? TOKYO}
         defaultZoom={13}
         gestureHandling="greedy"

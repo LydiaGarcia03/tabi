@@ -4,6 +4,7 @@ import type { Day, Place } from '../db/model'
 import { deletePlace, movePlaceInDay, movePlaceToDay, updatePlace } from '../db/trips'
 import { formatMoney } from '../format'
 import { placeUrl } from '../googleMapsLinks'
+import { Icon } from './Icon'
 import { useDraft } from '../useDraft'
 
 interface Props {
@@ -21,12 +22,29 @@ export function PlaceItem({ place, index, count, days, currency, selected, onSel
   return (
     <li className={`place-item${selected ? ' selected' : ''}`}>
       <button type="button" className="place-header" onClick={onSelect} aria-expanded={selected}>
-        <span className="place-number">{index + 1}</span>
+        <span className="place-number">
+          <span>{index + 1}</span>
+        </span>
         <span className="place-title">
-          <strong>{place.name}</strong>
-          {place.plannedTime && <span className="muted small"> · {place.plannedTime}</span>}
-          {place.cost && <span className="muted small"> · {formatMoney(place.cost)}</span>}
+          <span className="place-name">{place.name}</span>
+          {(place.plannedTime || place.cost) && (
+            <span className="place-meta">
+              {place.plannedTime && (
+                <span className="meta">
+                  <Icon name="clock" size={14} /> {place.plannedTime}
+                </span>
+              )}
+              {place.cost && (
+                <span className="meta">
+                  <Icon name="wallet" size={14} /> {formatMoney(place.cost)}
+                </span>
+              )}
+            </span>
+          )}
           {!selected && place.notes && <span className="muted small place-notes-preview">{place.notes}</span>}
+        </span>
+        <span className="place-chevron" aria-hidden="true">
+          <Icon name="down" size={16} />
         </span>
       </button>
       {selected && <PlaceEditor key={place.id} place={place} index={index} count={count} days={days} currency={currency} />}
@@ -52,26 +70,28 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
         Name
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <label>
-        Planned time
-        <input
-          type="time"
-          value={place.plannedTime ?? ''}
-          onChange={(e) => updatePlace(place.id, { plannedTime: e.target.value || undefined })}
-        />
-      </label>
-      <label>
-        Cost ({costCurrency})
-        <input
-          type="number"
-          min="0"
-          step="any"
-          inputMode="decimal"
-          placeholder="Ticket, entry fee…"
-          value={cost}
-          onChange={(e) => setCost(e.target.value)}
-        />
-      </label>
+      <div className="field-row">
+        <label>
+          Planned time
+          <input
+            type="time"
+            value={place.plannedTime ?? ''}
+            onChange={(e) => updatePlace(place.id, { plannedTime: e.target.value || undefined })}
+          />
+        </label>
+        <label>
+          Cost ({costCurrency})
+          <input
+            type="number"
+            min="0"
+            step="any"
+            inputMode="decimal"
+            placeholder="Ticket, entry fee…"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+          />
+        </label>
+      </div>
       <label>
         Notes
         <textarea
@@ -92,7 +112,7 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
           ))}
         </select>
       </label>
-      <div className="row wrap">
+      <div className="row wrap place-actions">
         <button type="button" disabled={index === 0} onClick={() => movePlaceInDay(place.dayId, place.id, -1)}>
           ↑ Up
         </button>
@@ -100,7 +120,7 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
           ↓ Down
         </button>
         <a className="button" href={placeUrl(place)} target="_blank" rel="noreferrer">
-          Open in Google Maps
+          <Icon name="external" size={16} /> Google Maps
         </a>
         <button
           type="button"

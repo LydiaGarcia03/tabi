@@ -7,7 +7,7 @@ export function SettingsPanel() {
 
   return (
     <section className="card">
-      <h2>Settings</h2>
+      <h2>Transit suggestions</h2>
       <form
         onSubmit={(e) => {
           e.preventDefault()

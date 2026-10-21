@@ -107,7 +107,8 @@ Tabi is designed to run at **zero cost**:
 - [x] **Phase 3 — Legs:** segment editor, suggested routes and hand-drawn segments on the map
 - [x] **Phase 4 — Budget:** costs and totals, JPY ↔ BRL
 - [x] **Phase 5 — Offline & export:** PWA, KML/GPX for Organic Maps, JSON backup
-- [ ] **Phase 6 — Polish:** mobile UX, dark mode, sharing
+- [x] **Phase 6 — Polish:** redesign, mobile UX, dark mode, share and print a day
+- [ ] **Phase 7 — Opening hours & optimized order:** opening hours and visit time per place, best visiting order for a day
 
 ## Data and attribution
 

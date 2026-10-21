@@ -14,6 +14,26 @@ export function dateRange(start: string, end: string): string[] {
   return dates
 }
 
+/** Today on the device's calendar, "YYYY-MM-DD". */
+export function today(): string {
+  return new Date().toLocaleDateString('en-CA')
+}
+
+/** Whole days from `from` to `to` (negative if `to` is earlier). */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
+}
+
+/** Parts of a date for calendar-style badges: { weekday: "Sat", day: "1", month: "Apr" }. */
+export function dateParts(date: string): { weekday: string; day: string; month: string } {
+  const d = new Date(`${date}T00:00:00Z`)
+  return {
+    weekday: d.toLocaleDateString('en-GB', { timeZone: 'UTC', weekday: 'short' }),
+    day: String(d.getUTCDate()),
+    month: d.toLocaleDateString('en-GB', { timeZone: 'UTC', month: 'short' }),
+  }
+}
+
 const dayFormat = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' })
 const fullFormat = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' })
 

@@ -1,39 +1,78 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type FormEvent } from 'react'
+import { Icon } from '../components/Icon'
 import { ImportBackup } from '../components/ImportBackup'
-import { formatDate } from '../dates'
+import { dateRange, daysBetween, formatDate, today } from '../dates'
 import { db } from '../db/db'
+import type { Trip } from '../db/model'
 import { createTrip } from '../db/trips'
 import { href, navigate } from '../router'
 
 export function TripsPage() {
   const trips = useLiveQuery(() => db.trips.orderBy('startDate').toArray())
+  const [creating, setCreating] = useState(false)
+
+  if (!trips) return null
 
   return (
     <>
-      <section className="card">
-        <h2>Trips</h2>
-        {trips?.length === 0 && <p className="muted">No trips yet. Create your first one below.</p>}
-        <ul className="link-list">
-          {trips?.map((trip) => (
-            <li key={trip.id}>
-              <a href={href({ page: 'trip', tripId: trip.id })}>
-                <strong>{trip.name}</strong>
-                <span className="muted small">
-                  {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <NewTripForm />
-      <ImportBackup />
+      <div className="page-title row between">
+        <h1>Trips</h1>
+        {!creating && (
+          <button type="button" className="primary" onClick={() => setCreating(true)}>
+            <Icon name="plus" /> New trip
+          </button>
+        )}
+      </div>
+
+      {creating && <NewTripForm onCancel={() => setCreating(false)} />}
+
+      {trips.length === 0 && !creating && (
+        <section className="empty-state">
+          <p>No trips yet.</p>
+          <p className="muted small">Create one to start planning, or import a backup from another device.</p>
+        </section>
+      )}
+
+      <ul className="trip-cards">
+        {trips.map((trip) => (
+          <li key={trip.id}>
+            <TripCard trip={trip} />
+          </li>
+        ))}
+      </ul>
+
+      <details className="card disclosure">
+        <summary>Import a backup</summary>
+        <ImportBackup />
+      </details>
     </>
   )
 }
 
-function NewTripForm() {
+function TripCard({ trip }: { trip: Trip }) {
+  const days = dateRange(trip.startDate, trip.endDate).length
+  return (
+    <a className="trip-card" href={href({ page: 'trip', tripId: trip.id })}>
+      <span className="trip-card-name">{trip.name}</span>
+      <span className="muted small">
+        {formatDate(trip.startDate)} – {formatDate(trip.endDate)} · {days} {days === 1 ? 'day' : 'days'}
+      </span>
+      <span className="trip-card-when">{countdown(trip)}</span>
+    </a>
+  )
+}
+
+function countdown(trip: Trip): string {
+  const now = today()
+  const toStart = daysBetween(now, trip.startDate)
+  if (toStart > 1) return `In ${toStart} days`
+  if (toStart === 1) return 'Tomorrow'
+  if (now <= trip.endDate) return `Day ${daysBetween(trip.startDate, now) + 1} · happening now`
+  return 'Done'
+}
+
+function NewTripForm({ onCancel }: { onCancel: () => void }) {
   const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -51,9 +90,9 @@ function NewTripForm() {
       <h2>New trip</h2>
       <label>
         Name
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Japan 2028" required />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Japan 2028" required autoFocus />
       </label>
-      <div className="row wrap">
+      <div className="field-row">
         <label>
           Start
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
@@ -64,9 +103,14 @@ function NewTripForm() {
         </label>
       </div>
       {invalidDates && <p className="error">The end date must be on or after the start date.</p>}
-      <button type="submit" className="primary">
-        Create trip
-      </button>
+      <div className="row">
+        <button type="submit" className="primary">
+          Create trip
+        </button>
+        <button type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
     </form>
   )
 }

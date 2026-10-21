@@ -32,7 +32,7 @@ interface Props {
 export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw }: Props) {
   const segments = leg?.segments ?? []
   return (
-    <li className={`leg-item${open ? ' open' : ''}`}>
+    <li className={`leg-item${open ? ' open' : ''}${segments.length ? '' : ' empty'}`}>
       <button type="button" className="leg-summary" onClick={onToggle} aria-expanded={open}>
         <span className="leg-arrow">↓</span>
         <span className="leg-label">

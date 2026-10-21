@@ -7,16 +7,19 @@ import { DayMap } from '../components/DayMap'
 import { ExpenseList } from '../components/ExpenseList'
 import { ExportCard } from '../components/ExportCard'
 import { DrawToolbar } from '../components/DrawToolbar'
+import { DayStrip } from '../components/DayStrip'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { Icon } from '../components/Icon'
 import { LegItem } from '../components/LegItem'
 import { PlaceItem } from '../components/PlaceItem'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { formatDay } from '../dates'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
-import type { Day } from '../db/model'
+import type { Day, Leg, Place } from '../db/model'
 import { addPlace, orderPlaces, updateDay } from '../db/trips'
 import type { Drawing } from '../drawing'
+import { dayText, shareText } from '../export/shareText'
 import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
 import { useRefreshStalePlaces } from '../places/refresh'
 import { href } from '../router'
@@ -42,6 +45,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const [openLeg, setOpenLeg] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingAdd | null>(null)
   const [drawing, setDrawing] = useState<Drawing | null>(null)
+  const [mapOpen, setMapOpen] = useState(true)
   const mapStatus = useApiLoadingStatus()
   const online = useOnline()
   useRefreshStalePlaces(dayPlaces)
@@ -80,18 +84,35 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
 
   return (
     <>
-      <nav className="row between">
-        <a href={href({ page: 'trip', tripId })}>← Trip</a>
+      <nav className="crumbs row between">
+        <a href={href({ page: 'trip', tripId })}>
+          <Icon name="back" size={16} /> {trip.name}
+        </a>
         <span className="row">
-          {prev && <a href={href({ page: 'day', tripId, dayId: prev.id })}>‹ Previous</a>}
-          {next && <a href={href({ page: 'day', tripId, dayId: next.id })}>Next ›</a>}
+          {prev && (
+            <a className="icon-button" href={href({ page: 'day', tripId, dayId: prev.id })} aria-label="Previous day">
+              <Icon name="back" />
+            </a>
+          )}
+          {next && (
+            <a className="icon-button" href={href({ page: 'day', tripId, dayId: next.id })} aria-label="Next day">
+              <Icon name="forward" />
+            </a>
+          )}
         </span>
       </nav>
 
-      <DayHeader key={day.id} day={day} number={index + 1} />
+      <DayStrip tripId={tripId} days={days} currentId={day.id} />
+
+      <DayHeader key={day.id} day={day} number={index + 1} places={places} legs={legs} />
 
       <div className="day-layout">
-        <div className="day-map-column">
+        <div className={`day-map-column${mapOpen ? '' : ' map-collapsed'}`}>
+          {hasGoogleKey && (
+            <button type="button" className="map-toggle" onClick={() => setMapOpen(!mapOpen)} aria-expanded={mapOpen}>
+              <Icon name="map" /> {mapOpen ? 'Hide map' : 'Show map'}
+            </button>
+          )}
           {!hasGoogleKey ? (
             <p className="error">Map and place search need the Google key (VITE_GOOGLE_MAPS_API_KEY).</p>
           ) : mapStatus === APILoadingStatus.FAILED || (!online && mapStatus !== APILoadingStatus.LOADED && mapStatus !== APILoadingStatus.AUTH_FAILURE) ? (
@@ -124,8 +145,13 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
         </div>
 
         <div className="day-list-column">
-          <ol className="place-list">
-            {places.length === 0 && <li className="muted">No places yet. Search above or tap the map.</li>}
+          <ol className="timeline">
+            {places.length === 0 && (
+              <li className="empty-state">
+                <p>No places yet.</p>
+                <p className="muted small">Search for a place or tap the map to add one.</p>
+              </li>
+            )}
             {places.map((place, i) => {
               const next = places[i + 1]
               const key = next && legKey(place.id, next.id)
@@ -154,6 +180,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                       onDraw={(d) => {
                         setPending(null)
                         setDrawing(d)
+                        setMapOpen(true)
                         // On a phone the map is above the list: bring it into view.
                         document.querySelector('.day-map')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                       }}
@@ -177,19 +204,40 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   )
 }
 
-function DayHeader({ day, number }: { day: Day; number: number }) {
+function DayHeader({ day, number, places, legs }: { day: Day; number: number; places: Place[]; legs: Map<string, Leg> }) {
   const [title, setTitle] = useDraft(day.title, (value) => updateDay(day.id, { title: value.trim() }))
+  const [shared, setShared] = useState('')
+
+  async function share() {
+    try {
+      const result = await shareText(`Day ${number}`, dayText(day, number, places, legs))
+      setShared(result === 'copied' ? 'Copied to the clipboard.' : '')
+    } catch {
+      setShared('Could not share on this device.')
+    }
+  }
+
   return (
-    <header className="day-header">
-      <h2>
+    <header className="hero day-hero">
+      <p className="hero-kicker">
         Day {number} · {formatDay(day.date)}
-      </h2>
+      </p>
       <input
+        className="hero-title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Title (e.g. Asakusa and Ueno)"
+        placeholder="Add a title (e.g. Asakusa and Ueno)"
         aria-label="Day title"
       />
+      <div className="row wrap hero-actions">
+        <button type="button" className="ghost" onClick={share}>
+          <Icon name="share" /> Share
+        </button>
+        <button type="button" className="ghost" onClick={() => window.print()}>
+          <Icon name="print" /> Print
+        </button>
+        {shared && <span className="muted small">{shared}</span>}
+      </div>
     </header>
   )
 }

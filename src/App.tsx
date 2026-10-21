@@ -1,5 +1,6 @@
 import { APIProvider } from '@vis.gl/react-google-maps'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { Icon, Logo } from './components/Icon'
 import { DayPage } from './pages/DayPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TripPage } from './pages/TripPage'
@@ -15,27 +16,32 @@ export default function App() {
   const online = useOnline()
 
   const content = (
-    <main>
-      <header className="app-header">
-        <h1>
-          <a href={href({ page: 'trips' })}>
+    <div className={`shell${route.page === 'day' || route.page === 'transit-spike' ? ' wide' : ''}`}>
+      <header className="app-bar">
+        <a className="brand" href={href({ page: 'trips' })}>
+          <Logo />
+          <span>
             Tabi <span lang="ja">旅</span>
-          </a>
-        </h1>
-        <a href={href({ page: 'settings' })}>Settings</a>
+          </span>
+        </a>
+        <a className="icon-button" href={href({ page: 'settings' })} aria-label="Settings" title="Settings">
+          <Icon name="settings" size={20} />
+        </a>
       </header>
       {!online && (
         <p className="offline-banner small">
           Offline: showing what is saved on this device. Map, search and route suggestions need internet.
         </p>
       )}
-      <ErrorBoundary key={location.hash} fallback={<PageError />}>
-        <Page route={route} />
-      </ErrorBoundary>
-      <footer className="muted small">
+      <main className={`page page-${route.page}`}>
+        <ErrorBoundary key={location.hash} fallback={<PageError />}>
+          <Page route={route} />
+        </ErrorBoundary>
+      </main>
+      <footer className="app-footer muted small">
         Map and place data © Google. Transit routes by NAVITIME JAPAN. Station names from Wikidata.
       </footer>
-    </main>
+    </div>
   )
 
   return googleKey ? (

@@ -118,7 +118,15 @@ Platform support: latest Chrome on desktop and Android, Safari on iOS. Mobile-fi
   - Google places with `googleFetchedAt` older than 30 days are refreshed (address + location only, Essentials fields; never the user's name) when online and the trip or day page is open (`src/places/refresh.ts`).
   - "Open in Google Maps" for places and legs (`src/googleMapsLinks.ts`, Maps URLs, no API cost; travel mode picked from the segments).
   - Testing the PWA locally: `npx vite preview --port 5178` (a separate origin, so the service worker and test data never touch the dev server or the real data on 5177; the map shows a referrer error there, which is expected). Navigating to the same URL with only a different `#` does not reload the page: use a real reload.
-- **Phase 6 — Polish:** UX on phone, dark mode, print/share a day.
+- **Phase 6 — Polish** (done): redesign, UX on phone, dark mode, print/share a day.
+  - Look: washi paper background, sumi ink text, torii red accent; system fonts (work offline). All colors are tokens in `src/index.css`; dark mode swaps them on `<html data-theme="dark">`, set by `src/theme.ts` (Settings → Appearance: same as device / light / dark, stored in localStorage `tabi.theme`). The Google map follows it (`colorScheme`).
+  - Days are never one endless accordion (Lydia's complaint about Wanderlog): the trip page shows one calendar-style card per day (`DayCard`: date badge, title or route, places, travel time, cost); the day page has a sticky day switcher (`DayStrip`) and the itinerary as a timeline (place cards joined by leg "rails").
+  - Day page: list left + sticky map right on wide screens; map on top on phones, with "Hide map" (hidden with CSS, never unmounted: unmounting costs a new map load and can throw offline).
+  - Share = Web Share API with a plain-text day (`src/export/shareText.ts`), clipboard fallback. Print = `window.print()` with print CSS (itinerary + budget only).
+  - Icons are hand-drawn SVG paths in `src/components/Icon.tsx` (no icon dependency).
+- **Phase 7 — Opening hours & optimized order** (planned, not started):
+  - Opening hours per place, **entered manually by Lydia** (her decision: no extra Google data; `regularOpeningHours` would be the Places Enterprise SKU, only 1,000 free/month). Plus a visit duration per place.
+  - "Optimize order" for a day: best visiting order respecting opening hours and visit durations, with travel time **estimated from distance** (free, offline); shown as a suggestion with arrival times, applied only if accepted (legs are per place pair, so they survive reordering).
 
 ## Working agreements
 
