@@ -7,6 +7,8 @@ export type Route =
   | { page: 'trips' }
   | { page: 'trip'; tripId: string }
   | { page: 'day'; tripId: string; dayId: string }
+  | { page: 'options'; tripId: string }
+  | { page: 'budget'; tripId: string }
   | { page: 'settings' }
   | { page: 'transit-spike' }
 
@@ -14,6 +16,8 @@ export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent)
   if (parts[0] === 'trip' && parts[1]) {
     if (parts[2] === 'day' && parts[3]) return { page: 'day', tripId: parts[1], dayId: parts[3] }
+    if (parts[2] === 'options') return { page: 'options', tripId: parts[1] }
+    if (parts[2] === 'budget') return { page: 'budget', tripId: parts[1] }
     return { page: 'trip', tripId: parts[1] }
   }
   if (parts[0] === 'settings') return { page: 'settings' }
@@ -29,6 +33,10 @@ export function href(route: Route): string {
       return `#/trip/${encodeURIComponent(route.tripId)}`
     case 'day':
       return `#/trip/${encodeURIComponent(route.tripId)}/day/${encodeURIComponent(route.dayId)}`
+    case 'options':
+      return `#/trip/${encodeURIComponent(route.tripId)}/options`
+    case 'budget':
+      return `#/trip/${encodeURIComponent(route.tripId)}/budget`
     case 'settings':
       return '#/settings'
     case 'transit-spike':

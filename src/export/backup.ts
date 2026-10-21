@@ -5,7 +5,8 @@ import { db } from '../db/db'
 import type { TripData } from '../db/tripData'
 
 const FORMAT = 'tabi-trip'
-const VERSION = 1
+/** 2 added stays and options (version 1 files have neither: read as empty). */
+const VERSION = 2
 
 interface BackupFile extends TripData {
   format: typeof FORMAT
@@ -39,13 +40,13 @@ export function parseBackup(text: string): ParsedBackup {
   if (typeof file.version !== 'number' || file.version > VERSION) {
     throw new Error('This backup was made by a newer version of Tabi. Reload the app to update it, then try again.')
   }
-  const { trip, days, places, legs, expenses } = file
-  if (!trip?.id || ![days, places, legs, expenses].every(Array.isArray)) {
+  const { trip, days, places, legs, expenses, stays = [], options = [] } = file
+  if (!trip?.id || ![days, places, legs, expenses, stays, options].every(Array.isArray)) {
     throw new Error('This backup is incomplete or damaged.')
   }
   const key = file.settings?.rapidApiKey
   return {
-    data: { trip, days: days!, places: places!, legs: legs!, expenses: expenses! },
+    data: { trip, days: days!, places: places!, legs: legs!, expenses: expenses!, stays, options },
     rapidApiKey: typeof key === 'string' && key.trim() ? key.trim() : undefined,
   }
 }
@@ -61,8 +62,10 @@ export async function tripExists(tripId: string): Promise<boolean> {
  */
 export async function importBackup(data: TripData, mode: 'replace' | 'copy'): Promise<string> {
   const saved = mode === 'copy' ? withNewIds(data) : data
-  await db.transaction('rw', [db.trips, db.days, db.places, db.legs, db.expenses], async () => {
+  await db.transaction('rw', [db.trips, db.days, db.places, db.legs, db.expenses, db.stays, db.options], async () => {
     const id = saved.trip.id
+    await db.options.where('tripId').equals(id).delete()
+    await db.stays.where('tripId').equals(id).delete()
     await db.expenses.where('tripId').equals(id).delete()
     await db.legs.where('tripId').equals(id).delete()
     await db.places.where('tripId').equals(id).delete()
@@ -72,6 +75,8 @@ export async function importBackup(data: TripData, mode: 'replace' | 'copy'): Pr
     await db.places.bulkAdd(saved.places)
     await db.legs.bulkAdd(saved.legs)
     await db.expenses.bulkAdd(saved.expenses)
+    await db.stays.bulkAdd(saved.stays)
+    await db.options.bulkAdd(saved.options)
   })
   return saved.trip.id
 }
@@ -97,5 +102,13 @@ function withNewIds(data: TripData): TripData {
       toPlaceId: remap(l.toPlaceId),
     })),
     expenses: data.expenses.map((e) => ({ ...e, id: remap(e.id), tripId, dayId: e.dayId && remap(e.dayId) })),
+    stays: data.stays.map((s) => ({ ...s, id: remap(s.id), tripId })),
+    options: data.options.map((o) => ({
+      ...o,
+      id: remap(o.id),
+      tripId,
+      placeId: o.placeId && remap(o.placeId),
+      expenseId: o.expenseId && remap(o.expenseId),
+    })),
   }
 }

@@ -4,11 +4,14 @@ import type { Day, Place, Trip } from '../db/model'
 import { formatDuration } from '../format'
 import { href } from '../router'
 import { MoneyTotals } from './BudgetView'
+import { CityTag } from './TripLayout'
 
 interface Props {
   trip: Trip
   day: Day
   number: number
+  /** "Osaka", "Osaka → Okinawa" or "". */
+  city: string
   /** The day's places in visiting order. */
   places: Place[]
   /** Minutes of travel between the places (from the legs' segments). */
@@ -17,7 +20,7 @@ interface Props {
 }
 
 /** One day in the trip overview: calendar badge, title, route at a glance, totals. */
-export function DayCard({ trip, day, number, places, travelMinutes, budget }: Props) {
+export function DayCard({ trip, day, number, city, places, travelMinutes, budget }: Props) {
   const { weekday, day: dayOfMonth, month } = dateParts(day.date)
   const outside = day.date < trip.startDate || day.date > trip.endDate
   const shown = places.slice(0, 4)
@@ -33,6 +36,7 @@ export function DayCard({ trip, day, number, places, travelMinutes, budget }: Pr
       <span className="day-card-body">
         <span className="day-card-kicker">
           Day {number}
+          {city && <CityTag city={city} />}
           {outside && <span className="tag">outside trip dates</span>}
         </span>
         {/* Without a title, the route itself is the title. */}

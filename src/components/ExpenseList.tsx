@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL } from '../budget'
+import { addDays, daysBetween, formatDay } from '../dates'
 import { addExpense, deleteExpense, updateExpense } from '../db/expenses'
 import type { Expense, ExpenseCategory, Trip } from '../db/model'
 import { formatMoney } from '../format'
+import { FlightForm, HotelForm, type BookingValues } from './BookingForms'
 
 interface Props {
   trip: Trip
@@ -11,66 +13,171 @@ interface Props {
   expenses: Expense[]
 }
 
-/** List of free-form expenses with add / edit / delete. */
+type Editing = string | 'new' | 'new-hotel' | 'new-flight' | null
+
+/**
+ * Free-form expenses with add / edit / delete. Trip-wide lists also have
+ * hotels and flights, grouped, with their own forms.
+ */
 export function ExpenseList({ trip, dayId, expenses }: Props) {
-  const [editing, setEditing] = useState<string | 'new' | null>(null)
+  const [editing, setEditing] = useState<Editing>(null)
+  const tripWide = !dayId
+
+  const create = async (values: BookingValues) => {
+    await addExpense({ ...values, tripId: trip.id, dayId })
+    setEditing(null)
+  }
+  const update = (id: string) => async (values: BookingValues) => {
+    // Clear hotel/flight details the new values don't have.
+    await updateExpense(id, { hotel: undefined, flight: undefined, ...values })
+    setEditing(null)
+  }
+
+  const renderItem = (expense: Expense) => {
+    if (editing !== expense.id) {
+      return (
+        <li key={expense.id}>
+          <ExpenseRow expense={expense} onEdit={() => setEditing(expense.id)} />
+        </li>
+      )
+    }
+    const props = { trip, expense, onSave: update(expense.id), onCancel: () => setEditing(null) }
+    return (
+      <li key={expense.id}>
+        {expense.hotel ? <HotelForm {...props} /> : expense.flight ? <FlightForm {...props} /> : <ExpenseForm {...props} />}
+      </li>
+    )
+  }
+
+  const flights = expenses.filter((e) => e.flight).sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+  const hotels = expenses.filter((e) => e.hotel).sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+  const others = expenses.filter((e) => !e.flight && !e.hotel)
 
   return (
     <div className="expenses">
-      {expenses.length === 0 && editing !== 'new' && <p className="muted small">No expenses yet.</p>}
-      <ul className="expense-list">
-        {expenses.map((expense) =>
-          editing === expense.id ? (
-            <li key={expense.id}>
-              <ExpenseForm
-                trip={trip}
-                expense={expense}
-                onSave={async (changes) => {
-                  await updateExpense(expense.id, changes)
-                  setEditing(null)
-                }}
-                onCancel={() => setEditing(null)}
-              />
-            </li>
-          ) : (
-            <li key={expense.id} className="expense-row">
-              <span>
-                {CATEGORY_ICON[expense.category]} {expense.description}
-                {expense.notes && <span className="muted small"> · {expense.notes}</span>}
-              </span>
-              <span className="row">
-                <strong>{formatMoney(expense.amount)}</strong>
-                <button type="button" className="link" onClick={() => setEditing(expense.id)}>
-                  Edit
-                </button>
-                <button type="button" className="link" onClick={() => deleteExpense(expense.id)}>
-                  Remove
-                </button>
-              </span>
-            </li>
-          ),
-        )}
-      </ul>
-      {editing === 'new' ? (
-        <ExpenseForm
-          trip={trip}
-          defaultCategory={dayId ? 'food' : 'lodging'}
-          onSave={async (values) => {
-            await addExpense({ ...values, tripId: trip.id, dayId })
-            setEditing(null)
-          }}
-          onCancel={() => setEditing(null)}
-        />
-      ) : (
-        <button type="button" onClick={() => setEditing('new')}>
-          + Add expense
-        </button>
+      {expenses.length === 0 && editing === null && <p className="muted small">No expenses yet.</p>}
+
+      {tripWide && flights.length > 0 && (
+        <ExpenseGroup title="Flights">
+          <ul className="expense-list">{flights.map(renderItem)}</ul>
+        </ExpenseGroup>
+      )}
+      {tripWide && hotels.length > 0 && (
+        <ExpenseGroup title="Lodging" aside={<NightsCoverage trip={trip} hotels={hotels} />}>
+          <ul className="expense-list">{hotels.map(renderItem)}</ul>
+        </ExpenseGroup>
+      )}
+      {(others.length > 0 || !tripWide) && (
+        <ExpenseGroup title={tripWide && (flights.length || hotels.length) ? 'Other' : undefined}>
+          <ul className="expense-list">{(tripWide ? others : expenses).map(renderItem)}</ul>
+        </ExpenseGroup>
+      )}
+
+      {editing === 'new' && <ExpenseForm trip={trip} defaultCategory={dayId ? 'food' : 'other'} onSave={create} onCancel={() => setEditing(null)} />}
+      {editing === 'new-hotel' && <HotelForm trip={trip} onSave={create} onCancel={() => setEditing(null)} />}
+      {editing === 'new-flight' && <FlightForm trip={trip} onSave={create} onCancel={() => setEditing(null)} />}
+
+      {editing === null && (
+        <div className="row wrap">
+          {tripWide && (
+            <>
+              <button type="button" onClick={() => setEditing('new-flight')}>
+                + ✈️ Flight
+              </button>
+              <button type="button" onClick={() => setEditing('new-hotel')}>
+                + 🏨 Hotel
+              </button>
+            </>
+          )}
+          <button type="button" onClick={() => setEditing('new')}>
+            {tripWide ? '+ Other expense' : '+ Add expense'}
+          </button>
+        </div>
       )}
     </div>
   )
 }
 
-type ExpenseValues = Pick<Expense, 'category' | 'description' | 'amount' | 'notes'>
+function ExpenseGroup({ title, aside, children }: { title?: string; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="expense-group">
+      {title && (
+        <div className="expense-group-title">
+          <span>{title}</span>
+          {aside}
+        </div>
+      )}
+      {children}
+    </div>
+  )
+}
+
+function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void }) {
+  const { hotel, flight } = expense
+  let title = `${CATEGORY_ICON[expense.category]} ${expense.description}`
+  const details: string[] = []
+  if (hotel) {
+    title = `🏨 ${hotel.name}`
+    if (hotel.checkIn && hotel.checkOut) details.push(`${formatDay(hotel.checkIn)} → ${formatDay(hotel.checkOut)}`)
+    details.push(`${hotel.nights} ${hotel.nights === 1 ? 'night' : 'nights'}`)
+    if (hotel.perNight != null) details.push(`${formatMoney({ amount: hotel.perNight, currency: expense.amount.currency })}/night`)
+  } else if (flight) {
+    title = `✈️ ${flight.from} → ${flight.to}`
+    if (flight.date) details.push(`${formatDay(flight.date)}${flight.time ? ` ${flight.time}` : ''}`)
+    if (flight.flightNumber) details.push(flight.flightNumber)
+  }
+  if (expense.notes) details.push(expense.notes)
+
+  return (
+    <div className="expense-row">
+      <span className="expense-main">
+        <span>{title}</span>
+        {details.length > 0 && <span className="muted small">{details.join(' · ')}</span>}
+      </span>
+      <span className="row">
+        <strong>{formatMoney(expense.amount)}</strong>
+        <button type="button" className="link" onClick={onEdit}>
+          Edit
+        </button>
+        <button type="button" className="link" onClick={() => deleteExpense(expense.id)}>
+          Remove
+        </button>
+      </span>
+    </div>
+  )
+}
+
+/** "12 of 14 nights booked": trip nights covered by the hotels' dates. */
+function NightsCoverage({ trip, hotels }: { trip: Trip; hotels: Expense[] }) {
+  const tripNights = daysBetween(trip.startDate, trip.endDate)
+  if (tripNights <= 0) return null
+  const booked = new Set<string>()
+  let undated = 0
+  for (const { hotel } of hotels) {
+    if (!hotel) continue
+    if (!hotel.checkIn || !hotel.checkOut) {
+      undated += hotel.nights
+      continue
+    }
+    // Each night is named by its date; only nights inside the trip count.
+    for (let night = hotel.checkIn; night < hotel.checkOut; night = addDays(night, 1)) {
+      if (night >= trip.startDate && night < trip.endDate) booked.add(night)
+    }
+  }
+  const complete = booked.size >= tripNights
+  return (
+    <span className={`small ${complete ? 'muted' : 'warning'}`}>
+      {booked.size} of {tripNights} nights booked
+      {undated > 0 && ` (+${undated} without dates)`}
+    </span>
+  )
+}
+
+/** Flights by departure, hotels by check-in; undated ones last. */
+function sortKey(expense: Expense): string {
+  if (expense.flight) return `${expense.flight.date ?? '9999'} ${expense.flight.time ?? ''}`
+  return expense.hotel?.checkIn ?? '9999'
+}
 
 function ExpenseForm({
   trip,
@@ -82,7 +189,7 @@ function ExpenseForm({
   trip: Trip
   expense?: Expense
   defaultCategory?: ExpenseCategory
-  onSave: (values: ExpenseValues) => Promise<void>
+  onSave: (values: BookingValues) => Promise<void>
   onCancel: () => void
 }) {
   const [category, setCategory] = useState<ExpenseCategory>(expense?.category ?? defaultCategory)
@@ -115,7 +222,7 @@ function ExpenseForm({
         </label>
         <label className="grow">
           Description
-          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Hotel, JR Pass, lunch…" />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="JR Pass, insurance, lunch…" />
         </label>
       </div>
       <div className="row wrap">

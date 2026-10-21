@@ -102,6 +102,19 @@ export function inDisplayCurrency(totals: Totals, trip: Trip): { amount: number;
   return { amount, unconverted }
 }
 
+/**
+ * One number in the display currency, or null when that can't be done
+ * exactly (rate missing, or a currency other than the trip's two).
+ */
+export function displayAmount(totals: Totals, trip: Trip): number | null {
+  const entries = Object.entries(totals)
+  if (entries.every(([currency]) => currency === trip.displayCurrency)) {
+    return entries.reduce((sum, [, value]) => sum + value, 0)
+  }
+  const converted = inDisplayCurrency(totals, trip)
+  return converted && converted.unconverted.length === 0 ? converted.amount : null
+}
+
 /** Totals as money values, base currency first. */
 export function totalsList(totals: Totals, trip: Trip): Money[] {
   return Object.entries(totals)

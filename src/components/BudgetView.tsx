@@ -43,7 +43,7 @@ export function BudgetBreakdown({ budget, trip, title }: { budget: Budget; trip:
       )}
       {!(trip.exchangeRate > 0) && (
         <p className="muted small">
-          Set the exchange rate on the trip page to see totals in {trip.displayCurrency}.
+          Set the exchange rate (Trip settings, on the itinerary page) to see totals in {trip.displayCurrency}.
         </p>
       )}
     </div>

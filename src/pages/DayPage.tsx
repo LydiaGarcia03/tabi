@@ -8,6 +8,8 @@ import { ExpenseList } from '../components/ExpenseList'
 import { ExportCard } from '../components/ExportCard'
 import { DrawToolbar } from '../components/DrawToolbar'
 import { DayStrip } from '../components/DayStrip'
+import { CityTag, TripLayout } from '../components/TripLayout'
+import { cityLabel } from '../db/stays'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Icon } from '../components/Icon'
 import { LegItem } from '../components/LegItem'
@@ -42,6 +44,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const tripLegs = useLiveQuery(() => db.legs.where('tripId').equals(tripId).toArray(), [tripId])
   const legs = useMemo(() => new Map((tripLegs ?? []).map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l])), [tripLegs])
   const trip = useLiveQuery(async () => (await db.trips.get(tripId)) ?? null, [tripId])
+  const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
   const dayExpenses = useLiveQuery(() => db.expenses.where('dayId').equals(dayId).toArray(), [dayId])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openLeg, setOpenLeg] = useState<string | null>(null)
@@ -87,12 +90,12 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   }
 
   return (
-    <>
-      <nav className="crumbs row between">
-        <a href={href({ page: 'trip', tripId })}>
-          <Icon name="back" size={16} /> {trip.name}
-        </a>
-        <span className="row">
+    <TripLayout trip={trip} active={{ dayId: day.id }}>
+      <DayStrip tripId={tripId} days={days} currentId={day.id} />
+
+      <div className="day-top row between">
+        <DayHeader key={day.id} day={day} number={index + 1} city={stays ? cityLabel(stays, day.date) : ''} places={places} legs={legs} />
+        <span className="row day-arrows">
           {prev && (
             <a className="icon-button" href={href({ page: 'day', tripId, dayId: prev.id })} aria-label="Previous day">
               <Icon name="back" />
@@ -104,11 +107,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             </a>
           )}
         </span>
-      </nav>
-
-      <DayStrip tripId={tripId} days={days} currentId={day.id} />
-
-      <DayHeader key={day.id} day={day} number={index + 1} places={places} legs={legs} />
+      </div>
 
       <div className="day-layout">
         <div className={`day-map-column${mapOpen ? '' : ' map-collapsed'}`}>
@@ -224,11 +223,23 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
           <ExportCard tripId={tripId} day={{ id: day.id, number: index + 1 }} />
         </div>
       </div>
-    </>
+    </TripLayout>
   )
 }
 
-function DayHeader({ day, number, places, legs }: { day: Day; number: number; places: Place[]; legs: Map<string, Leg> }) {
+function DayHeader({
+  day,
+  number,
+  city,
+  places,
+  legs,
+}: {
+  day: Day
+  number: number
+  city: string
+  places: Place[]
+  legs: Map<string, Leg>
+}) {
   const [title, setTitle] = useDraft(day.title, (value) => updateDay(day.id, { title: value.trim() }))
   const [shared, setShared] = useState('')
 
@@ -245,6 +256,7 @@ function DayHeader({ day, number, places, legs }: { day: Day; number: number; pl
     <header className="hero day-hero">
       <p className="hero-kicker">
         Day {number} · {formatDay(day.date)}
+        {city && <CityTag city={city} />}
       </p>
       <input
         className="hero-title"

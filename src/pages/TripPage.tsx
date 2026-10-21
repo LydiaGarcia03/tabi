@@ -1,15 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { dayBudget, expensesBudget, mergeBudgets } from '../budget'
-import { BudgetBreakdown } from '../components/BudgetView'
+import { MoneyTotals } from '../components/BudgetView'
+import { Checklist } from '../components/Checklist'
 import { DayCard } from '../components/DayCard'
-import { ExpenseList } from '../components/ExpenseList'
 import { ExportCard } from '../components/ExportCard'
 import { Icon } from '../components/Icon'
+import { StaysEditor } from '../components/StaysEditor'
+import { TripLayout } from '../components/TripLayout'
 import { formatDate } from '../dates'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Trip } from '../db/model'
+import { cityLabel } from '../db/stays'
 import { deleteTrip, orderPlaces, updateTrip } from '../db/trips'
 import { useRefreshStalePlaces } from '../places/refresh'
 import { href, navigate } from '../router'
@@ -22,6 +25,7 @@ export function TripPage({ tripId }: { tripId: string }) {
   const places = useLiveQuery(() => db.places.where('tripId').equals(tripId).toArray(), [tripId])
   const legs = useLiveQuery(() => db.legs.where('tripId').equals(tripId).toArray(), [tripId])
   const expenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
+  const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
   useRefreshStalePlaces(places)
 
   const overview = useMemo(() => {
@@ -41,58 +45,63 @@ export function TripPage({ tripId }: { tripId: string }) {
     )
     const tripWide = expenses.filter((e) => !e.dayId)
     const total = mergeBudgets([...[...byDay.values()].map((d) => d.budget), expensesBudget(tripWide)])
-    return { byDay, tripWide, total }
+    return { byDay, total }
   }, [days, places, legs, expenses])
 
-  if (trip === undefined || days === undefined || !overview) return null
+  if (trip === undefined || days === undefined || !overview || !stays) return null
   if (!trip) return <NotFound />
 
   return (
-    <>
-      <nav className="crumbs">
-        <a href={href({ page: 'trips' })}>
-          <Icon name="back" size={16} /> Trips
-        </a>
-      </nav>
-
+    <TripLayout trip={trip} active="itinerary">
       <TripHeader key={trip.id} trip={trip} dayCount={days.length} />
 
-      <section className="section">
-        <h2 className="section-title">Itinerary</h2>
-        <ol className="day-cards">
-          {days.map((day, i) => {
-            const info = overview.byDay.get(day.id)!
-            return (
-              <li key={day.id}>
-                <DayCard
-                  trip={trip}
-                  day={day}
-                  number={i + 1}
-                  places={info.places}
-                  travelMinutes={info.travelMinutes}
-                  budget={info.budget}
-                />
-              </li>
-            )
-          })}
-        </ol>
-      </section>
+      <div className="overview-grid">
+        <section className="section">
+          <h2 className="section-title">Itinerary</h2>
+          <ol className="day-cards">
+            {days.map((day, i) => {
+              const info = overview.byDay.get(day.id)!
+              return (
+                <li key={day.id}>
+                  <DayCard
+                    trip={trip}
+                    day={day}
+                    number={i + 1}
+                    city={cityLabel(stays, day.date)}
+                    places={info.places}
+                    travelMinutes={info.travelMinutes}
+                    budget={info.budget}
+                  />
+                </li>
+              )
+            })}
+          </ol>
+        </section>
 
-      <section className="card">
-        <BudgetBreakdown budget={overview.total} trip={trip} title="Trip budget" />
-        <h3>Trip-wide expenses</h3>
-        <p className="muted small">Costs not tied to one day: hotel, rail pass, insurance…</p>
-        <ExpenseList trip={trip} expenses={overview.tripWide} />
-      </section>
+        <div className="overview-side">
+          <StaysEditor trip={trip} stays={stays} />
 
-      <ExportCard tripId={trip.id} />
+          <a className="card budget-link" href={href({ page: 'budget', tripId: trip.id })}>
+            <span className="row between">
+              <strong>Trip budget</strong>
+              <Icon name="forward" size={16} />
+            </span>
+            <MoneyTotals totals={overview.total.total} trip={trip} />
+            <span className="muted small">Flights, hotels, estimates vs. booked</span>
+          </a>
 
-      <details className="card disclosure">
-        <summary>Trip settings</summary>
-        <TripSettings key={trip.id} trip={trip} />
-        <DeleteTrip trip={trip} />
-      </details>
-    </>
+          <Checklist trip={trip} />
+          <TripNotes key={trip.id} trip={trip} />
+          <ExportCard tripId={trip.id} />
+
+          <details className="card disclosure">
+            <summary>Trip settings</summary>
+            <TripSettings key={trip.id} trip={trip} />
+            <DeleteTrip trip={trip} />
+          </details>
+        </div>
+      </div>
+    </TripLayout>
   )
 }
 
@@ -100,17 +109,28 @@ function TripHeader({ trip, dayCount }: { trip: Trip; dayCount: number }) {
   const [name, setName] = useDraft(trip.name, (value) => updateTrip(trip.id, { name: value.trim() || trip.name }))
   return (
     <header className="hero">
-      <input
-        className="hero-title"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        aria-label="Trip name"
-      />
+      <input className="hero-title" value={name} onChange={(e) => setName(e.target.value)} aria-label="Trip name" />
       <p className="hero-meta">
         <Icon name="calendar" size={16} /> {formatDate(trip.startDate)} – {formatDate(trip.endDate)} · {dayCount}{' '}
         {dayCount === 1 ? 'day' : 'days'}
       </p>
     </header>
+  )
+}
+
+function TripNotes({ trip }: { trip: Trip }) {
+  const [notes, setNotes] = useDraft(trip.notes ?? '', (value) => updateTrip(trip.id, { notes: value || undefined }))
+  return (
+    <section className="card">
+      <h2>Notes</h2>
+      <textarea
+        rows={5}
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Tips, flight time simulations, best area to stay…"
+        aria-label="Trip notes"
+      />
+    </section>
   )
 }
 
@@ -175,7 +195,7 @@ function DeleteTrip({ trip }: { trip: Trip }) {
     <div className="danger-zone">
       {confirming ? (
         <>
-          <p>Delete “{trip.name}” with all its days, places, routes and expenses? This cannot be undone.</p>
+          <p>Delete “{trip.name}” with all its days, places, routes, options and expenses? This cannot be undone.</p>
           <div className="row">
             <button
               type="button"

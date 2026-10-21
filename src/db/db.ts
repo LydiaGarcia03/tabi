@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Day, Expense, Leg, Place, Trip } from './model'
+import type { Day, Expense, Leg, Place, Stay, Trip, TripOption } from './model'
 
 export const db = new Dexie('tabi') as Dexie & {
   trips: EntityTable<Trip, 'id'>
@@ -7,6 +7,8 @@ export const db = new Dexie('tabi') as Dexie & {
   places: EntityTable<Place, 'id'>
   legs: EntityTable<Leg, 'id'>
   expenses: EntityTable<Expense, 'id'>
+  stays: EntityTable<Stay, 'id'>
+  options: EntityTable<TripOption, 'id'>
 }
 
 // Only indexed fields are listed; every other field is stored as well.
@@ -21,6 +23,10 @@ db.version(2).stores({
 })
 db.version(3).stores({
   expenses: 'id, tripId, dayId',
+})
+db.version(4).stores({
+  stays: 'id, tripId',
+  options: 'id, tripId',
 })
 
 /** Asks the browser not to evict our data when the device is low on space. */

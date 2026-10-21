@@ -1,7 +1,9 @@
 import { APIProvider } from '@vis.gl/react-google-maps'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Icon, Logo } from './components/Icon'
+import { BudgetPage } from './pages/BudgetPage'
 import { DayPage } from './pages/DayPage'
+import { OptionsPage } from './pages/OptionsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TripPage } from './pages/TripPage'
 import { TripsPage } from './pages/TripsPage'
@@ -11,12 +13,15 @@ import { useOnline } from './useOnline'
 
 const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
+/** Pages that use the full width on a computer (trip pages have a sidebar). */
+const WIDE_PAGES: Route['page'][] = ['trip', 'day', 'options', 'budget', 'transit-spike']
+
 export default function App() {
   const route = useRoute()
   const online = useOnline()
 
   const content = (
-    <div className={`shell${route.page === 'day' || route.page === 'transit-spike' ? ' wide' : ''}`}>
+    <div className={`shell${WIDE_PAGES.includes(route.page) ? ' wide' : ''}`}>
       <header className="app-bar">
         <a className="brand" href={href({ page: 'trips' })}>
           <Logo />
@@ -72,6 +77,10 @@ function Page({ route }: { route: Route }) {
       return <TripPage tripId={route.tripId} />
     case 'day':
       return <DayPage tripId={route.tripId} dayId={route.dayId} hasGoogleKey={!!googleKey} />
+    case 'options':
+      return <OptionsPage tripId={route.tripId} />
+    case 'budget':
+      return <BudgetPage tripId={route.tripId} />
     case 'settings':
       return <SettingsPage />
     case 'transit-spike':
