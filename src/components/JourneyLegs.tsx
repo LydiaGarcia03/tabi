@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { addDays, formatDay } from '../dates'
 import type { Journey, JourneyLeg } from '../db/model'
 import {
@@ -12,21 +12,51 @@ import {
   type Connection,
 } from '../planning/journeys'
 
+/** True when a leg has times, numbers or aircraft (shown only in the detailed editor). */
+export function legsHaveDetails(journey: Journey): boolean {
+  return (journey.legs ?? []).some((l) => l.departTime || l.arriveTime || l.minutes != null || l.number || l.aircraft)
+}
+
 /**
- * Editor for a journey with connections. By default only the airlines and
- * the connection cities (a rough sketch, to compare baggage rules); "Advanced
- * details" adds times, flight numbers and aircraft, and the layovers.
+ * The fields opened by "+ Extra info", set apart on a tinted box with a title
+ * so it's clear what was opened. Bookings (always open) show them plainly.
  */
-export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onChange: (journey: Journey) => void }) {
+export function ExtraInfo({ show, children }: { show: boolean; children: ReactNode }) {
+  if (!show) return <>{children}</>
+  return (
+    <div className="journey-extra">
+      <span className="journey-extra-title">Extra info</span>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Editor for a journey with connections. Without `detailed`, only the
+ * airlines and the connection cities (a rough sketch, to compare baggage
+ * rules); `detailed` adds times, flight numbers and aircraft, and the layovers
+ * (in an "Extra info" box when `boxed`).
+ */
+export function JourneyLegsEditor({
+  journey,
+  onChange,
+  detailed,
+  toggles,
+  boxed = false,
+}: {
+  journey: Journey
+  onChange: (journey: Journey) => void
+  detailed: boolean
+  /** "− Connections / ± Extra info", shown with the route. */
+  toggles: ReactNode
+  boxed?: boolean
+}) {
   const legs = journey.legs ?? []
   const isFlight = journey.mode === 'flight'
   const noun = isFlight ? 'Flight' : 'Leg'
   const connections = journeyConnections(journey)
   const total = totalMinutes(journey)
   const carriers = journeyCarriers(journey)
-  const [advanced, setAdvanced] = useState(() =>
-    legs.some((l) => l.departTime || l.arriveTime || l.minutes != null || l.number || l.aircraft),
-  )
 
   const setLeg = (i: number, changes: Partial<JourneyLeg>) =>
     onChange({ ...journey, legs: legs.map((leg, j) => (j === i ? { ...leg, ...changes } : leg)) })
@@ -64,7 +94,7 @@ export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onC
         value={journey.carrier && carriers.includes(journey.carrier) ? journey.carrier : ''}
         onChange={(e) => onChange({ ...journey, carrier: e.target.value || undefined })}
       >
-        <option value="">Best guess{advanced ? ' (the one you fly longest)' : ''}</option>
+        <option value="">Best guess{detailed ? ' (the one you fly longest)' : ''}</option>
         {carriers.map((c) => (
           <option key={c}>{c}</option>
         ))}
@@ -72,7 +102,7 @@ export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onC
     </label>
   )
 
-  if (!advanced) {
+  if (!detailed) {
     return (
       <div className="journey-legs">
         <ol className="journey-route">
@@ -107,14 +137,10 @@ export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onC
             </li>
           ))}
         </ol>
-        <span className="row wrap">
-          <button type="button" onClick={addLeg}>
-            + Add a {noun.toLowerCase()}
-          </button>
-          <button type="button" className="link" onClick={() => setAdvanced(true)}>
-            Advanced details (times, flight numbers, layovers) ▾
-          </button>
-        </span>
+        <button type="button" onClick={addLeg}>
+          + Add a {noun.toLowerCase()}
+        </button>
+        {toggles}
         {mainAirline}
       </div>
     )
@@ -122,9 +148,7 @@ export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onC
 
   return (
     <div className="journey-legs">
-      <button type="button" className="link" onClick={() => setAdvanced(false)}>
-        Simple view (airlines only) ▴
-      </button>
+      {toggles}
       <ol className="journey-leg-list">
         {legs.map((leg, i) => (
           <li key={i}>
@@ -143,39 +167,41 @@ export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onC
                   <input value={leg.to} onChange={(e) => setPlace(i, 'to', e.target.value)} placeholder={isFlight ? 'Doha (DOH)' : 'Tokyo'} />
                 </label>
               </div>
-              <div className="field-row time-fields">
-                <TimeAndDay
-                  label="Departs"
-                  date={journey.date}
-                  time={leg.departTime}
-                  day={leg.departDay}
-                  onChange={(departTime, departDay) => setLeg(i, { departTime, departDay })}
-                />
-                <TimeAndDay
-                  label="Arrives"
-                  date={journey.date}
-                  time={leg.arriveTime}
-                  day={leg.arriveDay}
-                  onChange={(arriveTime, arriveDay) => setLeg(i, { arriveTime, arriveDay })}
-                />
-                <DurationInput label={isFlight ? 'Flight time' : 'Travel time'} minutes={leg.minutes} onChange={(minutes) => setLeg(i, { minutes })} />
-              </div>
-              <div className="field-row">
-                <label>
-                  {isFlight ? 'Airline' : 'Operator'}
-                  <input value={leg.carrier ?? ''} list={isFlight ? 'airline-names' : undefined} onChange={(e) => setLeg(i, { carrier: e.target.value })} />
-                </label>
-                <label>
-                  {isFlight ? 'Flight number' : 'Number'}
-                  <input value={leg.number ?? ''} onChange={(e) => setLeg(i, { number: e.target.value })} placeholder={isFlight ? 'QR 774' : ''} />
-                </label>
-                {isFlight && (
+              <label>
+                {isFlight ? 'Airline' : 'Operator'}
+                <input value={leg.carrier ?? ''} list={isFlight ? 'airline-names' : undefined} onChange={(e) => setLeg(i, { carrier: e.target.value })} />
+              </label>
+              <ExtraInfo show={boxed}>
+                <div className="field-row time-fields">
+                  <TimeAndDay
+                    label="Departs"
+                    date={journey.date}
+                    time={leg.departTime}
+                    day={leg.departDay}
+                    onChange={(departTime, departDay) => setLeg(i, { departTime, departDay })}
+                  />
+                  <TimeAndDay
+                    label="Arrives"
+                    date={journey.date}
+                    time={leg.arriveTime}
+                    day={leg.arriveDay}
+                    onChange={(arriveTime, arriveDay) => setLeg(i, { arriveTime, arriveDay })}
+                  />
+                  <DurationInput label={isFlight ? 'Flight time' : 'Travel time'} minutes={leg.minutes} onChange={(minutes) => setLeg(i, { minutes })} />
+                </div>
+                <div className="field-row">
                   <label>
-                    Aircraft
-                    <input value={leg.aircraft ?? ''} onChange={(e) => setLeg(i, { aircraft: e.target.value })} placeholder="Airbus A350" />
+                    {isFlight ? 'Flight number' : 'Number'}
+                    <input value={leg.number ?? ''} onChange={(e) => setLeg(i, { number: e.target.value })} placeholder={isFlight ? 'QR 774' : ''} />
                   </label>
-                )}
-              </div>
+                  {isFlight && (
+                    <label>
+                      Aircraft
+                      <input value={leg.aircraft ?? ''} onChange={(e) => setLeg(i, { aircraft: e.target.value })} placeholder="Airbus A350" />
+                    </label>
+                  )}
+                </div>
+              </ExtraInfo>
               <button type="button" className="link danger-outline" onClick={() => removeLeg(i)}>
                 Remove {noun.toLowerCase()} {i + 1}
               </button>
@@ -203,11 +229,13 @@ export function JourneyLegsEditor({ journey, onChange }: { journey: Journey; onC
  * Each flight and layover, like Google Flights shows them, folded under a
  * one-line summary ("2 connections · 18 h layovers ⚠️").
  */
-export function JourneyItinerary({ journey }: { journey: Journey }) {
+export function JourneyItinerary({ journey, timesOnly = false }: { journey: Journey; timesOnly?: boolean }) {
   const legs = journey.legs ?? []
   if (legs.length < 2) return null
   // A rough sketch (airlines only): one line, "NVT ✈ Gol → GRU ✈ Qatar Airways → DOH…".
   if (!legs.some((l) => l.departTime || l.arriveTime || l.minutes != null)) {
+    // Where the route is already shown (RouteChain), only the timed details are added.
+    if (timesOnly) return null
     return (
       <span className="small journey-chain">
         {legs[0].from}
@@ -256,6 +284,50 @@ export function JourneyItinerary({ journey }: { journey: Journey }) {
       </ol>
     </details>
   )
+}
+
+/** "NVT" from "Navegantes (NVT)"; otherwise the name as typed. */
+const shortPlace = (name: string) => /\(([A-Z0-9]{3,4})\)/.exec(name)?.[1] ?? name.trim()
+
+/** The route as a chain, each carrier between the places it flies: NVT Gol → GRU Qatar → DOH Qatar → KIX. */
+export function RouteChain({ journey }: { journey: Journey }) {
+  const legs = journey.legs?.length ? journey.legs : [{ from: journey.from, to: journey.to, carrier: journey.carrier }]
+  return (
+    <span className="route-chain">
+      <b>{shortPlace(legs[0].from) || '?'}</b>
+      {legs.map((leg, i) => (
+        <Fragment key={i}>
+          {' '}
+          <span className="route-chain-step">
+            {leg.carrier && <span className="muted">{leg.carrier}</span>}
+            <span aria-hidden="true">→</span>
+            <b>{shortPlace(leg.to) || '?'}</b>
+          </span>
+        </Fragment>
+      ))}
+    </span>
+  )
+}
+
+/**
+ * Short facts about a journey as chips: date, stops, connections to watch
+ * (long, tight, change of airport) and class.
+ */
+export function journeyChips(journey: Journey): { text: string; warn?: boolean }[] {
+  const legs = journey.legs ?? []
+  const stops = legs.length - 1
+  const city = (name: string) => name.replace(/\s*\(.*?\)\s*/g, '').trim() || name
+  const chips: { text: string; warn?: boolean }[] = []
+  if (journey.date) chips.push({ text: formatDay(journey.date) + (journey.time ? ` ${journey.time}` : '') })
+  if (stops > 0) chips.push({ text: stops === 1 ? '1 stop' : `${stops} stops` })
+  else if (journey.stops) chips.push({ text: journey.stops })
+  for (const c of journeyConnections(journey)) {
+    if (c.changesAirport) chips.push({ text: `⚠ change of airport in ${city(c.at)}`, warn: true })
+    else if (c.minutes != null && c.minutes >= LONG_LAYOVER_MINUTES) chips.push({ text: `⚠ ${formatDuration(c.minutes)} in ${city(c.at)}`, warn: true })
+    else if (c.minutes != null && c.minutes >= 0 && c.minutes < TIGHT_CONNECTION_MINUTES) chips.push({ text: `⚠ tight in ${city(c.at)}`, warn: true })
+  }
+  if (journey.cabin) chips.push({ text: journey.cabin })
+  return chips
 }
 
 /** The time on the ground between two legs, with what to watch out for. */

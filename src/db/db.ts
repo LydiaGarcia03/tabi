@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import { upgradeExpense, upgradeOption } from './migrations'
+import { upgradeExpense, upgradeOption, upgradePlace } from './migrations'
 import type { Day, Expense, Leg, MapArea, MapAsset, MapTile, OptionPhoto, Place, Stay, Trip, TripOption } from './model'
 
 export const db = new Dexie('tabi') as Dexie & {
@@ -50,6 +50,12 @@ db.version(7).stores({
   mapAssets: 'key',
   mapAreas: 'tripId',
 })
+// Opening hours: several time ranges per day (e.g. lunch and dinner).
+db.version(8)
+  .stores({})
+  .upgrade(async (tx) => {
+    await tx.table('places').toCollection().modify((place) => void upgradePlace(place))
+  })
 
 /** Asks the browser not to evict our data when the device is low on space. */
 export async function requestPersistentStorage(): Promise<void> {

@@ -2,11 +2,15 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { Journey, OptionKind, Trip, TripOption } from '../db/model'
 import { addOption, deleteOption, updateOption } from '../db/options'
 import { optionPhotos, setOptionPhotos } from '../db/photos'
-import { cleanJourney, JOURNEY_LABEL, journeyCarriers } from '../planning/journeys'
+import { findAirline } from '../data/airlines'
+import { cleanFares, faresOf } from '../planning/fares'
+import { cleanJourney, JOURNEY_LABEL, journeyCarriers, withLegSummary } from '../planning/journeys'
 import { CATEGORY_PRESETS, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
 import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
+import { FaresEditor } from './FaresEditor'
 import { LocateSearch } from './LocateSearch'
+import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { PhotoPicker } from './Photos'
 import { Stars } from './Stars'
 
@@ -75,6 +79,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   const [currency, setCurrency] = useState(option?.price?.currency ?? option?.totalPrice?.currency ?? trip.displayCurrency)
   const [rating, setRating] = useState(option?.rating)
   const [hours, setHours] = useState(option?.hours ?? '')
+  const [openingHours, setOpeningHours] = useState(option?.openingHours)
   const [link, setLink] = useState(option?.link ?? '')
   const [notes, setNotes] = useState(option?.notes ?? '')
   const [location, setLocation] = useState(
@@ -83,6 +88,8 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       : null,
   )
   const [journey, setJourney] = useState<Journey>(option?.journey ?? { mode: 'flight', from: '', to: '' })
+  const [fares, setFares] = useState(() => faresOf(option))
+  const [fareIndex, setFareIndex] = useState(option?.fareIndex ?? 0)
   const [confirmDelete, setConfirmDelete] = useState(false)
   // Saved only when changed, so saving before they finish loading never drops them.
   const [photos, setPhotos] = useState<Blob[] | null>(null)
@@ -93,9 +100,13 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   }, [option])
 
   const isTransport = kind === 'transport'
+  const hasHours = kind === 'restaurant' || kind === 'place' || kind === 'shop'
   const cleaned = cleanJourney(journey)
   const valid = isTransport ? cleaned.from !== '' && cleaned.to !== '' : name.trim() !== ''
   const currencies = [...new Set([trip.displayCurrency, trip.baseCurrency, currency])]
+  // Fare names of the main airline, from the airline guide.
+  const fareSuggestions =
+    journey.mode === 'flight' ? (findAirline(withLegSummary(journey).carrier)?.checked.map((r) => r.fare) ?? []) : []
 
   const money = (text: string): Money | undefined => {
     const amount = Number(text)
@@ -105,16 +116,24 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
+    const saved = cleanFares(
+      fares.map((f) => (f.price ? { ...f, price: { ...f.price, currency } } : f)),
+      fareIndex,
+    )
+    const fare = saved.fares[saved.index]
     const values = {
       kind,
       // A transport option is named after its carrier (or mode) and route.
       name: isTransport ? transportName(cleaned) : name.trim(),
       city: isTransport ? undefined : city.trim() || undefined,
       category: isTransport ? undefined : category.trim() || undefined,
-      price: money(price),
+      price: isTransport ? fare?.price : money(price),
+      fares: isTransport && saved.fares.length ? saved.fares : undefined,
+      fareIndex: isTransport && saved.fares.length > 1 ? saved.index : undefined,
       totalPrice: kind === 'hotel' ? money(total) : undefined,
       rating,
-      hours: hours.trim() || undefined,
+      hours: (hasHours && hours.trim()) || undefined,
+      openingHours: hasHours ? openingHours : undefined,
       link: link.trim() || undefined,
       notes: notes.trim() || undefined,
       lat: isTransport ? undefined : location?.lat,
@@ -122,7 +141,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       address: isTransport ? undefined : location?.address,
       googlePlaceId: isTransport ? undefined : location?.googlePlaceId,
       googleFetchedAt: isTransport ? undefined : location?.googleFetchedAt,
-      journey: isTransport ? cleaned : undefined,
+      journey: isTransport ? { ...cleaned, fare: fare?.name } : undefined,
     }
     const id = option ? option.id : await addOption({ ...values, tripId: trip.id, status: 'idea' })
     if (option) await updateOption(option.id, values)
@@ -143,7 +162,8 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       )}
 
       {isTransport ? (
-        <JourneyFields journey={journey} onChange={setJourney} planning />
+        // The marked fare drives the baggage shown under the journey.
+        <JourneyFields journey={{ ...journey, fare: fares[fareIndex]?.name }} onChange={setJourney} planning />
       ) : (
         <div className="field-row">
           <label>
@@ -163,11 +183,25 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       )}
       {!isTransport && <TypePicker presets={CATEGORY_PRESETS[kind]} value={category} onChange={setCategory} />}
 
+      {isTransport && (
+        <FaresEditor
+          fares={fares}
+          index={fareIndex}
+          currency={currency}
+          suggestions={fareSuggestions}
+          onChange={(next, index) => {
+            setFares(next)
+            setFareIndex(index)
+          }}
+        />
+      )}
       <div className="field-row">
-        <label>
-          {PRICE_LABEL[kind]}
-          <input type="number" min="0" step="any" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
-        </label>
+        {!isTransport && (
+          <label>
+            {PRICE_LABEL[kind]}
+            <input type="number" min="0" step="any" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
+          </label>
+        )}
         {kind === 'hotel' && (
           <label>
             Total for the stay
@@ -195,21 +229,27 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
         <p className="muted small">Without a total, it is the price per night × the nights of the city's stay (see Cities).</p>
       )}
 
-      <div className="field-row">
-        <div className="field">
-          <span className="field-label">Your rating</span>
-          <Stars value={rating} onChange={setRating} />
-        </div>
-        {(kind === 'restaurant' || kind === 'place' || kind === 'shop') && (
-          <label>
-            Opening hours
-            <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Lunch and dinner, 10:00–20:00…" />
-          </label>
-        )}
+      <div className="field">
+        <span className="field-label">Your rating</span>
+        <Stars value={rating} onChange={setRating} />
       </div>
+      {hasHours && (
+        <>
+          <OpeningHoursEditor value={openingHours} onChange={setOpeningHours} />
+          {hours && (
+            // Typed as free text before the hours editor existed.
+            <p className="muted small">
+              Hours typed before: {hours}{' '}
+              <button type="button" className="link" onClick={() => setHours('')}>
+                Remove
+              </button>
+            </p>
+          )}
+        </>
+      )}
 
       <label>
-        Why / notes
+        Notes
         <textarea
           rows={3}
           value={notes}
@@ -217,15 +257,9 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
           placeholder="FamilyMart downstairs, 350 m from Namba Station, staff speaks English…"
         />
       </label>
-      <label>
-        Link
-        <input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
-      </label>
-      {savedPhotos && <PhotoPicker images={photos ?? savedPhotos} onChange={setPhotos} />}
-
       {!isTransport && (
         <div className="field">
-          <span className="field-label">Location (for distances and to add it to a day)</span>
+          <span className="field-label">Location on map</span>
           {location ? (
             <p className="small">
               📍 {location.address ?? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}{' '}
@@ -243,6 +277,12 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
           )}
         </div>
       )}
+
+      {savedPhotos && <PhotoPicker images={photos ?? savedPhotos} onChange={setPhotos} />}
+      <label>
+        Link
+        <input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
+      </label>
 
       <div className="row wrap sheet-actions">
         <button type="submit" className="primary" disabled={!valid}>

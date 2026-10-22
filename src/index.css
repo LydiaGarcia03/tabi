@@ -518,6 +518,118 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+/* "+ Connections" and "+ Extra info" side by side, each with what it does below. */
+.journey-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  margin: 2px 0 6px;
+}
+
+button.toggle-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+button.toggle-link .muted {
+  font-weight: 400;
+  text-decoration: none;
+}
+
+/* What "+ Extra info" opened, set apart so it's clear what to close. */
+.journey-extra {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.journey-extra-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* Fares of a transport option: fare, bags, price, seen on (and a radio with several). */
+.fares-editor {
+  display: grid;
+  gap: 6px;
+}
+
+.fares-head,
+.fare-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.fares-rows.several .fare-row,
+.fares-editor:has(.fares-rows.several) .fares-head {
+  grid-template-columns: 20px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.1fr) 36px;
+}
+
+.fares-head {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.fares-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.fare-row input {
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.fare-row input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* A price seen long ago: its date is muted. */
+.fare-row input.stale {
+  color: var(--muted);
+}
+
+/* Phone: fare and bags on one line, price and seen on below. */
+@media (max-width: 560px) {
+  .fares-head {
+    display: none;
+  }
+
+  .fare-row,
+  .fares-rows.several .fare-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .fares-rows.several .fare-row {
+    grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1fr) 36px;
+  }
+
+  .fares-rows.several .fare-row input[type='number'] {
+    grid-column: 2;
+  }
+}
+
 .row.between {
   justify-content: space-between;
 }
@@ -1943,6 +2055,53 @@ button:disabled {
   max-width: 320px;
 }
 
+/* Transport option: the route as a chain (NVT Gol → GRU Qatar → DOH…), facts as chips. */
+/* Flows like text, breaking only between steps ("Qatar Airways → KIX" stays together). */
+.route-chain-step {
+  white-space: nowrap;
+}
+
+.route-chain-step > * + * {
+  margin-left: 0.3em;
+}
+
+.route-chain .muted {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.options-table .option-name:has(.route-chain) {
+  min-width: 220px;
+}
+
+.option-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+
+.option-chips .chip {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.option-chips .chip.warn {
+  color: var(--error);
+  border-color: currentColor;
+}
+
+/* The chosen fare and when its price was seen, under the price. */
+.fare-seen {
+  display: block;
+  white-space: nowrap;
+}
+
+/* A price seen long ago has probably changed. */
+.stale-price {
+  opacity: 0.6;
+}
+
 .option-row.status-discarded td {
   opacity: 0.5;
 }
@@ -2582,63 +2741,97 @@ label.check input {
   padding: 0 4px;
 }
 
-.closed-days {
+.open-days {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  margin-top: 10px;
+  margin: 10px 0;
 }
 
-.closed-days > span {
+.open-days > span {
   margin-right: 4px;
 }
 
+/* Closed day: muted and struck through; open day: highlighted. */
 button.day-toggle {
   min-height: 32px;
   padding: 4px 9px;
   font-size: 0.8rem;
+  color: var(--muted);
+  text-decoration: line-through;
 }
 
 button.day-toggle.active {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent-text);
-  text-decoration: line-through;
+  text-decoration: none;
 }
 
-.hours-days {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-}
-
-.hours-days li {
+.hours-ranges {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  min-height: 40px;
-}
-
-.hours-days label.hours-day-open {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
-  margin: 0;
-  width: 64px;
+  min-width: 0;
 }
 
-.hours-day-times {
+.hours-range {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.hours-day-times input {
+.hours-range input {
   padding: 6px 8px;
+}
+
+.hours-ranges > button.link {
+  padding: 2px 0;
+  font-size: 0.85rem;
+}
+
+/* Per day: the day's ranges side by side, wrapping on narrow screens. */
+.hours-ranges.compact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.hours-ranges.compact .hours-range {
+  gap: 4px;
+}
+
+.hours-ranges.compact input {
+  padding: 4px 6px;
+}
+
+.hours-ranges.compact .icon-button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+
+.hours-days {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.hours-days li {
+  display: flex;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 36px;
+}
+
+.hours-days li > .day-toggle {
+  width: 52px;
+  flex: none;
 }
 
 .list-toolbar {

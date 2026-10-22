@@ -8,7 +8,7 @@ import { OptionForm } from '../components/OptionForm'
 import { FlightPlanner } from '../components/FlightPlanner'
 import { PhotoStrip } from '../components/Photos'
 import { Sheet } from '../components/Sheet'
-import { JourneyItinerary } from '../components/JourneyLegs'
+import { JourneyItinerary, journeyChips, RouteChain } from '../components/JourneyLegs'
 import { Stars } from '../components/Stars'
 import { CityTag, TripLayout } from '../components/TripLayout'
 import { formatDay } from '../dates'
@@ -18,7 +18,9 @@ import { addOptionToDay, bookOption, updateOption } from '../db/options'
 import { cityLabel, stayNights, stayOfCity } from '../db/stays'
 import { formatMoney } from '../format'
 import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, type Weights } from '../planning/compare'
-import { formatHours, JOURNEY_ICON, journeyCarriers, journeyDetails } from '../planning/journeys'
+import { cheapestFare, chosenFare, faresOf, isStale } from '../planning/fares'
+import { describeWeek } from '../planning/hours'
+import { formatHours, JOURNEY_ICON, journeyCarriers } from '../planning/journeys'
 import { KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
@@ -276,6 +278,11 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
   const [choosing, setChoosing] = useState(false)
   const journey = option.journey
   const isTransport = group.kind === 'transport'
+  // Options saved before fares existed show their one price as a fare.
+  const fares = isTransport ? faresOf(option) : []
+  const fare = chosenFare({ fares, fareIndex: option.fareIndex })
+  const cheapest = cheapestFare(fares)
+  const stale = isStale(fare?.seenOn)
   const carriers = journey?.mode === 'flight' ? journeyCarriers(journey) : []
   // Long-haul first: their legroom matters most.
   const flightAirlines = [...new Map(carriers.map((c) => findAirline(c)).filter((a) => !!a).map((a) => [a!.name, a!])).values()].sort(
@@ -293,27 +300,36 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
           <span className="option-title">
             {option.status === 'favorite' && <span title="Favorite">🌟 </span>}
             {option.status === 'chosen' && <span title="Chosen">✅ </span>}
+            {journey && <span aria-hidden="true">{JOURNEY_ICON[journey.mode]} </span>}
             {option.link ? (
               <a href={option.link} target="_blank" rel="noreferrer">
-                {option.name}
+                {journey ? <RouteChain journey={journey} /> : option.name}
               </a>
+            ) : journey ? (
+              <RouteChain journey={journey} />
             ) : (
               option.name
             )}
           </span>
-          <span className="muted small">
-            {journey
-              ? [
-                  JOURNEY_ICON[journey.mode],
-                  journey.date && `${formatDay(journey.date)} ${journey.time ?? ''}`,
-                  // Airlines are already in the name; connections are listed below.
-                  ...journeyDetails({ ...journey, carrier: undefined, legs: undefined, durationHours: undefined }),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')
-              : [option.category, option.hours].filter(Boolean).join(' · ')}
-          </span>
-          {journey && <JourneyItinerary journey={journey} />}
+          {journey ? (
+            <span className="chips option-chips">
+              {journeyChips(journey).map((c) => (
+                <span key={c.text} className={`chip${c.warn ? ' warn' : ''}`}>
+                  {c.text}
+                </span>
+              ))}
+              {fares.length > 1 && cheapest?.price && (
+                <span className="chip">
+                  {fares.length} fares from {formatMoney(cheapest.price)}
+                </span>
+              )}
+            </span>
+          ) : (
+            <span className="muted small">
+              {[option.category, option.openingHours && describeWeek(option.openingHours), option.hours].filter(Boolean).join(' · ')}
+            </span>
+          )}
+          {journey && <JourneyItinerary journey={journey} timesOnly />}
           <PhotoStrip images={photos.get(option.id) ?? []} name={option.name} />
           {inPlan && <span className="tag in-plan">{option.expenseId ? 'Booked' : 'In the itinerary'}</span>}
           {item.badges.length > 0 && (
@@ -327,7 +343,12 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
           )}
         </td>
         <td className="num" data-label={group.kind === 'hotel' ? 'Per night' : 'Price'}>
-          {option.price ? formatMoney(option.price) : '—'}
+          <span className={stale ? 'stale-price' : ''}>{option.price ? formatMoney(option.price) : '—'}</span>
+          {fare && (fare.name || fare.seenOn) && (
+            <span className={`muted small fare-seen${stale ? ' stale-price' : ''}`}>
+              {[fare.name, fare.seenOn && `seen ${formatDay(fare.seenOn)}`].filter(Boolean).join(' · ')}
+            </span>
+          )}
         </td>
         {group.kind === 'hotel' && (
           <td className="num" data-label="Stay total">

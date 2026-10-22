@@ -134,6 +134,11 @@ export function mergeLeg(journey: Journey, leg: JourneyLeg): Journey {
   }
 }
 
+/** Back to a direct journey from all its legs: first departure to last arrival, main airline, total time. */
+export function mergeLegs(journey: Journey): Journey {
+  return { ...withLegSummary(journey), legs: undefined, stops: undefined }
+}
+
 /** Every airline (or operator) of the journey, in order, without repeats. */
 export function journeyCarriers(journey: Journey): string[] {
   const names = journey.legs?.length ? journey.legs.map((l) => l.carrier) : [journey.carrier]

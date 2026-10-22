@@ -1,47 +1,49 @@
 import type { OpeningHours, TimeRange } from '../db/model'
-import { WEEKDAYS } from '../planning/hours'
+import { formatMinutes, toMinutes, WEEKDAYS } from '../planning/hours'
 import { useDraft } from '../useDraft'
 
 type Mode = 'none' | 'same' | 'varies'
+type DayHours = TimeRange[] | null
 
 /** Display order: Monday first. */
 const WEEK = [1, 2, 3, 4, 5, 6, 0]
-const DEFAULT_RANGE: TimeRange = { open: '09:00', close: '17:00' }
+const DEFAULT_RANGES: TimeRange[] = [{ open: '09:00', close: '17:00' }]
 
 interface Props {
   value: OpeningHours | undefined
   onChange: (value: OpeningHours | undefined) => void
 }
 
-/** Opening hours typed by the user: the same every day (with closed days) or per day. */
+/**
+ * Opening hours typed by the user: the same every day (with closed days) or
+ * per day, each day with one or more time ranges (e.g. lunch and dinner).
+ */
 export function OpeningHoursEditor({ value, onChange }: Props) {
   const mode = modeOf(value)
-  const days = value?.days ?? []
-  const shared = firstRange(days) ?? DEFAULT_RANGE
+  const days: DayHours[] = WEEKDAYS.map((_, d) => value?.days[d] ?? null)
+  const anyOpen = days.some((r) => r != null)
+  const shared = firstOpen(days) ?? DEFAULT_RANGES
   const [note, setNote] = useDraft(value?.note ?? '', (text) => value && onChange({ ...value, note: text.trim() || undefined }))
 
   function setMode(next: Mode) {
     if (next === 'none') return onChange(undefined)
-    const range = shared
     onChange({
       note: value?.note,
       perDay: next === 'varies',
       days:
         next === 'varies' && value
-          ? WEEKDAYS.map((_, d) => days[d] ?? null)
+          ? days
           : // Same hours on every day that isn't closed.
-            WEEKDAYS.map((_, d) => (value && days[d] === null ? null : range)),
+            days.map((r) => (value && r === null ? null : shared)),
     })
   }
 
-  function setDay(day: number, range: TimeRange | null) {
-    onChange({ ...value, days: WEEKDAYS.map((_, d) => (d === day ? range : (days[d] ?? null))) })
+  function setDay(day: number, ranges: DayHours) {
+    onChange({ ...value, days: days.map((r, d) => (d === day ? ranges : r)) })
   }
 
-  function setAllRanges(change: Partial<TimeRange>) {
-    // With every day closed, reopening them all is the only way to set hours.
-    const open = days.some((r) => r != null)
-    onChange({ ...value, days: days.map((r) => (r ? { ...r, ...change } : open ? null : { ...shared, ...change })) })
+  function setSharedRanges(ranges: TimeRange[]) {
+    onChange({ ...value, days: days.map((r) => (r ? ranges : null)) })
   }
 
   return (
@@ -70,63 +72,46 @@ export function OpeningHoursEditor({ value, onChange }: Props) {
 
       {mode === 'same' && (
         <>
-          <div className="field-row">
-            <label>
-              Opens
-              <input type="time" value={shared.open} onChange={(e) => e.target.value && setAllRanges({ open: e.target.value })} />
-            </label>
-            <label>
-              Closes
-              <input type="time" value={shared.close} onChange={(e) => e.target.value && setAllRanges({ close: e.target.value })} />
-            </label>
-          </div>
-          <div className="closed-days">
-            <span className="small">Closed on:</span>
+          <div className="open-days">
+            <span className="small">Open on:</span>
             {WEEK.map((d) => (
               <button
                 key={d}
                 type="button"
-                className={`day-toggle${days[d] === null ? ' active' : ''}`}
-                aria-pressed={days[d] === null}
-                onClick={() => setDay(d, days[d] === null ? shared : null)}
+                className={`day-toggle${days[d] ? ' active' : ''}`}
+                aria-pressed={days[d] != null}
+                title={days[d] ? `Open on ${WEEKDAYS[d]}` : `Closed on ${WEEKDAYS[d]}`}
+                onClick={() => setDay(d, days[d] ? null : shared)}
               >
                 {WEEKDAYS[d]}
               </button>
             ))}
           </div>
+          {anyOpen ? (
+            <RangesEditor ranges={shared} onChange={setSharedRanges} label="Every open day" />
+          ) : (
+            <p className="muted small">Closed every day. Tap the days it opens.</p>
+          )}
         </>
       )}
 
       {mode === 'varies' && (
         <ul className="hours-days">
           {WEEK.map((d) => {
-            const range = days[d] ?? null
+            const ranges = days[d]
             return (
               <li key={d}>
-                <label className="hours-day-open">
-                  <input
-                    type="checkbox"
-                    checked={range !== null}
-                    onChange={(e) => setDay(d, e.target.checked ? (firstRange(days) ?? DEFAULT_RANGE) : null)}
-                  />
+                <button
+                  type="button"
+                  className={`day-toggle${ranges ? ' active' : ''}`}
+                  aria-pressed={ranges != null}
+                  title={ranges ? `Open on ${WEEKDAYS[d]} (tap to close)` : `Closed on ${WEEKDAYS[d]} (tap to open)`}
+                  onClick={() => setDay(d, ranges ? null : (firstOpen(days) ?? DEFAULT_RANGES))}
+                >
                   {WEEKDAYS[d]}
-                </label>
-                {range ? (
-                  <span className="hours-day-times">
-                    <input
-                      type="time"
-                      aria-label={`${WEEKDAYS[d]} opens`}
-                      value={range.open}
-                      onChange={(e) => e.target.value && setDay(d, { ...range, open: e.target.value })}
-                    />
-                    –
-                    <input
-                      type="time"
-                      aria-label={`${WEEKDAYS[d]} closes`}
-                      value={range.close}
-                      onChange={(e) => e.target.value && setDay(d, { ...range, close: e.target.value })}
-                    />
-                  </span>
+                </button>
+                {ranges ? (
+                  <RangesEditor ranges={ranges} onChange={(next) => setDay(d, next)} label={WEEKDAYS[d]} compact />
                 ) : (
                   <span className="muted small">Closed</span>
                 )}
@@ -136,15 +121,88 @@ export function OpeningHoursEditor({ value, onChange }: Props) {
         </ul>
       )}
 
-      {mode !== 'none' && (
+      {/* Only per day (or to edit a note already typed). */}
+      {(mode === 'varies' || (mode === 'same' && value?.note)) && (
         <label>
           Hours note
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Last entry 16:30, closed on holidays…" />
         </label>
       )}
-      {mode !== 'none' && <p className="muted small">A closing time after midnight is fine (e.g. 18:00–02:00).</p>}
     </fieldset>
   )
+}
+
+/** One or more "opens – closes" rows, with add and remove. */
+function RangesEditor({
+  ranges,
+  onChange,
+  label,
+  compact = false,
+}: {
+  ranges: TimeRange[]
+  onChange: (ranges: TimeRange[]) => void
+  label: string
+  compact?: boolean
+}) {
+  const set = (i: number, change: Partial<TimeRange>) => onChange(ranges.map((r, j) => (j === i ? { ...r, ...change } : r)))
+  const several = ranges.length > 1
+  return (
+    <div className={`hours-ranges${compact ? ' compact' : ''}`}>
+      {ranges.map((range, i) => {
+        const which = several ? ` (${i + 1})` : ''
+        return (
+          <span key={i} className="hours-range">
+            <input
+              type="time"
+              aria-label={`${label} opens${which}`}
+              value={range.open}
+              onChange={(e) => e.target.value && set(i, { open: e.target.value })}
+            />
+            –
+            <input
+              type="time"
+              aria-label={`${label} closes${which}`}
+              value={range.close}
+              onChange={(e) => e.target.value && set(i, { close: e.target.value })}
+            />
+            {several && (
+              <button
+                type="button"
+                className="ghost icon-button"
+                onClick={() => onChange(ranges.filter((_, j) => j !== i))}
+                aria-label={`Remove ${label} hours${which}`}
+                title="Remove these hours"
+              >
+                ✕
+              </button>
+            )}
+          </span>
+        )
+      })}
+      {compact ? (
+        <button
+          type="button"
+          className="ghost icon-button"
+          onClick={() => onChange([...ranges, nextRange(ranges)])}
+          aria-label={`Add hours on ${label}`}
+          title="Add hours (e.g. after a break)"
+        >
+          +
+        </button>
+      ) : (
+        <button type="button" className="link" onClick={() => onChange([...ranges, nextRange(ranges)])}>
+          + Add hours
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** A new range one hour after the last one closes, four hours long. */
+function nextRange(ranges: TimeRange[]): TimeRange {
+  const last = ranges[ranges.length - 1]
+  const open = toMinutes(last.close) + 60
+  return { open: formatMinutes(open), close: formatMinutes(open + 240) }
 }
 
 function modeOf(value: OpeningHours | undefined): Mode {
@@ -152,6 +210,6 @@ function modeOf(value: OpeningHours | undefined): Mode {
   return value.perDay ? 'varies' : 'same'
 }
 
-function firstRange(days: (TimeRange | null)[]): TimeRange | undefined {
-  return days.find((r): r is TimeRange => r != null)
+function firstOpen(days: DayHours[]): TimeRange[] | undefined {
+  return days.find((r): r is TimeRange[] => r != null && r.length > 0)
 }

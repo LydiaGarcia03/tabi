@@ -77,6 +77,16 @@ export interface StayBase {
 export type OptionKind = 'hotel' | 'restaurant' | 'place' | 'shop' | 'transport'
 export type OptionStatus = 'idea' | 'favorite' | 'chosen' | 'discarded'
 
+/** One fare of a transport option: "Classic", "+1 × 23 kg", R$ 5.640 seen on 2026-10-21. */
+export interface OptionFare {
+  /** Optional when there is only one. */
+  name?: string
+  bags?: string
+  price?: Money
+  /** "YYYY-MM-DD": when the price was seen (prices change from day to day). */
+  seenOn?: string
+}
+
 /** Something being considered (hotel, restaurant, place…), to compare and pick. */
 export interface TripOption {
   id: string
@@ -93,8 +103,10 @@ export interface TripOption {
   rating?: number
   /** Type or specialty: "Ramen", "Temple", "Resort"… */
   category?: string
-  /** Free text, e.g. "Lunch and dinner". */
+  /** Free text, e.g. "Lunch and dinner" (before `openingHours`; kept while it has text). */
   hours?: string
+  /** Restaurants, places, shops: copied to the place when added to a day. */
+  openingHours?: OpeningHours
   link?: string
   notes?: string
   lat?: number
@@ -104,6 +116,13 @@ export interface TripOption {
   googleFetchedAt?: string
   /** For transport options: mode, route, airline, fare… */
   journey?: Journey
+  /**
+   * Transport options: the ways to buy it (Light, Classic…), each with its
+   * price and the day it was seen. The chosen one (`fareIndex`) is copied to
+   * `price` and `journey.fare`, so the comparison, budget and bookings use it.
+   */
+  fares?: OptionFare[]
+  fareIndex?: number
   /** What was created from this option (a place in a day, a booking). */
   placeId?: string
   expenseId?: string
@@ -184,8 +203,12 @@ export interface TimeRange {
 }
 
 export interface OpeningHours {
-  /** Index 0 = Sunday … 6 = Saturday; null = closed that day. */
-  days: (TimeRange | null)[]
+  /**
+   * Index 0 = Sunday … 6 = Saturday: that day's opening times in order
+   * (several when it closes in between, e.g. 11:00–13:00 and 18:00–22:00);
+   * null = closed that day.
+   */
+  days: (TimeRange[] | null)[]
   /** Entered day by day (otherwise the same hours every open day). */
   perDay?: boolean
   /** Free text, e.g. "last entry 16:30", "closed on holidays". */

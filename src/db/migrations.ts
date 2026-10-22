@@ -1,7 +1,7 @@
 // Conversions of data saved by older versions, shared by the database
 // upgrade and by the backup import (old backup files).
 
-import type { Expense, Journey, TripOption } from './model'
+import type { Expense, Journey, Place, TimeRange, TripOption } from './model'
 
 /** Before journeys, only flights existed: { from, to, date, time, flightNumber }. */
 interface LegacyFlight {
@@ -34,6 +34,16 @@ export function upgradeExpense(expense: LegacyExpense): Expense {
     delete expense.flight
   }
   return expense
+}
+
+/** Opening hours had one time range per day; now each day has a list. Changes the object in place. */
+export function upgradePlace(place: Place): Place {
+  const hours = place.openingHours
+  if (hours) {
+    const days = hours.days as (TimeRange[] | TimeRange | null)[]
+    hours.days = days.map((day) => (day == null || Array.isArray(day) ? day : [day]))
+  }
+  return place
 }
 
 /** "flight" options become "transport" options (the airline was kept in `category`). */

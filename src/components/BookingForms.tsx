@@ -10,11 +10,34 @@ import {
   JOURNEY_LABEL,
   JOURNEY_MODES,
   journeyCarriers,
+  mergeLegs,
   splitIntoLegs,
   withLegSummary,
 } from '../planning/journeys'
 import { BaggageBreakdown } from './AirlineGuide'
-import { JourneyLegsEditor } from './JourneyLegs'
+import { ExtraInfo, JourneyLegsEditor, legsHaveDetails } from './JourneyLegs'
+
+/** "+ Connections" with what it does on a second line ("choose the airlines on the way"). */
+function ToggleLink({ sign, label, hint, onClick }: { sign: '+' | '−'; label: string; hint: string; onClick: () => void }) {
+  return (
+    <button type="button" className="link toggle-link" onClick={onClick}>
+      <span>
+        {sign} {label}
+      </span>
+      <span className="muted small">{hint}</span>
+    </button>
+  )
+}
+
+/** The journey without departure times, numbers or aircraft (and each leg's times). */
+function withoutDetails(journey: Journey): Journey {
+  return {
+    ...journey,
+    time: undefined,
+    number: undefined,
+    legs: journey.legs?.map(({ departTime, arriveTime, departDay, arriveDay, minutes, number, aircraft, ...leg }) => leg),
+  }
+}
 
 /** What a booking form saves (the trip and day are added by the caller). */
 export type BookingValues = Pick<Expense, 'category' | 'description' | 'amount' | 'notes'> &
@@ -193,7 +216,9 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
 /**
  * Mode, route, time, carrier and class: shared by bookings and transport options.
  * `planning` (options): the departure time and number are only known once the
- * ticket is bought, so they stay folded under "More details".
+ * ticket is bought, so they stay folded under "+ Extra info" (with
+ * connections: each leg's times, numbers and the layovers); the fare is in the
+ * option's fares table, with its price.
  */
 export function JourneyFields({
   journey,
@@ -207,10 +232,49 @@ export function JourneyFields({
   const set = (changes: Partial<Journey>) => onChange({ ...journey, ...changes })
   const isFlight = journey.mode === 'flight'
   const hasLegs = !!journey.legs?.length
-  const [details, setDetails] = useState(!planning || !!journey.time || !!journey.number)
+  const [details, setDetails] = useState(!planning || !!journey.time || !!journey.number || legsHaveDetails(journey))
   const numberLabel = isFlight ? 'Flight number' : journey.mode === 'shinkansen' || journey.mode === 'train' ? 'Train' : 'Number'
+  const detailsLabel = 'Extra info'
+  const detailsHint = hasLegs
+    ? isFlight
+      ? 'times, flight numbers, aircraft, layovers'
+      : 'times, numbers and layovers'
+    : isFlight
+      ? 'departure time, flight number'
+      : `departure time and ${numberLabel.toLowerCase()}`
   // With legs, the main airline is picked among theirs (the one flown longest by default).
   const airline = isFlight ? findAirline(hasLegs ? withLegSummary(journey).carrier : journey.carrier) : undefined
+
+  // Right under the origin and destination: "+" opens more fields below, the same button as "−" closes them.
+  const toggles = (
+    <div className="journey-more">
+      {hasLegs ? (
+        <ToggleLink sign="−" label="Connections" hint={isFlight ? 'back to a direct flight' : 'back to a direct journey'} onClick={() => onChange(mergeLegs(journey))} />
+      ) : (
+        <ToggleLink
+          sign="+"
+          label="Connections"
+          hint={isFlight ? 'choose the airlines on the way' : 'the stretches on the way'}
+          onClick={() => onChange(splitIntoLegs(journey))}
+        />
+      )}
+      {!details ? (
+        <ToggleLink sign="+" label={detailsLabel} hint={detailsHint} onClick={() => setDetails(true)} />
+      ) : (
+        planning && (
+          <ToggleLink
+            sign="−"
+            label={detailsLabel}
+            hint={`hide and clear the ${detailsHint}`}
+            onClick={() => {
+              setDetails(false)
+              onChange(withoutDetails(journey))
+            }}
+          />
+        )
+      )}
+    </div>
+  )
 
   return (
     <>
@@ -240,7 +304,7 @@ export function JourneyFields({
         <input type="date" value={journey.date ?? ''} onChange={(e) => set({ date: e.target.value || undefined })} />
       </label>
       {hasLegs ? (
-        <JourneyLegsEditor journey={journey} onChange={onChange} />
+        <JourneyLegsEditor journey={journey} onChange={onChange} detailed={details} toggles={toggles} boxed={planning} />
       ) : (
         <>
           <div className="field-row">
@@ -253,6 +317,7 @@ export function JourneyFields({
               <input value={journey.to} onChange={(e) => set({ to: e.target.value })} placeholder={isFlight ? 'Osaka (KIX)' : 'Tokyo'} />
             </label>
           </div>
+          {toggles}
           <div className="field-row">
             <label>
               {isFlight ? 'Airline' : 'Operator'}
@@ -275,28 +340,21 @@ export function JourneyFields({
               />
             </label>
           </div>
-          {details ? (
-            <div className="field-row">
-              <label>
-                Departure time
-                <input type="time" value={journey.time ?? ''} onChange={(e) => set({ time: e.target.value || undefined })} />
-              </label>
-              <label>
-                {numberLabel}
-                <input value={journey.number ?? ''} onChange={(e) => set({ number: e.target.value })} placeholder={isFlight ? 'EK262' : 'Nozomi 21'} />
-              </label>
-            </div>
-          ) : (
-            <button type="button" className="link small" onClick={() => setDetails(true)}>
-              More details (departure time, {numberLabel.toLowerCase()}) ▾
-            </button>
+          {details && (
+            <ExtraInfo show={planning}>
+              <div className="field-row">
+                <label>
+                  Departure time
+                  <input type="time" value={journey.time ?? ''} onChange={(e) => set({ time: e.target.value || undefined })} />
+                </label>
+                <label>
+                  {numberLabel}
+                  <input value={journey.number ?? ''} onChange={(e) => set({ number: e.target.value })} placeholder={isFlight ? 'EK262' : 'Nozomi 21'} />
+                </label>
+              </div>
+            </ExtraInfo>
           )}
-          <p className="small">
-            {journey.stops && <span className="muted">Connections noted: {journey.stops}. </span>}
-            <button type="button" className="link" onClick={() => onChange(splitIntoLegs(journey))}>
-              {isFlight ? '+ It has connections: choose the airlines on the way' : '+ It has connections'}
-            </button>
-          </p>
+          {journey.stops && <p className="muted small">Connections noted: {journey.stops}.</p>}
         </>
       )}
       <div className="field-row">
@@ -309,7 +367,8 @@ export function JourneyFields({
             ))}
           </datalist>
         </label>
-        {isFlight && (
+        {/* Options keep their fares (with prices) in their own table. */}
+        {isFlight && !planning && (
           <label>
             Fare
             <input

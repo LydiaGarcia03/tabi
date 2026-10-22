@@ -7,7 +7,7 @@
 import { legKey } from '../db/legs'
 import type { Leg, Place } from '../db/model'
 import { distanceKm } from '../geo'
-import { visitMinutes, windowFor } from './hours'
+import { fitVisit, visitMinutes, windowFor } from './hours'
 
 export interface Travel {
   minutes: number
@@ -84,10 +84,7 @@ export function buildSchedule(order: Place[], start: number, weekday: number, tr
     const duration = visitMinutes(place)
     let begin = arrive
     let late = 0
-    if (window !== 'unknown') {
-      begin = Math.max(arrive, window.open)
-      late = Math.max(0, begin + duration - window.close)
-    }
+    if (window !== 'unknown') ({ start: begin, late } = fitVisit(window, arrive, duration))
     if (late > 0) {
       conflicts++
       lateMinutes += late

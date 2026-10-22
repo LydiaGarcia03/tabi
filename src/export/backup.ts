@@ -2,7 +2,7 @@
 // PC and the phone (export on one, import on the other).
 
 import { db } from '../db/db'
-import { upgradeExpense, upgradeOption } from '../db/migrations'
+import { upgradeExpense, upgradeOption, upgradePlace } from '../db/migrations'
 import type { OptionPhoto } from '../db/model'
 import type { TripData } from '../db/tripData'
 
@@ -11,8 +11,9 @@ const FORMAT = 'tabi-trip'
  * 2 added stays and options (version 1 files have neither: read as empty).
  * 3 replaced flights with journeys (older files are converted on import).
  * 4 added option photos (older files have none).
+ * 5 allowed several opening time ranges per day (older files are converted on import).
  */
-const VERSION = 4
+const VERSION = 5
 
 /** In the file, a photo's image is a "data:image/jpeg;base64,…" URL. */
 type PhotoInFile = Omit<OptionPhoto, 'image'> & { image: string }
@@ -60,7 +61,8 @@ export function parseBackup(text: string): ParsedBackup {
     data: {
       trip,
       days: days!,
-      places: places!,
+      // Older files have one opening time range per day.
+      places: places!.map((p) => upgradePlace(p)),
       legs: legs!,
       // Older files may still have flights instead of journeys.
       expenses: expenses!.map((e) => upgradeExpense(e)),
