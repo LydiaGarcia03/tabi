@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, type HTMLAttributes } from 'react'
 import { formatDay } from '../dates'
 import type { Day, Place } from '../db/model'
 import { deletePlace, movePlaceInDay, movePlaceToDay, updatePlace } from '../db/trips'
 import { formatDuration, formatMoney } from '../format'
 import { placeUrl } from '../googleMapsLinks'
 import { DEFAULT_VISIT_MINUTES, describeWindow, timeConflict, weekdayOf, windowFor } from '../planning/hours'
+import { BOOK_AHEAD_LABEL, BOOKED_LABEL } from '../planning/optionKinds'
 import { Icon } from './Icon'
 import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { useDraft } from '../useDraft'
@@ -20,46 +21,67 @@ interface Props {
   date: string
   selected: boolean
   onSelect: () => void
+  /** Props of the drag handle (from `useReorder`); no handle when absent. */
+  handle?: HTMLAttributes<HTMLButtonElement>
+  dragging?: boolean
 }
 
-export function PlaceItem({ place, index, count, days, currency, date, selected, onSelect }: Props) {
+export function PlaceItem({ place, index, count, days, currency, date, selected, onSelect, handle, dragging }: Props) {
   const hours = describeWindow(windowFor(place.openingHours, weekdayOf(date)))
   const conflict = timeConflict(place, date)
   return (
-    <li className={`place-item${selected ? ' selected' : ''}`}>
-      <button type="button" className="place-header" onClick={onSelect} aria-expanded={selected}>
-        <span className="place-number">
-          <span>{index + 1}</span>
-        </span>
-        <span className="place-title">
-          <span className="place-name">{place.name}</span>
-          {(place.plannedTime || place.cost || hours || place.visitMinutes) && (
-            <span className="place-meta">
-              {place.plannedTime && (
-                <span className="meta">
-                  <Icon name="clock" size={14} /> {place.plannedTime}
-                </span>
-              )}
-              {place.visitMinutes != null && <span className="meta">{formatDuration(place.visitMinutes)} visit</span>}
-              {hours && (
-                <span className="meta">
-                  <Icon name="door" size={14} /> {hours}
-                </span>
-              )}
-              {place.cost && (
-                <span className="meta">
-                  <Icon name="wallet" size={14} /> {formatMoney(place.cost)}
-                </span>
-              )}
-            </span>
-          )}
-          {conflict && <span className="warning small">⚠ {conflict}</span>}
-          {!selected && place.notes && <span className="muted small place-notes-preview">{place.notes}</span>}
-        </span>
-        <span className="place-chevron" aria-hidden="true">
-          <Icon name="down" size={16} />
-        </span>
-      </button>
+    <li className={`place-item${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}`} data-reorder-id={place.id}>
+      <div className="place-row">
+        <button type="button" className="place-header" onClick={onSelect} aria-expanded={selected}>
+          <span className="place-number">
+            <span>{index + 1}</span>
+          </span>
+          <span className="place-title">
+            <span className="place-name">{place.name}</span>
+            {(place.plannedTime || place.cost || hours || place.visitMinutes || place.bookAhead) && (
+              <span className="place-meta">
+                {place.plannedTime && (
+                  <span className="meta">
+                    <Icon name="clock" size={14} /> {place.plannedTime}
+                  </span>
+                )}
+                {place.visitMinutes != null && <span className="meta">{formatDuration(place.visitMinutes)} visit</span>}
+                {hours && (
+                  <span className="meta">
+                    <Icon name="door" size={14} /> {hours}
+                  </span>
+                )}
+                {place.cost && (
+                  <span className="meta">
+                    <Icon name="wallet" size={14} /> {formatMoney(place.cost)}
+                  </span>
+                )}
+                {place.bookAhead && (
+                  <span className={`meta${place.booked ? '' : ' warning'}`}>
+                    {place.booked ? `✓ ${BOOKED_LABEL[place.bookAhead]}` : BOOK_AHEAD_LABEL[place.bookAhead]}
+                  </span>
+                )}
+              </span>
+            )}
+            {conflict && <span className="warning small">⚠ {conflict}</span>}
+            {!selected && place.notes && <span className="muted small place-notes-preview">{place.notes}</span>}
+          </span>
+          <span className="place-chevron" aria-hidden="true">
+            <Icon name="down" size={16} />
+          </span>
+        </button>
+        {handle && (
+          <button
+            type="button"
+            className="place-handle ghost"
+            aria-label={`Move “${place.name}”: drag, or use the arrow keys`}
+            title="Drag to change the order"
+            {...handle}
+          >
+            <Icon name="reorder" size={20} />
+          </button>
+        )}
+      </div>
       {selected && (
         <PlaceEditor key={place.id} place={place} index={index} count={count} days={days} currency={currency} date={date} />
       )}
@@ -125,6 +147,23 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
         </label>
       </div>
       <OpeningHoursEditor value={place.openingHours} onChange={(openingHours) => updatePlace(place.id, { openingHours })} />
+      <div className="row wrap">
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={place.bookAhead != null}
+            // Unticking forgets it was booked; a place from an option keeps its kind (reservation/ticket) while ticked.
+            onChange={(e) => updatePlace(place.id, e.target.checked ? { bookAhead: 'either' } : { bookAhead: undefined, booked: undefined })}
+          />
+          {BOOK_AHEAD_LABEL.either}
+        </label>
+        {place.bookAhead && (
+          <label className="check">
+            <input type="checkbox" checked={place.booked ?? false} onChange={(e) => updatePlace(place.id, { booked: e.target.checked })} />
+            {BOOKED_LABEL[place.bookAhead]}
+          </label>
+        )}
+      </div>
       <label>
         Notes
         <textarea

@@ -21,7 +21,7 @@ import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, t
 import { cheapestFare, chosenFare, faresOf, isStale } from '../planning/fares'
 import { describeWeek } from '../planning/hours'
 import { formatHours, JOURNEY_ICON, journeyCarriers } from '../planning/journeys'
-import { KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
+import { BOOK_AHEAD_LABEL, KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { NotFound } from './TripPage'
@@ -258,7 +258,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
               )}
               <th>Rating</th>
               <th>Score</th>
-              <th>Why</th>
+              <th>Notes</th>
               <th aria-label="Actions" />
             </tr>
           </thead>
@@ -326,7 +326,14 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             </span>
           ) : (
             <span className="muted small">
-              {[option.category, option.openingHours && describeWeek(option.openingHours), option.hours].filter(Boolean).join(' · ')}
+              {[
+                option.category,
+                option.openingHours && describeWeek(option.openingHours),
+                option.hours,
+                option.bookAhead && BOOK_AHEAD_LABEL[option.bookAhead],
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </span>
           )}
           {journey && <JourneyItinerary journey={journey} timesOnly />}
@@ -404,7 +411,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             </span>
           )}
         </td>
-        <td className="option-notes" data-label="Why">
+        <td className="option-notes" data-label="Notes">
           {option.notes ? <span className="small">{option.notes}</span> : <span className="muted">—</span>}
         </td>
         <td className="option-actions">

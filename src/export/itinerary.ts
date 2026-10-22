@@ -9,6 +9,7 @@ import { orderPlaces } from '../db/trips'
 import { MODE_COLOR, MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
 import { translateExit } from '../i18n/japaneseNames'
 import { describeWindow, weekdayOf, windowFor } from '../planning/hours'
+import { BOOK_AHEAD_LABEL, BOOKED_LABEL } from '../planning/optionKinds'
 
 export interface ItineraryPoint {
   name: string
@@ -76,6 +77,7 @@ function placeDescription(day: Day, dayNumber: number, place: Place, previous: P
   if (hours) parts.push(hours)
   if (place.address) parts.push(place.address)
   if (place.cost) parts.push(`Cost: ${formatMoney(place.cost)}`)
+  if (place.bookAhead) parts.push(place.booked ? BOOKED_LABEL[place.bookAhead] : BOOK_AHEAD_LABEL[place.bookAhead])
   if (previous && arriving.length > 0) {
     parts.push(`How to get here from ${previous.name}:\n${arriving.map((s) => `• ${segmentText(s)}`).join('\n')}`)
   }

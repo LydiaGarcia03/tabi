@@ -107,6 +107,8 @@ export interface TripOption {
   hours?: string
   /** Restaurants, places, shops: copied to the place when added to a day. */
   openingHours?: OpeningHours
+  /** Restaurants: a reservation is needed; places: a ticket must be bought ahead. Copied to the place. */
+  bookAhead?: BookAhead
   link?: string
   notes?: string
   lat?: number
@@ -194,7 +196,14 @@ export interface Place {
   openingHours?: OpeningHours
   /** How long the visit takes, in minutes. */
   visitMinutes?: number
+  /** Something to arrange before going (a reservation, a ticket): listed in the trip's checklist. */
+  bookAhead?: BookAhead
+  /** The reservation is made / the ticket bought (ticked in the checklist). */
+  booked?: boolean
 }
+
+/** `either` = ticked on a place of a day, where it isn't known which one (options say). */
+export type BookAhead = 'reservation' | 'ticket' | 'either'
 
 /** "HH:mm" local times. A close at or before the open time ends after midnight ("00:00" = midnight). */
 export interface TimeRange {

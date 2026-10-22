@@ -968,13 +968,43 @@ button.toggle-link .muted {
   display: none;
 }
 
+/* Its own dashed box under the timeline: adding, not one of the day's places. */
 .add-place {
   display: grid;
   gap: 4px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.add-place .section-title {
+  margin: 0 0 6px;
 }
 
 .add-place p {
   margin: 0;
+}
+
+.option-picker-open,
+.option-picker .segmented {
+  justify-self: start;
+}
+
+/* Apart from the place search above it. */
+.option-picker-open,
+.option-picker {
+  margin-top: 12px;
+}
+
+.option-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.option-picker select {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Phones: the map goes edge to edge, like a native maps app. */
@@ -1067,6 +1097,49 @@ button.toggle-link .muted {
   box-shadow:
     0 0 0 1px var(--accent),
     var(--shadow);
+}
+
+.place-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Drag handle: touch-action none so dragging it never scrolls the page. */
+.place-handle {
+  flex: none;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  padding: 0 8px;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0 var(--radius) 0 0;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.place-handle:active {
+  cursor: grabbing;
+}
+
+.timeline.reordering {
+  gap: 8px;
+}
+
+.place-item.dragging {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 8px 20px rgb(0 0 0 / 0.18);
+  position: relative;
+  z-index: 1;
+}
+
+.place-item.dragging .place-handle {
+  color: var(--accent);
 }
 
 .place-header {

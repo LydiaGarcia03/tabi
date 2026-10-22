@@ -24,6 +24,8 @@ const PATHS = {
   download: 'M12 4v11M8 11l4 4 4-4M5 19h14',
   door: 'M6 20V5a1 1 0 011-1h10a1 1 0 011 1v15M4 20h16M14.5 12h.01',
   sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z',
+  /** Drag handle: three lines between an up and a down arrow. */
+  reorder: 'M9 5l3-3 3 3M9 19l3 3 3-3M6 9h12M6 12h12M6 15h12',
 } as const
 
 export type IconName = keyof typeof PATHS

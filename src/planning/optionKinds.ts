@@ -1,4 +1,4 @@
-import type { OptionKind, OptionStatus } from '../db/model'
+import type { BookAhead, OptionKind, OptionStatus } from '../db/model'
 
 export const OPTION_KINDS: OptionKind[] = ['hotel', 'restaurant', 'place', 'shop', 'transport']
 
@@ -42,6 +42,31 @@ export const CATEGORY_PRESETS: Record<OptionKind, string[]> = {
   place: ['Temple / shrine', 'Museum', 'Park / garden', 'Viewpoint', 'Theme park', 'Neighborhood'],
   shop: ['Anime / manga', 'Souvenirs', 'Records', 'Fashion', 'Department store', 'Market'],
   transport: [],
+}
+
+/** What has to be arranged before going, for the kinds that can need it. */
+export const BOOK_AHEAD_FOR: Partial<Record<OptionKind, BookAhead>> = {
+  restaurant: 'reservation',
+  place: 'ticket',
+}
+
+export const BOOK_AHEAD_LABEL: Record<BookAhead, string> = {
+  reservation: 'Reservation needed',
+  ticket: 'Ticket needed',
+  either: 'Ticket/Reservation needed',
+}
+
+export const BOOKED_LABEL: Record<BookAhead, string> = {
+  reservation: 'Reserved',
+  ticket: 'Ticket bought',
+  either: 'Booked',
+}
+
+/** The checklist reminder: "Book a table" / "Buy tickets". */
+export const BOOK_AHEAD_TODO: Record<BookAhead, string> = {
+  reservation: 'Book a table',
+  ticket: 'Buy tickets',
+  either: 'Book / buy tickets',
 }
 
 export const STATUS_LABEL: Record<OptionStatus, string> = {

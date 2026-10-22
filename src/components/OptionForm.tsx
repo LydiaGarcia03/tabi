@@ -5,7 +5,7 @@ import { optionPhotos, setOptionPhotos } from '../db/photos'
 import { findAirline } from '../data/airlines'
 import { cleanFares, faresOf } from '../planning/fares'
 import { cleanJourney, JOURNEY_LABEL, journeyCarriers, withLegSummary } from '../planning/journeys'
-import { CATEGORY_PRESETS, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
+import { BOOK_AHEAD_FOR, BOOK_AHEAD_LABEL, CATEGORY_PRESETS, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
 import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
 import { FaresEditor } from './FaresEditor'
@@ -80,6 +80,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   const [rating, setRating] = useState(option?.rating)
   const [hours, setHours] = useState(option?.hours ?? '')
   const [openingHours, setOpeningHours] = useState(option?.openingHours)
+  const [bookAhead, setBookAhead] = useState(option?.bookAhead != null)
   const [link, setLink] = useState(option?.link ?? '')
   const [notes, setNotes] = useState(option?.notes ?? '')
   const [location, setLocation] = useState(
@@ -101,6 +102,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
 
   const isTransport = kind === 'transport'
   const hasHours = kind === 'restaurant' || kind === 'place' || kind === 'shop'
+  const bookAheadKind = BOOK_AHEAD_FOR[kind]
   const cleaned = cleanJourney(journey)
   const valid = isTransport ? cleaned.from !== '' && cleaned.to !== '' : name.trim() !== ''
   const currencies = [...new Set([trip.displayCurrency, trip.baseCurrency, currency])]
@@ -134,6 +136,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       rating,
       hours: (hasHours && hours.trim()) || undefined,
       openingHours: hasHours ? openingHours : undefined,
+      bookAhead: bookAhead ? bookAheadKind : undefined,
       link: link.trim() || undefined,
       notes: notes.trim() || undefined,
       lat: isTransport ? undefined : location?.lat,
@@ -227,6 +230,13 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       </div>
       {kind === 'hotel' && (
         <p className="muted small">Without a total, it is the price per night × the nights of the city's stay (see Cities).</p>
+      )}
+
+      {bookAheadKind && (
+        <label className="check">
+          <input type="checkbox" checked={bookAhead} onChange={(e) => setBookAhead(e.target.checked)} />
+          {BOOK_AHEAD_LABEL[bookAheadKind]}
+        </label>
       )}
 
       <div className="field">

@@ -14,13 +14,14 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Icon } from '../components/Icon'
 import { LegItem } from '../components/LegItem'
 import { OptimizePanel } from '../components/OptimizePanel'
+import { OptionPicker } from '../components/OptionPicker'
 import { PlaceItem } from '../components/PlaceItem'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { formatDay } from '../dates'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Day, Leg, Place } from '../db/model'
-import { addPlace, orderPlaces, updateDay } from '../db/trips'
+import { addPlace, applyDayOrder, orderPlaces, updateDay } from '../db/trips'
 import type { Drawing } from '../drawing'
 import { dayText, shareText } from '../export/shareText'
 import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
@@ -30,6 +31,7 @@ import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { useDraft } from '../useDraft'
 import { useOnline } from '../useOnline'
+import { useReorder } from '../useReorder'
 import { NotFound } from './TripPage'
 
 // MapLibre is big: loaded only when the offline map is used (and precached for offline).
@@ -67,11 +69,18 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const mapStatus = useApiLoadingStatus()
   const online = useOnline()
   useRefreshStalePlaces(dayPlaces)
+  const { listRef, draggingId, order, handleProps } = useReorder(
+    day && dayPlaces ? orderPlaces(day, dayPlaces).map((p) => p.id) : [],
+    (ids) => applyDayOrder(dayId, ids),
+  )
 
   if (day === undefined || days === undefined || dayPlaces === undefined || trip === undefined || !dayExpenses) return null
   if (!day || !trip) return <NotFound />
 
   const places = orderPlaces(day, dayPlaces)
+  // The list follows the drag; the map and everything else keep the saved order until it is dropped.
+  const byId = new Map(places.map((p) => [p.id, p]))
+  const listed = order.flatMap((id) => byId.get(id) ?? [])
   const conflicts = places.filter((p) => timeConflict(p, day.date)).length
   const index = days.findIndex((d) => d.id === day.id)
   const prev = days[index - 1]
@@ -204,15 +213,15 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 </button>
               </div>
             ))}
-          <ol className="timeline">
+          <ol className={`timeline${draggingId ? ' reordering' : ''}`} ref={listRef}>
             {places.length === 0 && (
               <li className="empty-state">
                 <p>No places yet.</p>
                 <p className="muted small">Search for a place below or tap the map to add one.</p>
               </li>
             )}
-            {places.map((place, i) => {
-              const next = places[i + 1]
+            {listed.map((place, i) => {
+              const next = listed[i + 1]
               const key = next && legKey(place.id, next.id)
               return (
                 <Fragment key={place.id}>
@@ -225,8 +234,11 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                     date={day.date}
                     selected={place.id === selectedId}
                     onSelect={() => setSelectedId(place.id === selectedId ? null : place.id)}
+                    handle={places.length > 1 ? handleProps(place.id) : undefined}
+                    dragging={place.id === draggingId}
                   />
-                  {next && (
+                  {/* While dragging, the legs (made for the old neighbours) are hidden. */}
+                  {next && !draggingId && (
                     <LegItem
                       tripId={tripId}
                       leg={legs.get(key)}
@@ -252,8 +264,17 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
           </ol>
 
           {/* Like the end of a list in Wanderlog: add the next place right below the last one. */}
-          <section className="add-place">
+          <section className="add-place" aria-labelledby="add-place-title">
+            <h2 id="add-place-title" className="section-title">
+              Add to this day
+            </h2>
             {online && hasGoogleKey && <PlaceSearch onAdd={add} />}
+            <OptionPicker
+              tripId={tripId}
+              dayId={day.id}
+              cities={(stays ? staysOn(stays, day.date) : []).map((s) => s.city)}
+              onAdded={setSelectedId}
+            />
             <p className="muted small">
               {mapProvider === 'offline'
                 ? 'Or tap the map to drop a pin (tapping a shop or sight names it).'

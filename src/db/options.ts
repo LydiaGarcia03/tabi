@@ -20,7 +20,7 @@ export async function deleteOption(id: string): Promise<void> {
 }
 
 /** Adds a located option to a day as a place (keeping a link to it) and marks it chosen. */
-export async function addOptionToDay(option: TripOption, dayId: string): Promise<void> {
+export async function addOptionToDay(option: TripOption, dayId: string): Promise<string> {
   if (option.lat == null || option.lng == null) throw new Error('Locate it on the map first.')
   const notes = [option.category, option.hours, option.notes, option.link].filter(Boolean).join('\n')
   const placeId = await addPlace(dayId, {
@@ -32,8 +32,9 @@ export async function addOptionToDay(option: TripOption, dayId: string): Promise
     googleFetchedAt: option.googleFetchedAt,
     cost: option.kind === 'place' ? option.price : undefined,
   })
-  await db.places.update(placeId, { notes, openingHours: option.openingHours })
+  await db.places.update(placeId, { notes, openingHours: option.openingHours, bookAhead: option.bookAhead })
   await updateOption(option.id, { status: 'chosen', placeId })
+  return placeId
 }
 
 /** Books a hotel or transport option as a trip-wide expense and marks it chosen. */

@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { dayBudget, expensesBudget, mergeBudgets } from '../budget'
 import { MoneyTotals } from '../components/BudgetView'
-import { Checklist } from '../components/Checklist'
+import { Checklist, type PlaceToBook } from '../components/Checklist'
 import { DayCard } from '../components/DayCard'
 import { ExportCard } from '../components/ExportCard'
 import { Icon } from '../components/Icon'
@@ -110,7 +110,15 @@ export function TripPage({ tripId }: { tripId: string }) {
             <span className="muted small">Transport, hotels, estimates vs. booked</span>
           </a>
 
-          <Checklist trip={trip} />
+          <Checklist
+            trip={trip}
+            toBook={days.flatMap((day) =>
+              overview.byDay
+                .get(day.id)!
+                .places.filter((place): place is PlaceToBook['place'] => place.bookAhead != null)
+                .map((place) => ({ place, day })),
+            )}
+          />
           <TripNotes key={trip.id} trip={trip} />
           <ExportCard tripId={trip.id} />
 
