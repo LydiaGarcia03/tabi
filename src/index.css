@@ -3389,8 +3389,14 @@ details pre {
   gap: 8px;
 }
 
+/* In option rows (a narrow column) the label goes above its text, so the text gets the whole width and wraps less. */
+.bag-box.compact .bag-rows {
+  gap: 6px;
+}
+
 .bag-box.compact .bag-rows > div {
-  grid-template-columns: 6.5em minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
 }
 
 .bag-rows dt {
