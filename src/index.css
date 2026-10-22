@@ -382,6 +382,26 @@ select:focus-visible {
   width: 100%;
 }
 
+/* Arrival time, a narrow visit length and the kind (wide enough for "🍜 Restaurant"). */
+.field-row.visit-fields {
+  grid-template-columns: minmax(0, 1fr) 5.5rem minmax(0, 1.3fr);
+}
+
+.field-row.visit-fields select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Cost, "per person / for the group" and a narrow people count, on one line even on phones. */
+.field-row.cost-fields {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 5.5rem;
+}
+
+.field-row.cost-fields select {
+  width: 100%;
+  min-width: 0;
+}
+
 label.grow {
   flex: 1;
   min-width: 160px;
@@ -1233,6 +1253,11 @@ button.toggle-link .muted {
 
 .place-actions {
   margin-top: 10px;
+}
+
+/* Icon only, at the end of the line, so "Tap again to delete" fits on the same line. */
+.place-maps-link {
+  margin-left: auto;
 }
 
 @media (max-width: 480px) {

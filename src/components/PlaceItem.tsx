@@ -1,11 +1,12 @@
 import { useState, type HTMLAttributes } from 'react'
+import { describePlaceCost, peopleGoing } from '../budget'
 import { formatDay } from '../dates'
-import type { Day, Place } from '../db/model'
+import type { Day, Place, PlaceKind } from '../db/model'
 import { deletePlace, movePlaceInDay, movePlaceToDay, updatePlace } from '../db/trips'
-import { formatDuration, formatMoney } from '../format'
+import { formatDuration } from '../format'
 import { placeUrl } from '../googleMapsLinks'
 import { DEFAULT_VISIT_MINUTES, describeWindow, timeConflict, weekdayOf, windowFor } from '../planning/hours'
-import { BOOK_AHEAD_LABEL, BOOKED_LABEL } from '../planning/optionKinds'
+import { BOOK_AHEAD_FOR, BOOK_AHEAD_LABEL, BOOKED_LABEL, PLACE_KIND_LABEL, PLACE_KINDS } from '../planning/optionKinds'
 import { Icon } from './Icon'
 import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { useDraft } from '../useDraft'
@@ -17,6 +18,8 @@ interface Props {
   days: Day[]
   /** Trip currency, used for a new cost. */
   currency: string
+  /** People on the trip (the default number going to the place). */
+  travelers: number
   /** Date of the day, "YYYY-MM-DD" (for that weekday's opening hours). */
   date: string
   selected: boolean
@@ -26,7 +29,7 @@ interface Props {
   dragging?: boolean
 }
 
-export function PlaceItem({ place, index, count, days, currency, date, selected, onSelect, handle, dragging }: Props) {
+export function PlaceItem({ place, index, count, days, currency, travelers, date, selected, onSelect, handle, dragging }: Props) {
   const hours = describeWindow(windowFor(place.openingHours, weekdayOf(date)))
   const conflict = timeConflict(place, date)
   return (
@@ -38,7 +41,7 @@ export function PlaceItem({ place, index, count, days, currency, date, selected,
           </span>
           <span className="place-title">
             <span className="place-name">{place.name}</span>
-            {(place.plannedTime || place.cost || hours || place.visitMinutes || place.bookAhead) && (
+            {(place.plannedTime || place.cost || hours || place.visitMinutes) && (
               <span className="place-meta">
                 {place.plannedTime && (
                   <span className="meta">
@@ -53,14 +56,15 @@ export function PlaceItem({ place, index, count, days, currency, date, selected,
                 )}
                 {place.cost && (
                   <span className="meta">
-                    <Icon name="wallet" size={14} /> {formatMoney(place.cost)}
+                    <Icon name="wallet" size={14} /> {describePlaceCost(place, travelers)}
                   </span>
                 )}
-                {place.bookAhead && (
-                  <span className={`meta${place.booked ? '' : ' warning'}`}>
-                    {place.booked ? `✓ ${BOOKED_LABEL[place.bookAhead]}` : BOOK_AHEAD_LABEL[place.bookAhead]}
-                  </span>
-                )}
+              </span>
+            )}
+            {/* On its own line, so it doesn't move around with the length of the line above. */}
+            {place.bookAhead && (
+              <span className={`small${place.booked ? ' muted' : ' warning'}`}>
+                {place.booked ? `✓ ${BOOKED_LABEL[place.bookAhead]}` : BOOK_AHEAD_LABEL[place.bookAhead]}
               </span>
             )}
             {conflict && <span className="warning small">⚠ {conflict}</span>}
@@ -83,13 +87,22 @@ export function PlaceItem({ place, index, count, days, currency, date, selected,
         )}
       </div>
       {selected && (
-        <PlaceEditor key={place.id} place={place} index={index} count={count} days={days} currency={currency} date={date} />
+        <PlaceEditor
+          key={place.id}
+          place={place}
+          index={index}
+          count={count}
+          days={days}
+          currency={currency}
+          travelers={travelers}
+          date={date}
+        />
       )}
     </li>
   )
 }
 
-function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selected' | 'onSelect'>) {
+function PlaceEditor({ place, index, count, days, currency, travelers }: Omit<Props, 'selected' | 'onSelect'>) {
   const [name, setName] = useDraft(place.name, (value) => updatePlace(place.id, { name: value.trim() || place.name }))
   const [notes, setNotes] = useDraft(place.notes, (value) => updatePlace(place.id, { notes: value }))
   const costCurrency = place.cost?.currency ?? currency
@@ -103,7 +116,14 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
     if (value.trim() === '') void updatePlace(place.id, { visitMinutes: undefined })
     else if (Number.isFinite(minutes) && minutes >= 0) void updatePlace(place.id, { visitMinutes: Math.round(minutes) })
   })
+  // Empty = everyone on the trip, so it follows when the trip's number changes.
+  const [people, setPeople] = useDraft(place.people != null ? String(place.people) : '', (value) => {
+    const number = Number(value)
+    if (value.trim() === '' || number === travelers) void updatePlace(place.id, { people: undefined })
+    else if (Number.isInteger(number) && number >= 1) void updatePlace(place.id, { people: number })
+  })
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const bookAheadKind = BOOK_AHEAD_FOR[place.kind ?? 'place'] ?? 'either'
 
   return (
     <div className="place-editor">
@@ -112,9 +132,9 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
         Name
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <div className="field-row">
+      <div className="field-row visit-fields">
         <label>
-          Planned time
+          Arrive at
           <input
             type="time"
             value={place.plannedTime ?? ''}
@@ -134,18 +154,65 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
           />
         </label>
         <label>
-          Cost ({costCurrency})
+          Kind
+          <select
+            value={place.kind ?? 'place'}
+            onChange={(e) => {
+              const kind = e.target.value as PlaceKind
+              // A ticked "book ahead" follows the kind: a table for a restaurant, a ticket for a place.
+              void updatePlace(place.id, { kind, bookAhead: place.bookAhead && (BOOK_AHEAD_FOR[kind] ?? 'either') })
+            }}
+          >
+            {PLACE_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {PLACE_KIND_LABEL[k]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="field-row cost-fields">
+        <label>
+          {place.costForGroup ? 'Cost for the group' : 'Cost per person'} ({costCurrency})
           <input
             type="number"
             min="0"
             step="any"
             inputMode="decimal"
-            placeholder="Ticket, entry fee…"
+            placeholder="Ticket, meal…"
             value={cost}
             onChange={(e) => setCost(e.target.value)}
           />
         </label>
+        <label>
+          Price is
+          <select
+            value={place.costForGroup ? 'group' : 'person'}
+            onChange={(e) => updatePlace(place.id, { costForGroup: e.target.value === 'group' || undefined })}
+          >
+            <option value="person">Per person</option>
+            <option value="group">For the group</option>
+          </select>
+        </label>
+        {!place.costForGroup && (
+          <label>
+            People
+            <input
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              placeholder={String(travelers)}
+              value={people}
+              onChange={(e) => setPeople(e.target.value)}
+              aria-label="People going"
+            />
+          </label>
+        )}
       </div>
+      {place.cost && (place.costForGroup || peopleGoing(place.people, travelers) > 1 || travelers > 1) && (
+        <p className="muted small">In the budget: {describePlaceCost(place, travelers)}</p>
+      )}
       <OpeningHoursEditor value={place.openingHours} onChange={(openingHours) => updatePlace(place.id, { openingHours })} />
       <div className="row wrap">
         <label className="check">
@@ -153,9 +220,11 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
             type="checkbox"
             checked={place.bookAhead != null}
             // Unticking forgets it was booked; a place from an option keeps its kind (reservation/ticket) while ticked.
-            onChange={(e) => updatePlace(place.id, e.target.checked ? { bookAhead: 'either' } : { bookAhead: undefined, booked: undefined })}
+            onChange={(e) =>
+              updatePlace(place.id, e.target.checked ? { bookAhead: bookAheadKind } : { bookAhead: undefined, booked: undefined })
+            }
           />
-          {BOOK_AHEAD_LABEL.either}
+          {BOOK_AHEAD_LABEL[place.bookAhead ?? bookAheadKind]}
         </label>
         {place.bookAhead && (
           <label className="check">
@@ -191,9 +260,6 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
         <button type="button" disabled={index === count - 1} onClick={() => movePlaceInDay(place.dayId, place.id, 1)}>
           ↓ Down
         </button>
-        <a className="button" href={placeUrl(place)} target="_blank" rel="noreferrer">
-          <Icon name="external" size={16} /> Google Maps
-        </a>
         <button
           type="button"
           className={confirmDelete ? 'danger' : ''}
@@ -202,6 +268,16 @@ function PlaceEditor({ place, index, count, days, currency }: Omit<Props, 'selec
         >
           {confirmDelete ? 'Tap again to delete' : 'Delete'}
         </button>
+        <a
+          className="button ghost icon-button place-maps-link"
+          href={placeUrl(place)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open in Google Maps"
+          title="Open in Google Maps"
+        >
+          <Icon name="external" size={18} />
+        </a>
       </div>
     </div>
   )

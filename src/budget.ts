@@ -3,8 +3,9 @@
 // (1 baseCurrency = exchangeRate displayCurrency).
 
 import { legKey } from './db/legs'
-import type { Day, Expense, ExpenseCategory, Leg, Place, Trip } from './db/model'
+import type { Day, Expense, ExpenseCategory, Leg, Place, PlaceKind, Segment, Trip, TripOption } from './db/model'
 import { orderPlaces } from './db/trips'
+import { formatMoney } from './format'
 import type { Money } from './routing/types'
 
 /** Amount per currency code, e.g. { JPY: 12300, BRL: 200 }. */
@@ -51,17 +52,91 @@ function add(budget: Budget, category: ExpenseCategory, money: Money | undefined
   totals[currency] = (totals[currency] ?? 0) + amount
 }
 
+/** How many people are going on the trip (at least 1). */
+export function travelersOf(trip: Pick<Trip, 'travelers'>): number {
+  return trip.travelers != null && trip.travelers >= 1 ? Math.round(trip.travelers) : 1
+}
+
+/** A price of a place or of a restaurant/place/shop option: per person (default) or for the group. */
+export interface Priced {
+  price?: Money
+  forGroup?: boolean
+  /** People going; absent = everyone on the trip. */
+  people?: number
+}
+
+/** Budget category of each kind of place. */
+export const PLACE_KIND_CATEGORY: Record<PlaceKind, ExpenseCategory> = {
+  place: 'activities',
+  restaurant: 'food',
+  shop: 'shopping',
+  other: 'other',
+}
+
+/** How many people go: the item's own number, else everyone on the trip. */
+export function peopleGoing(people: number | undefined, travelers: number): number {
+  return people != null && people >= 1 ? Math.round(people) : travelers
+}
+
+/** What it costs the people going: the per-person price × people, or the group price as typed. */
+export function pricedTotal({ price, forGroup, people }: Priced, travelers: number): Money | undefined {
+  if (!price || forGroup) return price
+  return { ...price, amount: price.amount * peopleGoing(people, travelers) }
+}
+
+/** Per-person price (a group price split among the people going), to compare options fairly. */
+export function pricePerPerson({ price, forGroup, people }: Priced, travelers: number): Money | undefined {
+  if (!price || !forGroup) return price
+  return { ...price, amount: price.amount / peopleGoing(people, travelers) }
+}
+
+/** "¥1,000 × 2 = ¥2,000", "¥1,000 · 1 person", "¥6,000 for the group", or just the price on a trip for one. */
+export function describePriced(priced: Priced, travelers: number): string {
+  const { price, forGroup, people } = priced
+  if (!price) return ''
+  const going = peopleGoing(people, travelers)
+  if (forGroup) return `${formatMoney(price)} for the group`
+  if (going === 1) return travelers > 1 ? `${formatMoney(price)} · 1 person` : formatMoney(price)
+  return `${formatMoney(price)} × ${going} = ${formatMoney(pricedTotal(priced, travelers)!)}`
+}
+
+export const placePriced = (place: Place): Priced => ({ price: place.cost, forGroup: place.costForGroup, people: place.people })
+
+export const optionPriced = (option: TripOption): Priced => ({ price: option.price, forGroup: option.priceForGroup, people: option.people })
+
+/** What a place costs the people going. */
+export function placeCost(place: Place, travelers: number): Money | undefined {
+  return pricedTotal(placePriced(place), travelers)
+}
+
+export function describePlaceCost(place: Place, travelers: number): string {
+  return describePriced(placePriced(place), travelers)
+}
+
+/** Segment fares are per person, except taxis (per car). */
+export function segmentCost(segment: Pick<Segment, 'mode' | 'fare'>, travelers: number): Money | undefined {
+  if (!segment.fare || segment.mode === 'taxi') return segment.fare
+  return { ...segment.fare, amount: segment.fare.amount * travelers }
+}
+
 /**
- * Costs of one day: place fees (activities), fares of the legs between its
- * consecutive places (transport) and the day's expenses.
+ * Costs of one day: place costs (by kind: activities, food…), fares
+ * of the legs between its consecutive places (transport) and the day's
+ * expenses. Per-person prices count once per person going.
  */
-export function dayBudget(day: Day, dayPlaces: Place[], legs: Map<string, Leg>, dayExpenses: Expense[]): Budget {
+export function dayBudget(
+  day: Day,
+  dayPlaces: Place[],
+  legs: Map<string, Leg>,
+  dayExpenses: Expense[],
+  travelers: number,
+): Budget {
   const budget = emptyBudget()
   const places = orderPlaces(day, dayPlaces)
   places.forEach((place, i) => {
-    add(budget, 'activities', place.cost)
+    add(budget, PLACE_KIND_CATEGORY[place.kind ?? 'place'], placeCost(place, travelers))
     const next = places[i + 1]
-    if (next) legs.get(legKey(place.id, next.id))?.segments.forEach((s) => add(budget, 'transport', s.fare))
+    if (next) legs.get(legKey(place.id, next.id))?.segments.forEach((s) => add(budget, 'transport', segmentCost(s, travelers)))
   })
   dayExpenses.forEach((e) => add(budget, e.category, e.amount))
   return budget

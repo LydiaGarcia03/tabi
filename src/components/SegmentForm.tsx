@@ -96,7 +96,7 @@ export function SegmentForm({ segment, currency, defaults, onSave, onSaveAndDraw
           <input type="number" min="0" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
         </label>
         <label>
-          Cost ({fareCurrency})
+          {mode === 'taxi' ? `Cost for the car (${fareCurrency})` : `Cost per person (${fareCurrency})`}
           <input type="number" min="0" inputMode="decimal" value={fare} onChange={(e) => setFare(e.target.value)} />
         </label>
       </div>

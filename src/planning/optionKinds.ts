@@ -1,6 +1,18 @@
-import type { BookAhead, OptionKind, OptionStatus } from '../db/model'
+import type { BookAhead, OptionKind, OptionStatus, PlaceKind } from '../db/model'
 
 export const OPTION_KINDS: OptionKind[] = ['hotel', 'restaurant', 'place', 'shop', 'transport']
+
+/** Kinds of options that become places of a day, priced per person (hotels and transport are booked instead). */
+export const DAY_KINDS: OptionKind[] = ['restaurant', 'place', 'shop']
+
+export const PLACE_KINDS: PlaceKind[] = ['place', 'restaurant', 'shop', 'other']
+
+export const PLACE_KIND_LABEL: Record<PlaceKind, string> = {
+  place: '⛩️ Place',
+  restaurant: '🍜 Restaurant',
+  shop: '🛍️ Shop',
+  other: '📦 Other',
+}
 
 export const KIND_ICON: Record<OptionKind, string> = {
   hotel: '🏨',
@@ -45,7 +57,7 @@ export const CATEGORY_PRESETS: Record<OptionKind, string[]> = {
 }
 
 /** What has to be arranged before going, for the kinds that can need it. */
-export const BOOK_AHEAD_FOR: Partial<Record<OptionKind, BookAhead>> = {
+export const BOOK_AHEAD_FOR: Partial<Record<OptionKind | PlaceKind, BookAhead>> = {
   restaurant: 'reservation',
   place: 'ticket',
 }

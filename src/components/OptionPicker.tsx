@@ -3,11 +3,9 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import type { OptionKind, TripOption } from '../db/model'
 import { addOptionToDay } from '../db/options'
-import { KIND_ICON, KIND_PLURAL } from '../planning/optionKinds'
+import { DAY_KINDS, KIND_ICON, KIND_PLURAL } from '../planning/optionKinds'
 import { Icon } from './Icon'
 
-/** Kinds of options that become places of a day (hotels and transport are booked instead). */
-const DAY_KINDS: OptionKind[] = ['restaurant', 'place', 'shop']
 const NO_CITY = 'No city'
 
 interface Props {

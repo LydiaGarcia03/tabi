@@ -5,7 +5,17 @@ import { optionPhotos, setOptionPhotos } from '../db/photos'
 import { findAirline } from '../data/airlines'
 import { cleanFares, faresOf } from '../planning/fares'
 import { cleanJourney, JOURNEY_LABEL, journeyCarriers, withLegSummary } from '../planning/journeys'
-import { BOOK_AHEAD_FOR, BOOK_AHEAD_LABEL, CATEGORY_PRESETS, KIND_ICON, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
+import { describePriced, travelersOf } from '../budget'
+import {
+  BOOK_AHEAD_FOR,
+  BOOK_AHEAD_LABEL,
+  CATEGORY_PRESETS,
+  DAY_KINDS,
+  KIND_ICON,
+  KIND_SINGULAR,
+  OPTION_KINDS,
+  PRICE_LABEL,
+} from '../planning/optionKinds'
 import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
 import { FaresEditor } from './FaresEditor'
@@ -77,6 +87,9 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   const [price, setPrice] = useState(option?.price ? String(option.price.amount) : '')
   const [total, setTotal] = useState(option?.totalPrice ? String(option.totalPrice.amount) : '')
   const [currency, setCurrency] = useState(option?.price?.currency ?? option?.totalPrice?.currency ?? trip.displayCurrency)
+  const [forGroup, setForGroup] = useState(option?.priceForGroup ?? false)
+  // Empty = everyone on the trip.
+  const [people, setPeople] = useState(option?.people != null ? String(option.people) : '')
   const [rating, setRating] = useState(option?.rating)
   const [hours, setHours] = useState(option?.hours ?? '')
   const [openingHours, setOpeningHours] = useState(option?.openingHours)
@@ -101,7 +114,11 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   }, [option])
 
   const isTransport = kind === 'transport'
-  const hasHours = kind === 'restaurant' || kind === 'place' || kind === 'shop'
+  // Restaurants, places and shops: opening hours and a price per person (or for the group).
+  const hasHours = DAY_KINDS.includes(kind)
+  const travelers = travelersOf(trip)
+  const peopleCount = Number(people)
+  const peopleGoing = people.trim() !== '' && Number.isInteger(peopleCount) && peopleCount >= 1 && peopleCount !== travelers ? peopleCount : undefined
   const bookAheadKind = BOOK_AHEAD_FOR[kind]
   const cleaned = cleanJourney(journey)
   const valid = isTransport ? cleaned.from !== '' && cleaned.to !== '' : name.trim() !== ''
@@ -130,6 +147,8 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       city: isTransport ? undefined : city.trim() || undefined,
       category: isTransport ? undefined : category.trim() || undefined,
       price: isTransport ? fare?.price : money(price),
+      priceForGroup: (hasHours && forGroup) || undefined,
+      people: hasHours && !forGroup ? peopleGoing : undefined,
       fares: isTransport && saved.fares.length ? saved.fares : undefined,
       fareIndex: isTransport && saved.fares.length > 1 ? saved.index : undefined,
       totalPrice: kind === 'hotel' ? money(total) : undefined,
@@ -201,7 +220,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       <div className="field-row">
         {!isTransport && (
           <label>
-            {PRICE_LABEL[kind]}
+            {hasHours && forGroup ? 'Price for the group' : PRICE_LABEL[kind]}
             <input type="number" min="0" step="any" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
           </label>
         )}
@@ -230,6 +249,36 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       </div>
       {kind === 'hotel' && (
         <p className="muted small">Without a total, it is the price per night × the nights of the city's stay (see Cities).</p>
+      )}
+      {hasHours && (
+        <div className="field-row">
+          <label>
+            Price is
+            <select value={forGroup ? 'group' : 'person'} onChange={(e) => setForGroup(e.target.value === 'group')}>
+              <option value="person">Per person</option>
+              <option value="group">For the group</option>
+            </select>
+          </label>
+          {!forGroup && (
+            <label>
+              People going
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                placeholder={String(travelers)}
+                value={people}
+                onChange={(e) => setPeople(e.target.value)}
+              />
+            </label>
+          )}
+        </div>
+      )}
+      {hasHours && money(price) && (forGroup || travelers > 1 || peopleGoing != null) && (
+        <p className="muted small">
+          In the budget: {describePriced({ price: money(price), forGroup, people: peopleGoing }, travelers)}
+        </p>
       )}
 
       {bookAheadKind && (

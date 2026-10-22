@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
-import { dayBudget, expensesBudget, mergeBudgets } from '../budget'
+import { dayBudget, expensesBudget, mergeBudgets, travelersOf } from '../budget'
 import { BudgetBreakdown } from '../components/BudgetView'
 import { EstimatesCard } from '../components/EstimatesCard'
 import { ExpenseList } from '../components/ExpenseList'
@@ -19,7 +19,7 @@ export function BudgetPage({ tripId }: { tripId: string }) {
   const expenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
 
   const budget = useMemo(() => {
-    if (!days || !places || !legs || !expenses) return null
+    if (!trip || !days || !places || !legs || !expenses) return null
     const legMap = new Map(legs.map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l]))
     const perDay = days.map((day) =>
       dayBudget(
@@ -27,13 +27,16 @@ export function BudgetPage({ tripId }: { tripId: string }) {
         places.filter((p) => p.dayId === day.id),
         legMap,
         expenses.filter((e) => e.dayId === day.id),
+        travelersOf(trip),
       ),
     )
     return mergeBudgets([...perDay, expensesBudget(expenses.filter((e) => !e.dayId))])
-  }, [days, places, legs, expenses])
+  }, [trip, days, places, legs, expenses])
 
-  if (trip === undefined || !budget || !expenses) return null
+  if (trip === undefined) return null
   if (!trip) return <NotFound />
+
+  if (!budget || !expenses) return null
 
   return (
     <TripLayout trip={trip} active="budget">

@@ -9,12 +9,13 @@ import type { Day, Place, Trip } from './model'
 const now = () => new Date().toISOString()
 const newId = () => crypto.randomUUID()
 
-export async function createTrip(input: { name: string; startDate: string; endDate: string }): Promise<string> {
+export async function createTrip(input: { name: string; startDate: string; endDate: string; travelers?: number }): Promise<string> {
   const trip: Trip = {
     id: newId(),
     name: input.name,
     startDate: input.startDate,
     endDate: input.endDate,
+    travelers: input.travelers,
     baseCurrency: 'JPY',
     displayCurrency: 'BRL',
     exchangeRate: 0,

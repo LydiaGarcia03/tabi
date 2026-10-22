@@ -24,6 +24,8 @@ export interface Trip {
   checklist?: ChecklistItem[]
   /** Money already set aside for the trip (updated by hand). */
   savedMoney?: Money
+  /** How many people are going (default 1): per-person prices are multiplied by it. */
+  travelers?: number
 }
 
 export interface Estimate {
@@ -97,6 +99,10 @@ export interface TripOption {
   city?: string
   /** Hotel: per night; restaurant: per person; place: ticket; transport: per ticket. */
   price?: Money
+  /** Restaurants, places, shops: the price is for the whole group, not per person. Copied to the place. */
+  priceForGroup?: boolean
+  /** Restaurants, places, shops: how many people go (default: the trip's travelers). Copied to the place. */
+  people?: number
   /** Hotel: total for the stay, when known (overrides price × nights). */
   totalPrice?: Money
   /** Your own rating, 1–5. */
@@ -190,8 +196,14 @@ export interface Place {
   notes: string
   /** "HH:mm", local time at the destination. */
   plannedTime?: string
-  /** Entry fee, ticket… (counted as "activities" in the budget). */
+  /** Entry fee, ticket, average meal… per person unless `costForGroup`. */
   cost?: Money
+  /** The cost is for the whole group (a private tour…), not per person. */
+  costForGroup?: boolean
+  /** How many people go to this place (default: the trip's travelers). */
+  people?: number
+  /** What it is (default "place"); decides the budget category of its cost. */
+  kind?: PlaceKind
   /** Opening hours, entered by the user. Absent = unknown (treated as always open). */
   openingHours?: OpeningHours
   /** How long the visit takes, in minutes. */
@@ -201,6 +213,9 @@ export interface Place {
   /** The reservation is made / the ticket bought (ticked in the checklist). */
   booked?: boolean
 }
+
+/** A place of a day: a sight, a restaurant, a shop (like the options it can come from) or anything else. */
+export type PlaceKind = 'place' | 'restaurant' | 'shop' | 'other'
 
 /** `either` = ticked on a place of a day, where it isn't known which one (options say). */
 export type BookAhead = 'reservation' | 'ticket' | 'either'

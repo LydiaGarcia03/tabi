@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
-import { dayBudget, expensesBudget, mergeBudgets } from '../budget'
+import { dayBudget, expensesBudget, mergeBudgets, travelersOf } from '../budget'
 import { MoneyTotals } from '../components/BudgetView'
 import { Checklist, type PlaceToBook } from '../components/Checklist'
 import { DayCard } from '../components/DayCard'
@@ -37,6 +37,7 @@ export function TripPage({ tripId }: { tripId: string }) {
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
   const options = useLiveQuery(() => db.options.where('tripId').equals(tripId).toArray(), [tripId])
   useRefreshStalePlaces(places)
+  const travelers = trip ? travelersOf(trip) : 1
 
   const overview = useMemo(() => {
     if (!days || !places || !legs || !expenses) return null
@@ -49,14 +50,14 @@ export function TripPage({ tripId }: { tripId: string }) {
           .slice(1)
           .flatMap((p, i) => legMap.get(legKey(ordered[i].id, p.id))?.segments ?? [])
           .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
-        const budget = dayBudget(day, dayPlaces, legMap, expenses.filter((e) => e.dayId === day.id))
+        const budget = dayBudget(day, dayPlaces, legMap, expenses.filter((e) => e.dayId === day.id), travelers)
         return [day.id, { places: ordered, travelMinutes, budget }]
       }),
     )
     const tripWide = expenses.filter((e) => !e.dayId)
     const total = mergeBudgets([...[...byDay.values()].map((d) => d.budget), expensesBudget(tripWide)])
     return { byDay, total }
-  }, [days, places, legs, expenses])
+  }, [days, places, legs, expenses, travelers])
 
   if (trip === undefined || days === undefined || !overview || !stays) return null
   if (!trip) return <NotFound />
@@ -169,6 +170,11 @@ function TripSettings({ trip }: { trip: Trip }) {
   })
   const [base, setBase] = useDraft(trip.baseCurrency, (value) => saveCurrency(trip.id, 'baseCurrency', value))
   const [display, setDisplay] = useDraft(trip.displayCurrency, (value) => saveCurrency(trip.id, 'displayCurrency', value))
+  const [travelers, setTravelers] = useDraft(trip.travelers != null ? String(trip.travelers) : '', (value) => {
+    const number = Number(value)
+    if (value.trim() === '') void updateTrip(trip.id, { travelers: undefined })
+    else if (Number.isInteger(number) && number >= 1) void updateTrip(trip.id, { travelers: number })
+  })
 
   return (
     <div className="settings-grid">
@@ -193,6 +199,21 @@ function TripSettings({ trip }: { trip: Trip }) {
         </label>
       </div>
       <p className="muted small">Changing dates adds the new days. Days outside the dates are removed only if empty.</p>
+      <label>
+        Travelers
+        <input
+          type="number"
+          min="1"
+          step="1"
+          inputMode="numeric"
+          placeholder="1"
+          value={travelers}
+          onChange={(e) => setTravelers(e.target.value)}
+        />
+      </label>
+      <p className="muted small">
+        Tickets, meals and fares are per person: the budget counts them for everyone, unless a place says fewer people go.
+      </p>
       <div className="field-row">
         <label>
           Trip currency

@@ -76,12 +76,19 @@ function NewTripForm({ onCancel }: { onCancel: () => void }) {
   const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [travelers, setTravelers] = useState('1')
   const invalidDates = !!startDate && !!endDate && endDate < startDate
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim() || !startDate || !endDate || invalidDates) return
-    const tripId = await createTrip({ name: name.trim(), startDate, endDate })
+    const count = Number(travelers)
+    const tripId = await createTrip({
+      name: name.trim(),
+      startDate,
+      endDate,
+      travelers: Number.isInteger(count) && count >= 1 ? count : undefined,
+    })
     navigate({ page: 'trip', tripId })
   }
 
@@ -100,6 +107,10 @@ function NewTripForm({ onCancel }: { onCancel: () => void }) {
         <label>
           End
           <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} required />
+        </label>
+        <label>
+          Travelers
+          <input type="number" min="1" step="1" inputMode="numeric" value={travelers} onChange={(e) => setTravelers(e.target.value)} />
         </label>
       </div>
       {invalidDates && <p className="error">The end date must be on or after the start date.</p>}

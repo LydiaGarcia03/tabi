@@ -30,7 +30,10 @@ export async function addOptionToDay(option: TripOption, dayId: string): Promise
     address: option.address,
     googlePlaceId: option.googlePlaceId,
     googleFetchedAt: option.googleFetchedAt,
-    cost: option.kind === 'place' ? option.price : undefined,
+    cost: option.price,
+    costForGroup: option.priceForGroup,
+    people: option.people,
+    kind: option.kind === 'restaurant' || option.kind === 'shop' ? option.kind : 'place',
   })
   await db.places.update(placeId, { notes, openingHours: option.openingHours, bookAhead: option.bookAhead })
   await updateOption(option.id, { status: 'chosen', placeId })

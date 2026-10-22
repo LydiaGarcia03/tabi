@@ -2,7 +2,7 @@
 // price, distance and your own rating, combined into a 0–100 score with
 // weights you choose. Everything is computed on the device.
 
-import { displayAmount } from '../budget'
+import { displayAmount, optionPriced, pricePerPerson, travelersOf } from '../budget'
 import type { OptionKind, Stay, Trip, TripOption } from '../db/model'
 import type { Money } from '../routing/types'
 import { stayNights, stayOfCity } from '../db/stays'
@@ -75,7 +75,8 @@ export function compareOptions(options: TripOption[], trip: Trip, stays: Stay[],
       if (kind === 'hotel') {
         total = option.totalPrice ?? (option.price && nights ? { ...option.price, amount: option.price.amount * nights } : undefined)
       }
-      const money = total ?? option.price
+      // Restaurants, places, shops: compared per person (a group price split among the people going).
+      const money = total ?? (kind === 'hotel' || kind === 'transport' ? option.price : pricePerPerson(optionPriced(option), travelersOf(trip)))
       const compareAmount = money ? displayAmount({ [money.currency]: money.amount }, trip) : null
       const distance =
         reference && option.lat != null && option.lng != null ? distanceKm(reference, { lat: option.lat, lng: option.lng }) : null

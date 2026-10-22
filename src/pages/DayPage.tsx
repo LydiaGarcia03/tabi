@@ -1,7 +1,7 @@
 import { APILoadingStatus, useApiLoadingStatus, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Fragment, lazy, Suspense, useMemo, useState } from 'react'
-import { dayBudget } from '../budget'
+import { dayBudget, travelersOf } from '../budget'
 import { BudgetBreakdown } from '../components/BudgetView'
 import { DayMap } from '../components/DayMap'
 import { ExpenseList } from '../components/ExpenseList'
@@ -78,6 +78,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   if (!day || !trip) return <NotFound />
 
   const places = orderPlaces(day, dayPlaces)
+  const travelers = travelersOf(trip)
   // The list follows the drag; the map and everything else keep the saved order until it is dropped.
   const byId = new Map(places.map((p) => [p.id, p]))
   const listed = order.flatMap((id) => byId.get(id) ?? [])
@@ -190,6 +191,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             city={stays ? cityLabel(stays, day.date) : ''}
             places={places}
             legs={legs}
+            travelers={travelers}
             prevHref={prev && href({ page: 'day', tripId, dayId: prev.id })}
             nextHref={next && href({ page: 'day', tripId, dayId: next.id })}
           />
@@ -231,6 +233,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                     count={places.length}
                     days={days}
                     currency={trip.baseCurrency}
+                    travelers={travelers}
                     date={day.date}
                     selected={place.id === selectedId}
                     onSelect={() => setSelectedId(place.id === selectedId ? null : place.id)}
@@ -283,7 +286,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
           </section>
 
           <section className="card">
-            <BudgetBreakdown budget={dayBudget(day, dayPlaces, legs, dayExpenses)} trip={trip} title="Day budget" />
+            <BudgetBreakdown budget={dayBudget(day, dayPlaces, legs, dayExpenses, travelers)} trip={trip} title="Day budget" />
             <h3>Expenses this day</h3>
             <ExpenseList trip={trip} dayId={day.id} expenses={dayExpenses} />
           </section>
@@ -301,6 +304,7 @@ function DayHeader({
   city,
   places,
   legs,
+  travelers,
   prevHref,
   nextHref,
 }: {
@@ -309,6 +313,7 @@ function DayHeader({
   city: string
   places: Place[]
   legs: Map<string, Leg>
+  travelers: number
   prevHref?: string
   nextHref?: string
 }) {
@@ -317,7 +322,7 @@ function DayHeader({
 
   async function share() {
     try {
-      const result = await shareText(`Day ${number}`, dayText(day, number, places, legs))
+      const result = await shareText(`Day ${number}`, dayText(day, number, places, legs, travelers))
       setShared(result === 'copied' ? 'Copied to the clipboard.' : '')
     } catch {
       setShared('Could not share on this device.')

@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { describePlaceCost, travelersOf } from '../budget'
 import { CityTag, TripLayout } from '../components/TripLayout'
 import { formatDay, today } from '../dates'
 import { db } from '../db/db'
@@ -7,7 +8,6 @@ import { legKey } from '../db/legs'
 import type { Day, Leg, Place } from '../db/model'
 import { cityLabel } from '../db/stays'
 import { hoursText, segmentText } from '../export/itinerary'
-import { formatMoney } from '../format'
 import { distanceKm } from '../geo'
 import { compassDirection, formatDistance, useWakeLock, useWatchPosition, type Position } from '../location'
 import { href } from '../router'
@@ -139,9 +139,11 @@ export function LogbookPage({ tripId }: { tripId: string }) {
       ) : (
         <>
           {here ? (
-            <StopCard stop={here} date={day!.date} position={position} title="📍 You're at" highlight />
+            <StopCard stop={here} date={day!.date} travelers={travelersOf(trip)} position={position} title="📍 You're at" highlight />
           ) : (
-            nearest && <StopCard stop={nearest} date={day!.date} position={position} title="Nearest place" />
+            nearest && (
+              <StopCard stop={nearest} date={day!.date} travelers={travelersOf(trip)} position={position} title="Nearest place" />
+            )
           )}
 
           <section className="card">
@@ -163,7 +165,7 @@ export function LogbookPage({ tripId }: { tripId: string }) {
                             .join(' · ')}
                         </span>
                       </summary>
-                      <StopDetails stop={stop} date={day!.date} />
+                      <StopDetails stop={stop} date={day!.date} travelers={travelersOf(trip)} />
                     </details>
                   </li>
                 )
@@ -199,7 +201,21 @@ function GpsStatus({ position, error, radius }: { position: Position | null; err
   )
 }
 
-function StopCard({ stop, date, position, title, highlight }: { stop: Stop; date: string; position: Position | null; title: string; highlight?: boolean }) {
+function StopCard({
+  stop,
+  date,
+  travelers,
+  position,
+  title,
+  highlight,
+}: {
+  stop: Stop
+  date: string
+  travelers: number
+  position: Position | null
+  title: string
+  highlight?: boolean
+}) {
   const m = position ? distanceKm(position, stop.place) * 1000 : null
   return (
     <section className={`card logbook-stop${highlight ? ' here' : ''}`}>
@@ -212,18 +228,18 @@ function StopCard({ stop, date, position, title, highlight }: { stop: Stop; date
           {formatDistance(m)} {compassDirection(position!, stop.place)} · about {Math.max(1, Math.round((m / 1000 / 4.5) * 60))} min on foot
         </p>
       )}
-      <StopDetails stop={stop} date={date} />
+      <StopDetails stop={stop} date={date} travelers={travelers} />
     </section>
   )
 }
 
 /** Everything useful on the spot: time, hours, cost, notes, and the way to the next place. */
-function StopDetails({ stop, date }: { stop: Stop; date: string }) {
+function StopDetails({ stop, date, travelers }: { stop: Stop; date: string; travelers: number }) {
   const { place, next, leg } = stop
   const facts = [
-    place.plannedTime && `Planned ${place.plannedTime}`,
+    place.plannedTime && `Arrive at ${place.plannedTime}`,
     hoursText(place, date),
-    place.cost && formatMoney(place.cost),
+    describePlaceCost(place, travelers),
   ].filter(Boolean)
   return (
     <div className="logbook-details">

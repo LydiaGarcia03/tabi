@@ -1,6 +1,7 @@
 // The trip as an ordered itinerary with plain-text descriptions, shared by
 // the KML and GPX exports.
 
+import { describePlaceCost, travelersOf } from '../budget'
 import { formatDay } from '../dates'
 import { legKey } from '../db/legs'
 import type { Day, Place, Segment } from '../db/model'
@@ -51,7 +52,7 @@ export function buildItinerary(data: TripData, dayIds?: string[]): Itinerary {
       const arriving = previous ? (legs.get(legKey(previous.id, place.id))?.segments ?? []) : []
       points.push({
         name: `${prefix}${i + 1}. ${place.name}`,
-        description: placeDescription(day, dayNumber, place, previous, arriving),
+        description: placeDescription(day, dayNumber, place, previous, arriving, travelersOf(data.trip)),
         lat: place.lat,
         lng: place.lng,
       })
@@ -70,13 +71,20 @@ export function buildItinerary(data: TripData, dayIds?: string[]): Itinerary {
   return { points, lines }
 }
 
-function placeDescription(day: Day, dayNumber: number, place: Place, previous: Place | undefined, arriving: Segment[]): string {
+function placeDescription(
+  day: Day,
+  dayNumber: number,
+  place: Place,
+  previous: Place | undefined,
+  arriving: Segment[],
+  travelers: number,
+): string {
   const parts = [`Day ${dayNumber} · ${formatDay(day.date)}${day.title ? ` · ${day.title}` : ''}`]
   if (place.plannedTime) parts.push(`Time: ${place.plannedTime}`)
   const hours = hoursText(place, day.date)
   if (hours) parts.push(hours)
   if (place.address) parts.push(place.address)
-  if (place.cost) parts.push(`Cost: ${formatMoney(place.cost)}`)
+  if (place.cost) parts.push(`Cost: ${describePlaceCost(place, travelers)}`)
   if (place.bookAhead) parts.push(place.booked ? BOOKED_LABEL[place.bookAhead] : BOOK_AHEAD_LABEL[place.bookAhead])
   if (previous && arriving.length > 0) {
     parts.push(`How to get here from ${previous.name}:\n${arriving.map((s) => `• ${segmentText(s)}`).join('\n')}`)

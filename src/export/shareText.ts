@@ -1,15 +1,15 @@
 // A day as plain text, for sharing in a chat app or e-mail.
 
+import { describePlaceCost } from '../budget'
 import { formatDay } from '../dates'
 import { legKey } from '../db/legs'
 import type { Day, Leg, Place } from '../db/model'
-import { formatMoney } from '../format'
 import { hoursText, segmentText } from './itinerary'
 
-export function dayText(day: Day, number: number, places: Place[], legs: Map<string, Leg>): string {
+export function dayText(day: Day, number: number, places: Place[], legs: Map<string, Leg>, travelers: number): string {
   const lines = [`Day ${number} · ${formatDay(day.date)}${day.title ? ` — ${day.title}` : ''}`, '']
   places.forEach((place, i) => {
-    const facts = [place.plannedTime, place.cost && formatMoney(place.cost)].filter(Boolean).join(' · ')
+    const facts = [place.plannedTime, describePlaceCost(place, travelers)].filter(Boolean).join(' · ')
     lines.push(`${i + 1}. ${place.name}${facts ? ` (${facts})` : ''}`)
     if (place.address) lines.push(`   ${place.address}`)
     const hours = hoursText(place, day.date)

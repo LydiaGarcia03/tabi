@@ -16,12 +16,13 @@ import { db } from '../db/db'
 import type { Day, Expense, OptionKind, OptionStatus, Stay, Trip, TripOption } from '../db/model'
 import { addOptionToDay, bookOption, updateOption } from '../db/options'
 import { cityLabel, stayNights, stayOfCity } from '../db/stays'
+import { describePriced, optionPriced, travelersOf } from '../budget'
 import { formatMoney } from '../format'
 import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, type Weights } from '../planning/compare'
 import { cheapestFare, chosenFare, faresOf, isStale } from '../planning/fares'
 import { describeWeek } from '../planning/hours'
 import { formatHours, JOURNEY_ICON, journeyCarriers } from '../planning/journeys'
-import { BOOK_AHEAD_LABEL, KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
+import { BOOK_AHEAD_LABEL, DAY_KINDS, KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { NotFound } from './TripPage'
@@ -350,7 +351,9 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
           )}
         </td>
         <td className="num" data-label={group.kind === 'hotel' ? 'Per night' : 'Price'}>
-          <span className={stale ? 'stale-price' : ''}>{option.price ? formatMoney(option.price) : '—'}</span>
+          <span className={stale ? 'stale-price' : ''}>
+            {!option.price ? '—' : DAY_KINDS.includes(option.kind) ? describePriced(optionPriced(option), travelersOf(trip)) : formatMoney(option.price)}
+          </span>
           {fare && (fare.name || fare.seenOn) && (
             <span className={`muted small fare-seen${stale ? ' stale-price' : ''}`}>
               {[fare.name, fare.seenOn && `seen ${formatDay(fare.seenOn)}`].filter(Boolean).join(' · ')}
@@ -497,18 +500,25 @@ function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: 
   }
 
   if (option.kind === 'transport') {
+    // The option's price is per ticket; the booking is for everyone on the trip.
+    const travelers = travelersOf(trip)
     const initial = {
       id: '',
       tripId: trip.id,
       category: 'transport',
       description: option.name,
-      amount: option.price ?? { amount: 0, currency: trip.displayCurrency },
+      amount: option.price
+        ? { ...option.price, amount: option.price.amount * travelers }
+        : { amount: 0, currency: trip.displayCurrency },
       notes: option.notes,
       journey: option.journey ?? { mode: 'flight', from: '', to: '' },
     } satisfies Expense
     return (
       <div className="choose-panel">
-        <p className="small">Book it: it goes to the budget (check the date, time and price).</p>
+        <p className="small">
+          Book it: it goes to the budget (check the date, time and price
+          {travelers > 1 && option.price ? `; ${travelers} tickets × ${formatMoney(option.price)}` : ''}).
+        </p>
         <JourneyForm trip={trip} expense={initial} onSave={book} onCancel={onDone} />
       </div>
     )
