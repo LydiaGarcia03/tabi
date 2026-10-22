@@ -1,47 +1,117 @@
+<div align="center">
+
+<img src="public/icon-192.png" alt="Tabi icon" width="96" height="96">
+
 # Tabi 旅
 
-**Plan every step of a trip.** Tabi is a personal trip planner that lets you organize each day on a map, define exactly how to get from one place to the next (walk, bus, train, subway, taxi…), keep notes and costs, and take everything offline.
+**Plan every step of a trip — and take it offline.**
 
-> *Tabi* (旅) means "journey" in Japanese. The app was born to plan a trip to Japan in 2028, but it works for any destination.
+Organize each day on a map, decide exactly how to get from one place to the next,<br>
+keep notes and costs together, and carry everything in your pocket without internet.
 
-🔗 **App:** https://lydiagarcia03.github.io/tabi/ *(coming soon)*
+[**Open the app →**](https://lydiagarcia03.github.io/tabi/)
+
+![React](https://img.shields.io/badge/React-20232a?logo=react&logoColor=61dafb)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-offline_ready-b5332e)
+![Cost](https://img.shields.io/badge/running_cost-%240-2e7d32)
+
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-desktop-dark.png">
+  <img src="docs/screenshots/day-desktop-light.png" alt="A day in Tabi: the itinerary as a timeline of places with how to get between them, next to a Google map with numbered pins and the route drawn by transport mode" width="900">
+</picture>
+
+</div>
+
+> *Tabi* (旅) means "journey" in Japanese.
 
 ---
 
-## Features
+## ✨ What it does
 
-- **Day-by-day itinerary** — each day is an ordered list of places, shown as pins on a Google map.
-- **Rich place notes** — historical context, tickets to have at hand, opening hours, tips.
-- **Multi-modal routes between places** — build each leg from A to B as a chain of segments, each with its own mode of transport (e.g. *walk 400 m to the main street → bus line 7 to B*). Draw it yourself or ask for a suggested route.
-- **Opening hours & best order** — type each place's opening hours and visit time; Tabi warns about visits that don't fit and suggests the best visiting order for the day (computed on the device, no API).
-- **Options & comparison** — collect the hotels, restaurants, places and flights you're considering, rate them, and compare them side by side per city (price, total for the stay, distance, your rating → a score). Pick one to book it or add it to a day.
-- **Cities, estimates & checklist** — split the trip by city, compare your rough budget with what's already booked, keep reminders and a shopping list.
-- **Budget** — costs for places, transport, lodging and extras, with totals per day and per trip (JPY ↔ BRL).
-- **Offline-first** — installable as an app on the phone (PWA); the whole itinerary stays readable without internet.
-- **Export to Organic Maps** — KML/GPX export with pins and routes for fully offline maps during the trip.
-- **Open in Google Maps** — quick links for any place or leg when you are online.
-- **Backup** — export/import a whole trip as a JSON file (also used to move data between PC and phone).
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## How it works
+### 🗺️ Days on a map
+Each day is an ordered list of places, shown as numbered pins. Drag to reorder, add notes (history, tickets, tips), planned times and costs.
+
+### 🚇 Exactly how to get there
+Every leg A → B is a chain of segments, each with its own mode: *walk 400 m to the station → Ginza Line to Ueno → walk to exit 7*. Draw it on the map yourself or ask for a suggested route (Google for walking, NAVITIME for public transit in Japan).
+
+### 🕘 Opening hours & best order
+Type each place's hours and visit time. Tabi warns about visits that don't fit and suggests the best order for the day — computed on the device.
+
+</td>
+<td width="50%" valign="top">
+
+### 🏨 Options & comparison
+Collect the hotels, restaurants, places and flights you're considering. Rate them, add photos and prices, and compare them per city by price, distance and rating.
+
+### 💴 Budget
+Costs for places, transport, lodging and extras, with totals per day and per trip, estimates vs. booked, and two currencies side by side.
+
+### 📴 Offline-first
+Install it on your phone. Itineraries, notes, routes and costs stay readable without internet, with an in-app offline map, a GPS logbook and KML/GPX export to Organic Maps.
+
+</td>
+</tr>
+</table>
+
+<div align="center">
+<table>
+<tr>
+<td align="center" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-phone-dark.png">
+  <img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places" width="260">
+</picture>
+<br><sub><b>On the phone</b> — installed as an app</sub>
+</td>
+<td align="center" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/trip-desktop-dark.png">
+  <img src="docs/screenshots/trip-desktop-light.png" alt="The trip overview: one card per day, the cities route, budget and checklist" width="560">
+</picture>
+<br><sub><b>Trip overview</b> — days, cities, budget and checklist</sub>
+</td>
+</tr>
+</table>
+</div>
+
+### And also
+
+- 🏙️ **Cities** — split the trip by city (stays, day trips, stopovers), with a base hotel or station for each.
+- ✈️ **Transport between cities** — flights with connections, shinkansen, buses; fares compared side by side, plus a flight planner and an airline baggage guide.
+- ✅ **Checklist** — reminders, plus tickets and reservations to arrange before going.
+- 🌏 **Japanese names in English** — station and line names translated from Wikidata, with the original Japanese next to them to match the signs.
+- 🔗 **Open in Google Maps** — quick links for any place or leg when you're online.
+- 🌗 **Light & dark mode**, share or print a day, JSON backup to move a trip between PC and phone.
+
+## 🧭 How it works
 
 | Moment | Tool | Why |
 | --- | --- | --- |
 | Planning (online) | Google Maps Platform | Best place data (attractions, hotels, hours) |
 | Transit suggestions | NAVITIME | Google's Routes API returns no public-transit routes in Japan; NAVITIME is a Japanese routing provider |
-| During the trip (offline) | Tabi (PWA) + Organic Maps | Google Maps can't show custom transit/walking routes offline |
+| During the trip (offline) | Tabi (PWA) + OpenStreetMap / Organic Maps | Google Maps can't show custom transit/walking routes offline |
 
-All trip data lives on your device. There is no backend server.
+**All trip data lives on your device.** There is no backend server and no account.
 
-## Tech stack
+## 🛠️ Tech stack
 
 - [Vite](https://vite.dev/) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 - [@vis.gl/react-google-maps](https://visgl.github.io/react-google-maps/) — Maps JavaScript API, Places API (New), Routes API
 - [NAVITIME Route (totalnavi)](https://rapidapi.com/navitimejapan-navitimejapan/api/navitime-route-totalnavi) via RapidAPI — public-transit routing
+- [MapLibre GL JS](https://maplibre.org/) + [OpenFreeMap](https://openfreemap.org/) — offline map
 - [Dexie](https://dexie.org/) — local storage (IndexedDB)
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) — installable, offline-ready app
 - GitHub Pages + GitHub Actions — hosting and deployment
 
-## Getting started
+## 🚀 Getting started
 
 ### Requirements
 
@@ -84,41 +154,44 @@ The production build installs a service worker (offline cache). To test it witho
 
 ### Using it during the trip
 
-- **Install:** open the app on the phone and choose *Add to Home screen* (Android Chrome: menu ⋮ → *Install app*; iPhone Safari: Share → *Add to Home Screen*). Open it once while online; after that it works without internet.
-- **Offline maps:** on the trip or day page, tap **Organic Maps (KML)** and open the file with [Organic Maps](https://organicmaps.app/) (download the Japan map in Organic Maps beforehand).
+- **Install:** open the app on an Android phone in Chrome → menu ⋮ → *Install app*. Open it once while online; after that it works without internet.
+- **Offline map:** on a day page, switch to **Offline map** and download the trip's area while online.
+- **Organic Maps:** on the trip or day page, tap **Organic Maps (KML)** and open the file with [Organic Maps](https://organicmaps.app/) (download the country's map there beforehand).
 - **Phone ↔ PC:** **Backup (JSON)** on one device, **Import a backup** on the other. Tick *Include my NAVITIME key* to carry the RapidAPI key too (then keep that file private).
 
-## Deployment
+## 📦 Deployment
 
 Every push to `main` builds and deploys the app to GitHub Pages through GitHub Actions.
 
 The Google Maps key is passed to the build through the repository secret `VITE_GOOGLE_MAPS_API_KEY` (*Settings → Secrets and variables → Actions*). Maps JavaScript keys are always visible in the browser; the key is protected by its HTTP referrer and API restrictions in Google Cloud.
 
-## Keeping it free
+## 💸 Keeping it free
 
 Tabi is designed to run at **zero cost**:
 
-- **Google Maps Platform** — usage stays within the monthly free usage per API; the key is restricted to this site and to three APIs, and daily quotas cap usage.
-- **NAVITIME via RapidAPI** — Basic plan: $0, 500 requests/month with a hard limit (requests are blocked, never billed). Routes are saved locally so they are never fetched twice.
+- **Google Maps Platform** — usage stays within the monthly free usage per API; the key is restricted to this site and to three APIs, and daily quotas cap usage. Places and routes are stored locally so they are never fetched twice.
+- **NAVITIME via RapidAPI** — Basic plan: $0, 500 requests/month with a hard limit (requests are blocked, never billed). Only called on an explicit tap.
+- **Offline map** — OpenFreeMap tiles (free, no key), downloaded within its limits.
 - **Hosting** — GitHub Pages (free for public repositories).
-- **Offline maps** — Organic Maps (free and open source).
 
-## Roadmap
+## 🗺️ Roadmap
 
-- [x] **Phase 1 — Transit spike:** compare Google and NAVITIME transit routes in Tokyo (NAVITIME wins)
-- [x] **Phase 2 — Core planner:** trips, days, place search, pins, notes
-- [x] **Phase 3 — Legs:** segment editor, suggested routes and hand-drawn segments on the map
-- [x] **Phase 4 — Budget:** costs and totals, JPY ↔ BRL
-- [x] **Phase 5 — Offline & export:** PWA, KML/GPX for Organic Maps, JSON backup
-- [x] **Phase 6 — Polish:** redesign, mobile UX, dark mode, share and print a day
-- [x] **Phase 7 — Opening hours & optimized order:** opening hours and visit time per place, best visiting order for a day
-- [x] **Phase 8 — Planning workspace:** wide desktop layout, cities, options board to compare hotels/restaurants/places, estimates vs. booked, checklist
-- [x] **Phase 9 — Transport between cities & airline guide:** flights, shinkansen and more between cities; compare airlines by baggage, premium economy and legroom
+- [x] **Transit spike** — compare Google and NAVITIME transit routes in Tokyo (NAVITIME wins)
+- [x] **Core planner** — trips, days, place search, pins, notes
+- [x] **Legs** — segment editor, suggested routes and hand-drawn segments on the map
+- [x] **Budget** — costs and totals in two currencies
+- [x] **Offline & export** — PWA, KML/GPX for Organic Maps, JSON backup
+- [x] **Polish** — redesign, mobile UX, dark mode, share and print a day
+- [x] **Opening hours & optimized order** — hours and visit time per place, best visiting order for a day
+- [x] **Planning workspace** — wide desktop layout, cities, options board, estimates vs. booked, checklist
+- [x] **Transport between cities & airline guide** — flights, shinkansen and more; compare airlines by baggage and comfort
+- [ ] **Logbook & offline map** — follow the day by GPS, in-app OpenStreetMap map that works without internet *(testing on the phone offline)*
 
-## Data and attribution
+## 📜 Data and attribution
 
-Map and place data © Google. Transit routes by NAVITIME JAPAN. English names of Japanese stations and lines from [Wikidata](https://www.wikidata.org/) (CC0). Offline maps by Organic Maps, using © OpenStreetMap contributors.
+Map and place data © Google. Transit routes by NAVITIME JAPAN. English names of Japanese stations and lines from [Wikidata](https://www.wikidata.org/) (CC0). Offline map tiles by [OpenFreeMap](https://openfreemap.org/), © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors. Offline maps by Organic Maps.
 
-## About
-
-A personal project by [Lydia Garcia](https://github.com/LydiaGarcia03), built with the help of [Claude](https://claude.ai).
+<div align="center">
+<br>
+<sub>A personal project, built with the help of <a href="https://claude.ai">Claude</a>. 🌸</sub>
+</div>
