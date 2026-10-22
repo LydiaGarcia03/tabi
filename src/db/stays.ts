@@ -46,7 +46,7 @@ export function baseIcon(base: Pick<StayBase, 'kind'>): IconName {
   return base.kind === 'station' ? 'station' : base.kind === 'other' ? 'pin' : 'home'
 }
 
-/** The base's map marker: its icon in white on a small tile in the logo's color (not a pin: it's not a place of the day). */
+/** The base's map marker: its icon in white on a small tile in the place pins' red (not a pin: it's not a place of the day). */
 export function baseMarkerSvg(base: Pick<StayBase, 'kind'>): string {
   return iconSvg(baseIcon(base), { size: 18, weight: 2, color: '#ffffff' })
 }

@@ -19,6 +19,8 @@
   /* Ratings and favorites; chosen / done. */
   --star: #c98a12;
   --ok: #2e7d4f;
+  /* City base tile on the maps (white icon on it): the place pins' red (placePinSvg in mapLines.ts), in both themes. */
+  --base-pin: #b5332e;
   --shadow: 0 1px 2px rgb(60 40 20 / 0.06), 0 4px 14px rgb(60 40 20 / 0.06);
   --radius: 14px;
   --radius-sm: 10px;
@@ -1501,8 +1503,8 @@ button.toggle-link .muted {
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  /* The logo's color (follows light/dark), so the hotel stands out on the map. */
-  background: var(--accent);
+  /* The same red as the place pins, so the hotel reads as part of the day's map. */
+  background: var(--base-pin);
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
   font-size: 16px;
