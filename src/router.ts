@@ -12,6 +12,7 @@ export type Route =
   | { page: 'logbook'; tripId: string }
   | { page: 'settings' }
   | { page: 'transit-spike' }
+  | { page: 'icons' }
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent)
@@ -24,6 +25,7 @@ export function parseRoute(hash: string): Route {
   }
   if (parts[0] === 'settings') return { page: 'settings' }
   if (parts[0] === 'dev' && parts[1] === 'transit') return { page: 'transit-spike' }
+  if (parts[0] === 'dev' && parts[1] === 'icons') return { page: 'icons' }
   return { page: 'trips' }
 }
 
@@ -45,6 +47,8 @@ export function href(route: Route): string {
       return '#/settings'
     case 'transit-spike':
       return '#/dev/transit'
+    case 'icons':
+      return '#/dev/icons'
   }
 }
 

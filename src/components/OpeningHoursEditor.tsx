@@ -1,6 +1,7 @@
 import type { OpeningHours, TimeRange } from '../db/model'
 import { formatMinutes, toMinutes, WEEKDAYS } from '../planning/hours'
 import { useDraft } from '../useDraft'
+import { Icon } from './Icon'
 
 type Mode = 'none' | 'same' | 'varies'
 type DayHours = TimeRange[] | null
@@ -173,7 +174,7 @@ function RangesEditor({
                 aria-label={`Remove ${label} hours${which}`}
                 title="Remove these hours"
               >
-                ✕
+                <Icon name="close" size={16} />
               </button>
             )}
           </span>

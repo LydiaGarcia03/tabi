@@ -9,7 +9,8 @@ import { ExportCard } from '../components/ExportCard'
 import { DrawToolbar } from '../components/DrawToolbar'
 import { DayStrip } from '../components/DayStrip'
 import { CityTag, TripLayout } from '../components/TripLayout'
-import { cityLabel, staysOn } from '../db/stays'
+import { addBaseStop, baseStopLabel, dayBases, dayRoute, removeBaseStop, setBaseStopStay } from '../db/baseStops'
+import { baseIcon, cityLabel, staysOn } from '../db/stays'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Icon } from '../components/Icon'
 import { LegItem } from '../components/LegItem'
@@ -20,7 +21,7 @@ import { PlaceSearch } from '../components/PlaceSearch'
 import { formatDay } from '../dates'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
-import type { Day, Leg, Place } from '../db/model'
+import type { BaseStop, Day, Leg, Place, Stay } from '../db/model'
 import { addPlace, applyDayOrder, orderPlaces, updateDay } from '../db/trips'
 import type { Drawing } from '../drawing'
 import { dayText, shareText } from '../export/shareText'
@@ -118,6 +119,12 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   }
 
   const bases = (stays ? staysOn(stays, day.date) : []).flatMap((s) => (s.base ? [{ ...s.base, city: s.city }] : []))
+  // Where the day can leave from (the morning's hotel) and go back to (tonight's), the same but on a travel day.
+  const dayBaseStays = stays ? dayBases(stays, day.date) : []
+  const morningBase = dayBaseStays[0]
+  const nightBase = dayBaseStays.at(-1)
+  const route = dayRoute(day, places)
+  const listedRoute = dayRoute(day, listed)
 
   return (
     <TripLayout trip={trip} active={{ dayId: day.id }}>
@@ -156,6 +163,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                   onTap={onOfflineTap}
                   drawing={drawing}
                   bases={bases}
+                  route={route}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -176,6 +184,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
                 drawing={drawing}
                 bases={bases}
+                route={route}
               />
             </ErrorBoundary>
           )}
@@ -222,30 +231,44 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 <p className="muted small">Search for a place below or tap the map to add one.</p>
               </li>
             )}
-            {listed.map((place, i) => {
-              const next = listed[i + 1]
-              const key = next && legKey(place.id, next.id)
+            {/* Base stops are added by the user only: at the start, between two places (in the leg) or at the end. */}
+            {!draggingId && places.length > 0 && morningBase && !listedRoute[0].baseStop && (
+              <li className="base-add">
+                <button type="button" className="link small" onClick={() => addBaseStop(day.id, 0, morningBase)}>
+                  <Icon name="plus" size={14} /> <Icon name={baseIcon(morningBase.base!)} size={15} /> From base
+                </button>
+              </li>
+            )}
+            {listedRoute.map((stop, i) => {
+              const next = listedRoute[i + 1]
+              const key = next && legKey(stop.id, next.id)
+              const placeIndex = stop.baseStop ? -1 : listed.indexOf(stop)
               return (
-                <Fragment key={place.id}>
-                  <PlaceItem
-                    place={place}
-                    index={i}
-                    count={places.length}
-                    days={days}
-                    currency={trip.baseCurrency}
-                    travelers={travelers}
-                    date={day.date}
-                    selected={place.id === selectedId}
-                    onSelect={() => setSelectedId(place.id === selectedId ? null : place.id)}
-                    handle={places.length > 1 ? handleProps(place.id) : undefined}
-                    dragging={place.id === draggingId}
-                  />
+                <Fragment key={stop.id}>
+                  {stop.baseStop ? (
+                    // While dragging, base stops (between the old neighbours) are hidden like the legs.
+                    !draggingId && <BaseStopRow dayId={day.id} stop={stop.baseStop} label={baseStopLabel(i)} bases={dayBaseStays} />
+                  ) : (
+                    <PlaceItem
+                      place={stop}
+                      index={placeIndex}
+                      count={places.length}
+                      days={days}
+                      currency={trip.baseCurrency}
+                      travelers={travelers}
+                      date={day.date}
+                      selected={stop.id === selectedId}
+                      onSelect={() => setSelectedId(stop.id === selectedId ? null : stop.id)}
+                      handle={places.length > 1 ? handleProps(stop.id) : undefined}
+                      dragging={stop.id === draggingId}
+                    />
+                  )}
                   {/* While dragging, the legs (made for the old neighbours) are hidden. */}
                   {next && !draggingId && (
                     <LegItem
                       tripId={tripId}
                       leg={legs.get(key)}
-                      from={place}
+                      from={stop}
                       to={next}
                       date={day.date}
                       currency={trip.baseCurrency}
@@ -259,11 +282,26 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                         // On a phone the map is above the list: bring it into view.
                         document.querySelector('.day-map')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                       }}
+                      onAddBaseStop={
+                        nightBase && !stop.baseStop && !next.baseStop
+                          ? () => {
+                              setOpenLeg(null)
+                              void addBaseStop(day.id, placeIndex + 1, nightBase)
+                            }
+                          : undefined
+                      }
                     />
                   )}
                 </Fragment>
               )
             })}
+            {!draggingId && places.length > 0 && nightBase && !listedRoute.at(-1)?.baseStop && (
+              <li className="base-add">
+                <button type="button" className="link small" onClick={() => addBaseStop(day.id, 'end', nightBase)}>
+                  <Icon name="plus" size={14} /> <Icon name={baseIcon(nightBase.base!)} size={15} /> Back to base
+                </button>
+              </li>
+            )}
           </ol>
 
           {/* Like the end of a list in Wanderlog: add the next place right below the last one. */}
@@ -295,6 +333,43 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
         </div>
       </div>
     </TripLayout>
+  )
+}
+
+/** "From base" / "Back to base": the city's hotel (or station), with no details, only the way there. */
+function BaseStopRow({ dayId, stop, label, bases }: { dayId: string; stop: BaseStop; label: string; bases: Stay[] }) {
+  return (
+    <li className="base-stop">
+      <span className="base-stop-icon" aria-hidden="true">
+        <Icon name={baseIcon(stop.base)} size={20} />
+      </span>
+      <span className="base-stop-text">
+        <span className="base-stop-label">{label}</span>
+        <span className="muted small">{stop.base.name}</span>
+      </span>
+      {bases.length > 1 && (
+        // On a travel day: this morning's hotel or tonight's.
+        <select
+          className="compact small"
+          value={stop.stayId}
+          aria-label="Which base"
+          title="Changing it removes the way there, which led to the other base"
+          onChange={(e) => {
+            const stay = bases.find((s) => s.id === e.target.value)
+            if (stay) void setBaseStopStay(dayId, stop.id, stay)
+          }}
+        >
+          {bases.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.city}
+            </option>
+          ))}
+        </select>
+      )}
+      <button type="button" className="ghost icon-button" aria-label={`Remove “${label}”`} title="Remove" onClick={() => removeBaseStop(dayId, stop.id)}>
+        <Icon name="close" size={16} />
+      </button>
+    </li>
   )
 }
 

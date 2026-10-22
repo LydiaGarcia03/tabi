@@ -6,6 +6,7 @@ import { toGpx } from '../export/gpx'
 import { buildItinerary } from '../export/itinerary'
 import { toKml } from '../export/kml'
 import { getRapidApiKey } from '../settings'
+import { Icon } from './Icon'
 
 interface Props {
   tripId: string
@@ -50,14 +51,14 @@ export function ExportCard({ tripId, day }: Props) {
       </p>
       <div className="row wrap">
         <button type="button" onClick={() => download('kml')}>
-          🗺️ Organic Maps (KML)
+          <Icon name="map" size={16} /> Organic Maps (KML)
         </button>
         <button type="button" onClick={() => download('gpx')}>
           GPX
         </button>
         {!day && (
           <button type="button" onClick={() => download('backup')}>
-            💾 Backup (JSON)
+            <Icon name="save" size={16} /> Backup (JSON)
           </button>
         )}
       </div>

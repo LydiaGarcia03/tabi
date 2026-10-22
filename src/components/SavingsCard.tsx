@@ -4,6 +4,7 @@ import type { Trip } from '../db/model'
 import { updateTrip } from '../db/trips'
 import { formatMoney } from '../format'
 import { useDraft } from '../useDraft'
+import { Icon } from './Icon'
 
 /**
  * How much money is already set aside for the trip, next to what it should
@@ -55,7 +56,13 @@ export function SavingsCard({ trip, actual }: { trip: Trip; actual: Budget }) {
           </span>
           <p className="small">
             <strong>{Math.round((saved / target) * 100)}%</strong> of {targetLabel} ({money(target)}).{' '}
-            {saved >= target ? 'Fully covered 🎉' : `Still missing ${money(target - saved)}.`}
+            {saved >= target ? (
+              <span className="ok-text">
+                <Icon name="done" size={16} /> Fully covered
+              </span>
+            ) : (
+              `Still missing ${money(target - saved)}.`
+            )}
           </p>
         </div>
       )}

@@ -8,6 +8,7 @@ import {
 } from '../data/airlines'
 import { formatDate } from '../dates'
 import { tripBaggage } from '../planning/baggage'
+import { Icon } from './Icon'
 
 const PREMIUM_LABEL: Record<AirlineInfo['premiumEconomy'], string> = {
   yes: 'Yes',
@@ -50,27 +51,35 @@ export function BaggageBreakdown({
     <div className={`bag-box small${compact ? ' compact' : ''}`}>
       {!compact && (
         <div className="bag-head">
-          <strong>🧳 Economy baggage{several ? ' that works on every flight' : ` · ${bags.airlines[0].name}`}</strong>
+          <strong>
+            <Icon name="suitcase" size={16} /> Economy baggage{several ? ' that works on every flight' : ` · ${bags.airlines[0].name}`}
+          </strong>
           {several && <span className={`tag bag-alike ${bags.similarity >= 0.85 ? 'good' : bags.similarity >= 0.6 ? 'ok' : 'low'}`}>{alikeLabel(bags.similarity)}</span>}
         </div>
       )}
       <dl className="bag-rows">
         <div>
-          <dt>👜 Personal item</dt>
+          <dt>
+            <Icon name="purse" size={15} /> Personal item
+          </dt>
           <dd>
             {bags.personal.fits ? describeBag(bags.personal.fits) : several ? 'none on some flights: one piece only' : 'none (one piece only)'}
             {limit(bags.personal.strictest)}
           </dd>
         </div>
         <div>
-          <dt>🧳 Carry-on</dt>
+          <dt>
+            <Icon name="suitcase" size={15} /> Carry-on
+          </dt>
           <dd>
             {describeBag(bags.carryOn.fits)}
             {limit(bags.carryOn.strictest)}
           </dd>
         </div>
         <div>
-          <dt>🛄 Checked</dt>
+          <dt>
+            <Icon name="checked" size={15} /> Checked
+          </dt>
           <dd>
             {checkedBags != null ? (
               <CheapestFares bags={bags} />
@@ -200,7 +209,7 @@ export function AirlineGuideTable({ highlight }: { highlight: string[] }) {
     <details className="card disclosure airline-guide">
       <summary>
         <span>
-          🧳 Airline guide
+          <Icon name="suitcase" size={16} /> Airline guide
           <span className="muted small airline-guide-sub">Baggage, premium economy and legroom by airline</span>
         </span>
       </summary>

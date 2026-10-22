@@ -7,7 +7,7 @@ import { JOURNEY_LABEL, journeyDetails, journeysOnRoute } from '../planning/jour
 import { href } from '../router'
 import { JourneyForm } from './BookingForms'
 import { useCityHue } from '../cityColors'
-import { Icon } from './Icon'
+import { Icon, type IconName } from './Icon'
 import { LocateSearch } from './LocateSearch'
 import { Sheet } from './Sheet'
 
@@ -309,10 +309,10 @@ function NewJourney({ trip, from, to, roundTrip, onDone }: { trip: Trip; from?: 
   )
 }
 
-const STAY_KINDS: [StayKind, string][] = [
-  ['stay', '🏨 Sleeping here'],
-  ['day-trip', '↩️ Day trip'],
-  ['stopover', '➡️ Stop on the way'],
+const STAY_KINDS: [StayKind, string, IconName][] = [
+  ['stay', 'Sleeping here', 'bed'],
+  ['day-trip', 'Day trip', 'return'],
+  ['stopover', 'Stop on the way', 'arrow'],
 ]
 
 const STAY_KIND_HINT: Record<StayKind, string> = {
@@ -324,9 +324,9 @@ const STAY_KIND_HINT: Record<StayKind, string> = {
 type BaseKind = NonNullable<StayBase['kind']>
 
 const BASE_KINDS: [BaseKind, string][] = [
-  ['hotel', '🏨 Hotel'],
-  ['station', '🚉 Station'],
-  ['other', '📍 Other'],
+  ['hotel', 'Hotel'],
+  ['station', 'Station'],
+  ['other', 'Other'],
 ]
 
 /**
@@ -360,7 +360,7 @@ function BasePicker({
       <p className="small">
         {base ? (
           <>
-            {baseIcon(base)} <strong>{base.name}</strong>{' '}
+            <Icon name={baseIcon(base)} size={16} /> <strong>{base.name}</strong>{' '}
             <button type="button" className="link" onClick={() => onChange(undefined)}>
               Clear
             </button>
@@ -372,7 +372,7 @@ function BasePicker({
       <div className="segmented" role="radiogroup" aria-label="Base type">
         {BASE_KINDS.map(([value, label]) => (
           <button key={value} type="button" role="radio" aria-checked={kind === value} className={kind === value ? 'active' : ''} onClick={() => setKind(value)}>
-            {label}
+            <Icon name={baseIcon({ kind: value })} size={16} /> {label}
           </button>
         ))}
       </div>
@@ -486,7 +486,7 @@ function StayForm({
       <div className="field">
         <span className="field-label">How you'll visit it</span>
         <div className="segmented" role="radiogroup" aria-label="How you'll visit it">
-          {STAY_KINDS.map(([value, label]) => (
+          {STAY_KINDS.map(([value, label, icon]) => (
             <button
               key={value}
               type="button"
@@ -499,7 +499,7 @@ function StayForm({
                 if (value !== 'stay') setEndDate(startDate)
               }}
             >
-              {label}
+              <Icon name={icon} size={16} /> {label}
             </button>
           ))}
         </div>

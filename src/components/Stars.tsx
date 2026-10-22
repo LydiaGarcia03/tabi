@@ -1,9 +1,19 @@
+import { Icon } from './Icon'
+
 /** 1–5 rating; tapping the current value clears it. Read-only without `onChange`. */
 export function Stars({ value, onChange }: { value?: number; onChange?: (value: number | undefined) => void }) {
   if (!onChange) {
     return (
       <span className="stars" aria-label={value ? `${value} of 5` : 'Not rated'}>
-        {value ? '★'.repeat(value) + '☆'.repeat(5 - value) : <span className="muted">—</span>}
+        {value ? (
+          [1, 2, 3, 4, 5].map((n) => (
+            <span key={n} className={n <= value ? 'on' : ''}>
+              <Icon name="star" size={15} filled={n <= value} />
+            </span>
+          ))
+        ) : (
+          <span className="muted">—</span>
+        )}
       </span>
     )
   }
@@ -19,7 +29,7 @@ export function Stars({ value, onChange }: { value?: number; onChange?: (value: 
           className={value != null && n <= value ? 'on' : ''}
           onClick={() => onChange(value === n ? undefined : n)}
         >
-          {value != null && n <= value ? '★' : '☆'}
+          <Icon name="star" size={18} filled={value != null && n <= value} />
         </button>
       ))}
     </span>

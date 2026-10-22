@@ -1,4 +1,5 @@
-import { MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
+import { MODE_ICON, MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
+import { Icon } from './Icon'
 import { translateExit } from '../i18n/japaneseNames'
 import type { RouteSegment } from '../routing/types'
 
@@ -8,7 +9,9 @@ export function SegmentView({ segment, notes }: { segment: RouteSegment; notes?:
   return (
     <div className="segment-view" style={{ borderLeftColor: segmentColor(segment) }}>
       <div>
-        <strong>{MODE_LABEL[segment.mode]}</strong>
+        <strong>
+          <Icon name={MODE_ICON[segment.mode]} size={16} /> {MODE_LABEL[segment.mode]}
+        </strong>
         {segment.lineName && <> · {segment.lineName}</>}
         {original?.line && (
           <span className="muted small" lang="ja">

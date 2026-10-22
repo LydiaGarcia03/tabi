@@ -9,6 +9,7 @@ import { Icon } from '../components/Icon'
 import { StaysEditor } from '../components/StaysEditor'
 import { TripLayout } from '../components/TripLayout'
 import { formatDate } from '../dates'
+import { dayRoute } from '../db/baseStops'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Trip } from '../db/model'
@@ -46,9 +47,10 @@ export function TripPage({ tripId }: { tripId: string }) {
       days.map((day) => {
         const dayPlaces = places.filter((p) => p.dayId === day.id)
         const ordered = orderPlaces(day, dayPlaces)
-        const travelMinutes = ordered
+        const route = dayRoute(day, ordered)
+        const travelMinutes = route
           .slice(1)
-          .flatMap((p, i) => legMap.get(legKey(ordered[i].id, p.id))?.segments ?? [])
+          .flatMap((p, i) => legMap.get(legKey(route[i].id, p.id))?.segments ?? [])
           .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
         const budget = dayBudget(day, dayPlaces, legMap, expenses.filter((e) => e.dayId === day.id), travelers)
         return [day.id, { places: ordered, travelMinutes, budget }]

@@ -3,6 +3,7 @@
 
 import { describePlaceCost, travelersOf } from '../budget'
 import { formatDay } from '../dates'
+import { dayRoute } from '../db/baseStops'
 import { legKey } from '../db/legs'
 import type { Day, Place, Segment } from '../db/model'
 import type { TripData } from '../db/tripData'
@@ -47,20 +48,25 @@ export function buildItinerary(data: TripData, dayIds?: string[]): Itinerary {
       day,
       data.places.filter((p) => p.dayId === day.id),
     )
-    places.forEach((place, i) => {
-      const previous = places[i - 1]
+    // Base stops get no point of their own (the hotel would show up once per stop), only their routes.
+    const route = dayRoute(day, places)
+    const label = (i: number) => (route[i].baseStop ? 'Base' : String(places.indexOf(route[i]) + 1))
+    route.forEach((place, i) => {
+      const previous = route[i - 1]
       const arriving = previous ? (legs.get(legKey(previous.id, place.id))?.segments ?? []) : []
-      points.push({
-        name: `${prefix}${i + 1}. ${place.name}`,
-        description: placeDescription(day, dayNumber, place, previous, arriving, travelersOf(data.trip)),
-        lat: place.lat,
-        lng: place.lng,
-      })
+      if (!place.baseStop) {
+        points.push({
+          name: `${prefix}${label(i)}. ${place.name}`,
+          description: placeDescription(day, dayNumber, place, previous, arriving, travelersOf(data.trip)),
+          lat: place.lat,
+          lng: place.lng,
+        })
+      }
       arriving
         .filter((s) => s.path.length > 1)
         .forEach((segment) => {
           lines.push({
-            name: `${prefix}${i} → ${i + 1} ${MODE_LABEL[segment.mode]}${segment.lineName ? ` · ${segment.lineName}` : ''}`,
+            name: `${prefix}${label(i - 1)} → ${label(i)} ${MODE_LABEL[segment.mode]}${segment.lineName ? ` · ${segment.lineName}` : ''}`,
             description: segmentText(segment),
             color: toHexColor(segmentColor(segment)) ?? MODE_COLOR[segment.mode],
             path: segment.path,
@@ -101,7 +107,7 @@ export function hoursText(place: Place, date: string): string {
   return window === 'Closed' ? `Closed this day${note}` : `Open ${window}${note}`
 }
 
-/** One segment in one or two lines, e.g. "🚇 Ginza Line: Kanda (Exit 2) → Asakusa · 10:02–10:15 · 13 min · ¥178". */
+/** One segment in one or two lines, e.g. "Subway · Ginza Line: Kanda (Exit 2) → Asakusa · 10:02–10:15 · 13 min · ¥178". */
 export function segmentText(segment: Segment): string {
   const original = segment.originalNames
   let head = MODE_LABEL[segment.mode]

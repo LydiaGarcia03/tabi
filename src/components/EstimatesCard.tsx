@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { CATEGORIES, CATEGORY_LABEL, displayAmount, type Budget, type Totals } from '../budget'
+import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, displayAmount, type Budget, type Totals } from '../budget'
+import { Icon } from './Icon'
 import type { Estimate, ExpenseCategory, Trip } from '../db/model'
 import { updateTrip } from '../db/trips'
 import { formatMoney } from '../format'
@@ -55,7 +56,9 @@ export function EstimatesCard({ trip, actual }: Props) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.category}>
-                <td>{CATEGORY_LABEL[r.category]}</td>
+                <td>
+                  <Icon name={CATEGORY_ICON[r.category]} size={16} /> {CATEGORY_LABEL[r.category]}
+                </td>
                 <td className="num">{money(r.estimate)}</td>
                 <td className="num">{money(r.actual)}</td>
                 <td className="bar-cell">
@@ -96,7 +99,9 @@ export function EstimatesCard({ trip, actual }: Props) {
             <li key={estimate.id} className="expense-row">
               <span className="expense-main">
                 <span>{estimate.label}</span>
-                <span className="muted small">{CATEGORY_LABEL[estimate.category]}</span>
+                <span className="muted small">
+                  <Icon name={CATEGORY_ICON[estimate.category]} size={14} /> {CATEGORY_LABEL[estimate.category]}
+                </span>
               </span>
               <span className="row">
                 <strong>{formatMoney(estimate.amount)}</strong>

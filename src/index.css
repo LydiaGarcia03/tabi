@@ -16,6 +16,9 @@
   --accent-text: #9c2a26;
   --on-accent: #ffffff;
   --error: #b42318;
+  /* Ratings and favorites; chosen / done. */
+  --star: #c98a12;
+  --ok: #2e7d4f;
   --shadow: 0 1px 2px rgb(60 40 20 / 0.06), 0 4px 14px rgb(60 40 20 / 0.06);
   --radius: 14px;
   --radius-sm: 10px;
@@ -41,6 +44,8 @@
   --accent-text: #f08a82;
   --on-accent: #1a0d0c;
   --error: #ff8a80;
+  --star: #e0a93a;
+  --ok: #6cc08b;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
 
   color-scheme: dark;
@@ -103,8 +108,22 @@ a {
   overflow-wrap: anywhere;
 }
 
+/* Icons follow the weight of the text around them (an explicit `weight` on <Icon> wins). */
 .icon {
   flex: none;
+  stroke-width: 1.8;
+  /* In running text an SVG sits on the baseline like a letter, which looks too high: center it on the text instead.
+     (In flex rows, such as buttons, alignment comes from the row.) */
+  vertical-align: -0.15em;
+}
+
+:is(button, a.button, .link, label, .field-label, .tag, .badge, .warning, .ok-text, .base-stop-label, .option-title,
+    details.disclosure > summary, .leg-label > .small) .icon {
+  stroke-width: 2.2;
+}
+
+:is(strong, b, h1, h2, h3, h4, th, dt, legend, .hero-kicker, .day-card-title, .place-name, .score) .icon {
+  stroke-width: 2.6;
 }
 
 /* Inner scroll areas (days in the sidebar, wide tables, sheets): a thin bar
@@ -382,7 +401,7 @@ select:focus-visible {
   width: 100%;
 }
 
-/* Arrival time, a narrow visit length and the kind (wide enough for "🍜 Restaurant"). */
+/* Arrival time, a narrow visit length and the kind (wide enough for "Restaurant"). */
 .field-row.visit-fields {
   grid-template-columns: minmax(0, 1fr) 5.5rem minmax(0, 1.3fr);
 }
@@ -1267,6 +1286,46 @@ button.toggle-link .muted {
 }
 
 /* The leg is the rail between two place cards. */
+/* "From base" / "Back to base": a quiet stop on the rail, not a place card (no details, only the way there). */
+.base-stop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.base-stop-icon {
+  width: 28px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.base-stop-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+}
+
+.base-stop-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.base-stop select {
+  width: auto;
+}
+
+.base-add {
+  margin-left: 25px;
+  padding: 2px 0 2px 22px;
+}
+
 .leg-item {
   margin-left: 25px;
   padding: 2px 0 2px 22px;
@@ -1447,6 +1506,51 @@ button.toggle-link .muted {
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
   font-size: 16px;
   line-height: 1;
+}
+
+/* Developer page with every icon (#/dev/icons). */
+.icon-gallery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.icon-gallery li {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.icon-gallery-sizes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-map-sample {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  /* Roughly a map's colors, to judge the markers on it. */
+  background: #e8e4da;
+}
+
+:root[data-theme='dark'] .icon-map-sample {
+  background: #2b2d31;
+}
+
+.icon-map-item {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
 }
 
 /* Points of a segment being drawn (map markers, centered on the point). */
@@ -1748,6 +1852,21 @@ button.toggle-link .muted {
   vertical-align: middle;
   background: hsl(var(--hue, 0) 70% 92%);
   color: hsl(var(--hue, 0) 55% 30%);
+}
+
+/* Next to a card title (Options groups, the Logbook's places) the tag is a little bigger, to match the title,
+   and centered on the title's line (icon, text and tag in one centered row). */
+h2:has(> .city-tag) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+h2 > .city-tag {
+  margin-left: 0;
+  font-size: 0.8rem;
+  padding: 2px 10px;
 }
 
 :root[data-theme='dark'] .city-tag {
@@ -2236,6 +2355,12 @@ button.toggle-link .muted {
   color: var(--text);
 }
 
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
 .badge-best {
   background: var(--accent-soft);
   color: var(--accent-text);
@@ -2268,12 +2393,45 @@ button.toggle-link .muted {
   text-align: right;
 }
 
+/* All on one center line (the pencil is a bit taller than the toggles). */
+.option-actions > button {
+  vertical-align: middle;
+}
+
 button.icon-toggle {
   min-height: 32px;
   min-width: 32px;
   padding: 2px 6px;
   font-size: 1rem;
   margin-right: 2px;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* Favorite / chosen next to an option's name. */
+.status-mark {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
+.status-mark.favorite {
+  color: var(--star);
+}
+
+.status-mark.chosen {
+  color: var(--ok);
+}
+
+/* Airlines in a route sketch ("NVT Gol → GRU Qatar → …"): a type style instead of a plane icon. */
+.journey-chain .carrier {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.ok-text {
+  color: var(--ok);
+  font-weight: 600;
 }
 
 button.icon-toggle.on {
@@ -2313,8 +2471,19 @@ button.icon-toggle.on {
 
 .stars {
   white-space: nowrap;
-  color: #c98a12;
-  letter-spacing: 1px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.stars .on {
+  color: var(--star);
+}
+
+.stars.editable button {
+  display: inline-grid;
+  place-items: center;
 }
 
 .stars.editable button {
@@ -2327,7 +2496,7 @@ button.icon-toggle.on {
 }
 
 .stars.editable button.on {
-  color: #c98a12;
+  color: var(--star);
 }
 
 .field {
@@ -2700,14 +2869,27 @@ dialog.photo-viewer::backdrop {
   color: var(--accent-text);
 }
 
+/* Transport rows: price, time and baggage centered in their columns (headers too); phone cards stay left-aligned. */
+@media (min-width: 761px) {
+  .transport-table :is(th, td):is(:nth-child(2), :nth-child(3)),
+  .transport-table .baggage-head {
+    text-align: center;
+  }
+
+  .transport-table .baggage-cell .bag-box {
+    margin-inline: auto;
+  }
+}
+
+/* Narrow enough for a transport row to fit a wide card with its actions (favorite, choose, discard, edit) uncut. */
 .baggage-cell .bag-box {
-  min-width: 260px;
+  min-width: 210px;
 }
 
 .options-table td[data-label='Comfort'] .small {
   display: grid;
   gap: 2px;
-  min-width: 150px;
+  min-width: 130px;
 }
 
 /* In the phone cards (see options-table above) the column is narrower. */

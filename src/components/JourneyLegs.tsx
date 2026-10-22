@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import { addDays, formatDay } from '../dates'
 import type { Journey, JourneyLeg } from '../db/model'
+import { Icon } from './Icon'
 import {
   formatDuration,
   journeyCarriers,
@@ -116,7 +117,9 @@ export function JourneyLegsEditor({
           </li>
           {legs.map((leg, i) => (
             <li key={i} className="journey-route-leg">
-              <span aria-hidden="true">{isFlight ? '✈️' : '➜'}</span>
+              <span aria-hidden="true">
+                <Icon name={isFlight ? 'plane' : 'arrow'} size={16} />
+              </span>
               <input
                 value={leg.carrier ?? ''}
                 list={isFlight ? 'airline-names' : undefined}
@@ -132,7 +135,7 @@ export function JourneyLegsEditor({
                 aria-label={i < legs.length - 1 ? `Connection ${i + 1}` : 'To'}
               />
               <button type="button" className="icon-button" onClick={() => removeLeg(i)} aria-label={`Remove ${noun.toLowerCase()} ${i + 1}`}>
-                ✕
+                <Icon name="close" size={16} />
               </button>
             </li>
           ))}
@@ -227,19 +230,24 @@ export function JourneyLegsEditor({
 
 /**
  * Each flight and layover, like Google Flights shows them, folded under a
- * one-line summary ("2 connections · 18 h layovers ⚠️").
+ * one-line summary ("2 connections · 18 h of layovers", with a warning icon when one needs care).
  */
 export function JourneyItinerary({ journey, timesOnly = false }: { journey: Journey; timesOnly?: boolean }) {
   const legs = journey.legs ?? []
   if (legs.length < 2) return null
-  // A rough sketch (airlines only): one line, "NVT ✈ Gol → GRU ✈ Qatar Airways → DOH…".
+  // A rough sketch (airlines only): one line, "NVT Gol → GRU Qatar Airways → DOH…", airlines in their own type style.
   if (!legs.some((l) => l.departTime || l.arriveTime || l.minutes != null)) {
     // Where the route is already shown (RouteChain), only the timed details are added.
     if (timesOnly) return null
     return (
       <span className="small journey-chain">
         {legs[0].from}
-        {legs.map((l, i) => ` ✈ ${l.carrier ?? '?'} → ${l.to || (i < legs.length - 1 ? '…' : '?')}`).join('')}
+        {legs.map((l, i) => (
+          <Fragment key={i}>
+            {' '}
+            <span className="carrier">{l.carrier ?? '?'}</span> → {l.to || (i < legs.length - 1 ? '…' : '?')}
+          </Fragment>
+        ))}
       </span>
     )
   }
@@ -256,7 +264,12 @@ export function JourneyItinerary({ journey, timesOnly = false }: { journey: Jour
       <summary className="small">
         {connections.length === 1 ? '1 connection' : `${connections.length} connections`}
         {layover != null && ` · ${formatDuration(layover)} of layovers`}
-        {warn && ' ⚠️'}
+        {warn && (
+          <span className="warning">
+            {' '}
+            <Icon name="warning" size={14} />
+          </span>
+        )}
       </summary>
       <ol>
         {legs.map((leg, i) => (
@@ -322,9 +335,10 @@ export function journeyChips(journey: Journey): { text: string; warn?: boolean }
   if (stops > 0) chips.push({ text: stops === 1 ? '1 stop' : `${stops} stops` })
   else if (journey.stops) chips.push({ text: journey.stops })
   for (const c of journeyConnections(journey)) {
-    if (c.changesAirport) chips.push({ text: `⚠ change of airport in ${city(c.at)}`, warn: true })
-    else if (c.minutes != null && c.minutes >= LONG_LAYOVER_MINUTES) chips.push({ text: `⚠ ${formatDuration(c.minutes)} in ${city(c.at)}`, warn: true })
-    else if (c.minutes != null && c.minutes >= 0 && c.minutes < TIGHT_CONNECTION_MINUTES) chips.push({ text: `⚠ tight in ${city(c.at)}`, warn: true })
+    // Warning chips get the warning icon where they are shown.
+    if (c.changesAirport) chips.push({ text: `change of airport in ${city(c.at)}`, warn: true })
+    else if (c.minutes != null && c.minutes >= LONG_LAYOVER_MINUTES) chips.push({ text: `${formatDuration(c.minutes)} in ${city(c.at)}`, warn: true })
+    else if (c.minutes != null && c.minutes >= 0 && c.minutes < TIGHT_CONNECTION_MINUTES) chips.push({ text: `tight in ${city(c.at)}`, warn: true })
   }
   if (journey.cabin) chips.push({ text: journey.cabin })
   return chips
@@ -342,12 +356,12 @@ export function ConnectionInfo({ connection }: { connection: Connection }) {
   return (
     <div className={`journey-connection${warnings.length ? ' warn' : ''}`}>
       <span>
-        ⏱ {minutes != null && minutes >= 0 ? `${formatDuration(minutes)} layover` : 'Layover'}
+        <Icon name="clock" size={15} /> {minutes != null && minutes >= 0 ? `${formatDuration(minutes)} layover` : 'Layover'}
         {at && ` in ${at}`}
       </span>
       {warnings.map((w) => (
         <span key={w} className="warning small">
-          ⚠️ {w}
+          <Icon name="warning" size={14} /> {w}
         </span>
       ))}
     </div>

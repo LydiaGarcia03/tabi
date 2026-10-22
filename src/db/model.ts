@@ -178,6 +178,25 @@ export interface Day {
   title: string
   /** Place ids in visiting order. */
   placeIds: string[]
+  /** Going back to the city's base between places (or leaving from it), added by the user. */
+  baseStops?: BaseStop[]
+}
+
+/**
+ * "Back to base" between a day's places ("From base" when it comes first): a
+ * stop with no details, only the way there (its legs use its id like a place's).
+ */
+export interface BaseStop {
+  id: string
+  /**
+   * How many of the day's places come before it (0 = start of the day), so it
+   * keeps its place in the day when places are reordered. "end" stays after
+   * the last place when places are added.
+   */
+  slot: number | 'end'
+  /** The stay whose base it is; `base` is a copy, kept in sync when that base changes. */
+  stayId: string
+  base: StayBase
 }
 
 export interface Place {

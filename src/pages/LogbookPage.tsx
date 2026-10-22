@@ -3,10 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { describePlaceCost, travelersOf } from '../budget'
 import { CityTag, TripLayout } from '../components/TripLayout'
 import { formatDay, today } from '../dates'
+import { dayRoute, type RouteStop } from '../db/baseStops'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Day, Leg, Place } from '../db/model'
-import { cityLabel } from '../db/stays'
+import { baseIcon, cityLabel } from '../db/stays'
+import { Icon } from '../components/Icon'
 import { hoursText, segmentText } from '../export/itinerary'
 import { distanceKm } from '../geo'
 import { compassDirection, formatDistance, useWakeLock, useWatchPosition, type Position } from '../location'
@@ -29,7 +31,7 @@ const DEFAULTS: LogbookSettings = { radius: 150, keepScreenOn: true }
 interface Stop {
   place: Place
   number: number
-  next?: Place
+  next?: RouteStop
   leg?: Leg
 }
 
@@ -69,8 +71,10 @@ export function LogbookPage({ tripId }: { tripId: string }) {
     const byId = new Map(places.map((p) => [p.id, p]))
     const legByKey = new Map(legs.map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l]))
     const ordered = day.placeIds.map((id) => byId.get(id)).filter((p): p is Place => !!p)
+    // "Next" can be going back to the hotel (a base stop of the day).
+    const route = dayRoute(day, ordered)
     return ordered.map((place, i) => {
-      const next = ordered[i + 1]
+      const next = route[route.indexOf(place) + 1]
       return { place, number: i + 1, next, leg: next && legByKey.get(legKey(place.id, next.id)) }
     })
   }, [day, places, legs])
@@ -111,7 +115,7 @@ export function LogbookPage({ tripId }: { tripId: string }) {
         </label>
         <div className="row wrap">
           <button type="button" className={tracking ? '' : 'primary'} onClick={() => setTracking(!tracking)}>
-            {tracking ? '⏹ Stop following me' : '📍 Follow my location'}
+            <Icon name={tracking ? 'ban' : 'locate'} size={16} /> {tracking ? 'Stop following me' : 'Follow my location'}
           </button>
           <label>
             Arrived within
@@ -139,7 +143,7 @@ export function LogbookPage({ tripId }: { tripId: string }) {
       ) : (
         <>
           {here ? (
-            <StopCard stop={here} date={day!.date} travelers={travelersOf(trip)} position={position} title="📍 You're at" highlight />
+            <StopCard stop={here} date={day!.date} travelers={travelersOf(trip)} position={position} title="You're at" highlight />
           ) : (
             nearest && (
               <StopCard stop={nearest} date={day!.date} travelers={travelersOf(trip)} position={position} title="Nearest place" />
@@ -219,7 +223,9 @@ function StopCard({
   const m = position ? distanceKm(position, stop.place) * 1000 : null
   return (
     <section className={`card logbook-stop${highlight ? ' here' : ''}`}>
-      <p className="hero-kicker">{title}</p>
+      <p className="hero-kicker">
+        {highlight && <Icon name="pin" size={14} />} {title}
+      </p>
       <h2>
         <span className="logbook-number">{stop.number}</span> {stop.place.name}
       </h2>
@@ -248,7 +254,16 @@ function StopDetails({ stop, date, travelers }: { stop: Stop; date: string; trav
       {place.notes.trim() ? <p className="logbook-notes">{place.notes.trim()}</p> : <p className="muted small">No notes.</p>}
       {next && (
         <div className="logbook-next small">
-          <strong>Next: {next.name}</strong>
+          <strong>
+            Next:{' '}
+            {next.baseStop ? (
+              <>
+                <Icon name={baseIcon(next.baseStop.base)} size={15} /> back to base ({next.name})
+              </>
+            ) : (
+              next.name
+            )}
+          </strong>
           {leg?.segments.length ? (
             <ul>
               {leg.segments.map((s) => (

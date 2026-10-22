@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { AirlineGuideTable, BaggageBreakdown } from '../components/AirlineGuide'
 import { HotelForm, JourneyForm, type BookingValues } from '../components/BookingForms'
-import { Icon } from '../components/Icon'
+import { Icon, type IconName } from '../components/Icon'
 import { findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
 import { FlightPlanner } from '../components/FlightPlanner'
@@ -30,11 +30,19 @@ import { NotFound } from './TripPage'
 const WEIGHTS_KEY = 'tabi.compareWeights'
 
 const BADGE_LABEL: Record<Badge, string> = {
-  best: '🏆 Best match',
-  cheapest: '💰 Cheapest',
-  closest: '📍 Closest',
-  fastest: '⚡ Fastest',
-  'top-rated': '⭐ Your top',
+  best: 'Best match',
+  cheapest: 'Cheapest',
+  closest: 'Closest',
+  fastest: 'Fastest',
+  'top-rated': 'Your top',
+}
+
+const BADGE_ICON: Record<Badge, IconName> = {
+  best: 'sparkle',
+  cheapest: 'wallet',
+  closest: 'pin',
+  fastest: 'clock',
+  'top-rated': 'star',
 }
 
 /** Everything being considered, grouped by kind and city, to compare and pick. */
@@ -112,7 +120,8 @@ export function OptionsPage({ tripId }: { tripId: string }) {
       </header>
       <p className="muted small options-intro">
         Hotels, restaurants, places, shops and transport (flights, shinkansen…) you're considering. Compare them by city
-        or route, mark favorites ☆, pick one ✓ (adds it to a day or books it) or discard ✕.
+        or route, mark favorites <Icon name="star" size={14} />, pick one <Icon name="check" size={14} /> (adds it to a day or
+        books it) or discard <Icon name="close" size={14} />.
       </p>
 
       {planning && (
@@ -150,7 +159,7 @@ export function OptionsPage({ tripId }: { tripId: string }) {
           </button>
           {OPTION_KINDS.map((k) => (
             <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? 'active' : ''} onClick={() => setKind(k)}>
-              {KIND_ICON[k]} {KIND_PLURAL[k]} {counts[k] > 0 && <span className="count">{counts[k]}</span>}
+              <Icon name={KIND_ICON[k]} size={16} /> {KIND_PLURAL[k]} {counts[k] > 0 && <span className="count">{counts[k]}</span>}
             </button>
           ))}
         </div>
@@ -173,7 +182,9 @@ export function OptionsPage({ tripId }: { tripId: string }) {
       {kind === 'transport' && (
         <section className="card planner-entry">
           <span>
-            <strong>✈️ Flight planner</strong>
+            <strong>
+              <Icon name="plane" size={16} /> Flight planner
+            </strong>
             <span className="muted small">Build and rank itineraries with the airlines and connections you accept.</span>
           </span>
           <button type="button" className="primary" onClick={() => setPlanning(true)}>
@@ -225,7 +236,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
     <section className="card option-group">
       <header className="option-group-header">
         <h2>
-          {KIND_ICON[group.kind]} {isTransport ? group.route || 'Transport' : KIND_PLURAL[group.kind]}
+          <Icon name={KIND_ICON[group.kind]} /> {isTransport ? group.route || 'Transport' : KIND_PLURAL[group.kind]}
           {group.city && <CityTag city={group.city} />}
         </h2>
         <p className="muted small">
@@ -242,7 +253,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
       </header>
 
       <div className="table-scroll">
-        <table className="compare-table options-table">
+        <table className={`compare-table options-table${isTransport ? ' transport-table' : ''}`}>
           <thead>
             <tr>
               <th>Name</th>
@@ -251,7 +262,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
               {isTransport ? (
                 <>
                   <th className="num">Time</th>
-                  <th>Baggage (economy)</th>
+                  <th className="baggage-head">Baggage (economy)</th>
                   <th>Comfort</th>
                 </>
               ) : (
@@ -259,7 +270,8 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
               )}
               <th>Rating</th>
               <th>Score</th>
-              <th>Notes</th>
+              {/* Transport rows are already full (baggage, comfort): their notes are in the edit form only. */}
+              {!isTransport && <th>Notes</th>}
               <th aria-label="Actions" />
             </tr>
           </thead>
@@ -290,7 +302,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
     (a, b) => Number(b.scope === 'international') - Number(a.scope === 'international'),
   )
   const inPlan = (option.placeId && placeIds.has(option.placeId)) || (option.expenseId && expenseIds.has(option.expenseId))
-  const columns = 7 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 2 : 0)
+  const columns = 7 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 1 : 0)
 
   const setStatus = (status: OptionStatus) => updateOption(option.id, { status: option.status === status ? 'idea' : status })
 
@@ -299,9 +311,21 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
       <tr className={`option-row status-${option.status}`}>
         <td className="option-name" data-label="Name">
           <span className="option-title">
-            {option.status === 'favorite' && <span title="Favorite">🌟 </span>}
-            {option.status === 'chosen' && <span title="Chosen">✅ </span>}
-            {journey && <span aria-hidden="true">{JOURNEY_ICON[journey.mode]} </span>}
+            {option.status === 'favorite' && (
+              <span className="status-mark favorite" title="Favorite">
+                <Icon name="star" size={15} filled />
+              </span>
+            )}
+            {option.status === 'chosen' && (
+              <span className="status-mark chosen" title="Chosen">
+                <Icon name="check" size={15} weight={2.6} />
+              </span>
+            )}
+            {journey && (
+              <span aria-hidden="true">
+                <Icon name={JOURNEY_ICON[journey.mode]} size={16} />{' '}
+              </span>
+            )}
             {option.link ? (
               <a href={option.link} target="_blank" rel="noreferrer">
                 {journey ? <RouteChain journey={journey} /> : option.name}
@@ -316,7 +340,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             <span className="chips option-chips">
               {journeyChips(journey).map((c) => (
                 <span key={c.text} className={`chip${c.warn ? ' warn' : ''}`}>
-                  {c.text}
+                  {c.warn && <Icon name="warning" size={14} />} {c.text}
                 </span>
               ))}
               {fares.length > 1 && cheapest?.price && (
@@ -344,7 +368,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             <span className="badges">
               {item.badges.map((b) => (
                 <span key={b} className={`badge badge-${b}`}>
-                  {BADGE_LABEL[b]}
+                  <Icon name={BADGE_ICON[b]} size={13} filled={b === 'top-rated'} /> {BADGE_LABEL[b]}
                 </span>
               ))}
             </span>
@@ -414,9 +438,11 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             </span>
           )}
         </td>
-        <td className="option-notes" data-label="Notes">
-          {option.notes ? <span className="small">{option.notes}</span> : <span className="muted">—</span>}
-        </td>
+        {!isTransport && (
+          <td className="option-notes" data-label="Notes">
+            {option.notes ? <span className="small">{option.notes}</span> : <span className="muted">—</span>}
+          </td>
+        )}
         <td className="option-actions">
           <button
             type="button"
@@ -425,7 +451,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             aria-pressed={option.status === 'favorite'}
             onClick={() => setStatus('favorite')}
           >
-            {option.status === 'favorite' ? '★' : '☆'}
+            <Icon name="star" filled={option.status === 'favorite'} />
           </button>
           <button
             type="button"
@@ -434,7 +460,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             aria-pressed={option.status === 'chosen'}
             onClick={() => (option.status === 'chosen' ? setStatus('chosen') : setChoosing(!choosing))}
           >
-            ✓
+            <Icon name="check" />
           </button>
           <button
             type="button"
@@ -443,7 +469,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             aria-pressed={option.status === 'discarded'}
             onClick={() => setStatus('discarded')}
           >
-            ✕
+            <Icon name="close" />
           </button>
           <button type="button" className="ghost icon-button option-edit" onClick={() => onEdit(option)} aria-label={`Edit ${option.name}`} title="Edit">
             <Icon name="edit" size={19} weight={2.4} />

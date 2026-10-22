@@ -3,6 +3,7 @@
 
 import { dateRange } from '../dates'
 import { deleteTripMap } from '../offlineMap/download'
+import { shiftStops } from './baseStops'
 import { db } from './db'
 import type { Day, Place, Trip } from './model'
 
@@ -99,10 +100,19 @@ export async function deletePlace(id: string): Promise<void> {
     const place = await db.places.get(id)
     if (!place) return
     const day = await db.days.get(place.dayId)
-    if (day) await db.days.update(day.id, { placeIds: day.placeIds.filter((p) => p !== id) })
+    if (day) await removeFromDay(day, id)
     await db.legs.where('fromPlaceId').equals(id).delete()
     await db.legs.where('toPlaceId').equals(id).delete()
     await db.places.delete(id)
+  })
+}
+
+/** Takes a place out of a day's order; base stops after it move back one place, so they stay between the same places. */
+async function removeFromDay(day: Day, placeId: string): Promise<void> {
+  const index = day.placeIds.indexOf(placeId)
+  await db.days.update(day.id, {
+    placeIds: day.placeIds.filter((p) => p !== placeId),
+    baseStops: index < 0 ? day.baseStops : shiftStops(day.baseStops, index),
   })
 }
 
@@ -142,7 +152,7 @@ export async function movePlaceToDay(placeId: string, toDayId: string): Promise<
     if (!place || place.dayId === toDayId) return
     const [from, to] = await Promise.all([db.days.get(place.dayId), db.days.get(toDayId)])
     if (!to) return
-    if (from) await db.days.update(from.id, { placeIds: from.placeIds.filter((p) => p !== placeId) })
+    if (from) await removeFromDay(from, placeId)
     await db.days.update(to.id, { placeIds: [...to.placeIds, placeId] })
     await db.places.update(placeId, { dayId: toDayId })
   })

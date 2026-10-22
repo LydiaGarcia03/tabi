@@ -7,6 +7,7 @@ import { formatHours } from '../planning/journeys'
 import { googleFlightsUrl, planFlights, planJourney, type FlightPlan, type Priority } from '../planning/flightPlanner'
 import { loadJson, saveJson } from '../settings'
 import { BaggageBreakdown } from './AirlineGuide'
+import { Icon } from './Icon'
 
 interface Saved {
   from: string
@@ -288,10 +289,16 @@ function PlanCard({
 
       <div className="row wrap">
         <a className="button" href={googleFlightsUrl(plan, date || undefined)} target="_blank" rel="noreferrer">
-          Check price on Google Flights ↗
+          <Icon name="external" size={16} /> Check price on Google Flights
         </a>
         <button type="button" className={saved ? '' : 'primary'} disabled={saved} onClick={onSave}>
-          {saved ? 'Saved ✓' : 'Save as option'}
+          {saved ? (
+            <>
+              <Icon name="check" size={16} /> Saved
+            </>
+          ) : (
+            'Save as option'
+          )}
         </button>
       </div>
     </li>

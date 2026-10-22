@@ -117,7 +117,13 @@ function withNewIds(data: TripData): TripData {
   const now = new Date().toISOString()
   return {
     trip: { ...data.trip, id: tripId, name: `${data.trip.name} (copy)`, createdAt: now, updatedAt: now },
-    days: data.days.map((d) => ({ ...d, id: remap(d.id), tripId, placeIds: d.placeIds.map(remap) })),
+    days: data.days.map((d) => ({
+      ...d,
+      id: remap(d.id),
+      tripId,
+      placeIds: d.placeIds.map(remap),
+      baseStops: d.baseStops?.map((s) => ({ ...s, id: remap(s.id), stayId: remap(s.stayId) })),
+    })),
     places: data.places.map((p) => ({ ...p, id: remap(p.id), tripId, dayId: remap(p.dayId) })),
     legs: data.legs.map((l) => ({
       ...l,

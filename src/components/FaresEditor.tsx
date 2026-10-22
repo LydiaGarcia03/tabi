@@ -1,6 +1,7 @@
 import { today } from '../dates'
 import type { OptionFare } from '../db/model'
 import { isStale } from '../planning/fares'
+import { Icon } from './Icon'
 
 interface Props {
   fares: OptionFare[]
@@ -90,7 +91,7 @@ export function FaresEditor({ fares, index, currency, suggestions, onChange }: P
               />
               {several && (
                 <button type="button" className="ghost icon-button" onClick={() => remove(i)} aria-label={`Remove ${label}`}>
-                  ✕
+                  <Icon name="close" size={16} />
                 </button>
               )}
             </li>

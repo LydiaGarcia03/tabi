@@ -1,4 +1,5 @@
 import type { BookAhead, OptionKind, OptionStatus, PlaceKind } from '../db/model'
+import type { IconName } from '../iconPaths'
 
 export const OPTION_KINDS: OptionKind[] = ['hotel', 'restaurant', 'place', 'shop', 'transport']
 
@@ -7,19 +8,21 @@ export const DAY_KINDS: OptionKind[] = ['restaurant', 'place', 'shop']
 
 export const PLACE_KINDS: PlaceKind[] = ['place', 'restaurant', 'shop', 'other']
 
+/** Plain text: shown in a dropdown, which can't hold icons. */
 export const PLACE_KIND_LABEL: Record<PlaceKind, string> = {
-  place: '⛩️ Place',
-  restaurant: '🍜 Restaurant',
-  shop: '🛍️ Shop',
-  other: '📦 Other',
+  place: 'Place',
+  restaurant: 'Restaurant',
+  shop: 'Shop',
+  other: 'Other',
 }
 
-export const KIND_ICON: Record<OptionKind, string> = {
-  hotel: '🏨',
-  restaurant: '🍜',
-  place: '⛩️',
-  shop: '🛍️',
-  transport: '✈️',
+/** Line icon of each kind (see iconPaths.ts). */
+export const KIND_ICON: Record<OptionKind, IconName> = {
+  hotel: 'home',
+  restaurant: 'food',
+  place: 'binoculars',
+  shop: 'bag',
+  transport: 'plane',
 }
 
 export const KIND_PLURAL: Record<OptionKind, string> = {

@@ -64,10 +64,20 @@ export function PlaceItem({ place, index, count, days, currency, travelers, date
             {/* On its own line, so it doesn't move around with the length of the line above. */}
             {place.bookAhead && (
               <span className={`small${place.booked ? ' muted' : ' warning'}`}>
-                {place.booked ? `✓ ${BOOKED_LABEL[place.bookAhead]}` : BOOK_AHEAD_LABEL[place.bookAhead]}
+                {place.booked ? (
+                  <>
+                    <Icon name="check" size={14} /> {BOOKED_LABEL[place.bookAhead]}
+                  </>
+                ) : (
+                  BOOK_AHEAD_LABEL[place.bookAhead]
+                )}
               </span>
             )}
-            {conflict && <span className="warning small">⚠ {conflict}</span>}
+            {conflict && (
+              <span className="warning small">
+                <Icon name="warning" size={15} /> {conflict}
+              </span>
+            )}
             {!selected && place.notes && <span className="muted small place-notes-preview">{place.notes}</span>}
           </span>
           <span className="place-chevron" aria-hidden="true">
@@ -255,10 +265,10 @@ function PlaceEditor({ place, index, count, days, currency, travelers }: Omit<Pr
       </label>
       <div className="row wrap place-actions">
         <button type="button" disabled={index === 0} onClick={() => movePlaceInDay(place.dayId, place.id, -1)}>
-          ↑ Up
+          <Icon name="up" size={16} /> Up
         </button>
         <button type="button" disabled={index === count - 1} onClick={() => movePlaceInDay(place.dayId, place.id, 1)}>
-          ↓ Down
+          <Icon name="down" size={16} /> Down
         </button>
         <button
           type="button"

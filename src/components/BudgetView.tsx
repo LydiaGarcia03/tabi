@@ -1,4 +1,5 @@
-import { CATEGORIES, CATEGORY_LABEL, inDisplayCurrency, totalsList, type Budget, type Totals } from '../budget'
+import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, inDisplayCurrency, totalsList, type Budget, type Totals } from '../budget'
+import { Icon } from './Icon'
 import type { Trip } from '../db/model'
 import { formatMoney } from '../format'
 
@@ -48,7 +49,9 @@ export function BudgetBreakdown({ budget, trip, title }: { budget: Budget; trip:
         <ul className="budget-categories">
           {categories.map((c) => (
             <li key={c}>
-              <span>{CATEGORY_LABEL[c]}</span>
+              <span>
+                <Icon name={CATEGORY_ICON[c]} size={16} /> {CATEGORY_LABEL[c]}
+              </span>
               <MoneyTotals totals={budget.byCategory[c]!} trip={trip} />
             </li>
           ))}

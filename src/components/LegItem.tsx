@@ -9,6 +9,7 @@ import { translateRouteResult } from '../i18n/japaneseNames'
 import { computeWalkingRoute } from '../routing/googleProvider'
 import { navitimeProvider, suggestionDate } from '../routing/providers'
 import { RouteProviderError, type Money, type RouteOption } from '../routing/types'
+import { Icon } from './Icon'
 import { SegmentForm } from './SegmentForm'
 import { SegmentView } from './SegmentView'
 
@@ -26,10 +27,12 @@ interface Props {
   onToggle: () => void
   /** Starts drawing a segment on the day map. */
   onDraw: (drawing: Drawing) => void
+  /** Adds a "back to base" stop between the two places (hidden when not given). */
+  onAddBaseStop?: () => void
 }
 
 /** "How to get there" between two consecutive places. */
-export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw }: Props) {
+export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw, onAddBaseStop }: Props) {
   const segments = leg?.segments ?? []
   return (
     <li className={`leg-item${open ? ' open' : ''}${segments.length ? '' : ' empty'}`}>
@@ -50,6 +53,7 @@ export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, o
           currency={currency}
           hasGoogleKey={hasGoogleKey}
           onDraw={onDraw}
+          onAddBaseStop={onAddBaseStop}
         />
       )}
     </li>
@@ -63,7 +67,7 @@ function LegSummary({ segments }: { segments: Segment[] }) {
     <span className="leg-chips">
       {segments.map((s) => (
         <span key={s.id} className="chip">
-          {MODE_ICON[s.mode]} {s.mode !== 'walk' && s.lineName ? `${s.lineName} ` : ''}
+          <Icon name={MODE_ICON[s.mode]} size={15} /> {s.mode !== 'walk' && s.lineName ? `${s.lineName} ` : ''}
           {s.durationMinutes != null && <span className="muted">{s.durationMinutes}′</span>}
         </span>
       ))}
@@ -77,7 +81,7 @@ function LegSummary({ segments }: { segments: Segment[] }) {
 
 type Editing = { kind: 'new' } | { kind: 'edit'; id: string } | null
 
-function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw }: Omit<Props, 'open' | 'onToggle'>) {
+function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw, onAddBaseStop }: Omit<Props, 'open' | 'onToggle'>) {
   const [busy, setBusy] = useState<'transit' | 'walk' | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
@@ -155,17 +159,36 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
 
   return (
     <div className="leg-editor">
-      <p className="small muted">
-        {from.name} → {to.name}
-      </p>
+      <div className="row between wrap">
+        <p className="small muted">
+          {from.name} → {to.name}
+        </p>
+        {onAddBaseStop && (
+          <button type="button" className="link small" onClick={onAddBaseStop} title="Go back to the hotel between these two places">
+            <Icon name="plus" size={14} /> <Icon name="home" size={15} /> Back to base here
+          </button>
+        )}
+      </div>
 
       <div className="row wrap">
         <button type="button" onClick={suggestTransit} disabled={busy != null}>
-          {busy === 'transit' ? 'Asking NAVITIME…' : '🚇 Suggest transit'}
+          {busy === 'transit' ? (
+            'Asking NAVITIME…'
+          ) : (
+            <>
+              <Icon name="bus" size={16} /> Suggest transit
+            </>
+          )}
         </button>
         {hasGoogleKey && (
           <button type="button" onClick={suggestWalk} disabled={busy != null}>
-            {busy === 'walk' ? 'Asking Google…' : '🚶 Walking route'}
+            {busy === 'walk' ? (
+              'Asking Google…'
+            ) : (
+              <>
+                <Icon name="walk" size={16} /> Walking route
+              </>
+            )}
           </button>
         )}
         <button type="button" onClick={() => setEditing({ kind: 'new' })} disabled={editing != null}>
@@ -285,7 +308,10 @@ function Alternatives({ leg, options, from, to, date }: { leg: Leg; options: Rou
         {options.map((option, i) => (
           <li key={i}>
             <span>
-              {option.segments.map((s) => MODE_ICON[s.mode]).join(' ')} · {formatDuration(option.durationMinutes)}
+              {option.segments.map((s, k) => (
+                <Icon key={k} name={MODE_ICON[s.mode]} size={15} />
+              ))}{' '}
+              · {formatDuration(option.durationMinutes)}
               {option.fare && ` · ${formatMoney(option.fare)}`} · {option.transfers ?? 0} transfer(s)
             </span>
             <button type="button" className="link" onClick={() => chooseAlternative(leg, option, from, to)}>

@@ -1,4 +1,5 @@
 import { addDays, daysBetween } from '../dates'
+import { iconSvg, type IconName } from '../iconPaths'
 import { db } from './db'
 import type { Stay, StayBase, Trip } from './model'
 
@@ -9,7 +10,29 @@ export async function addStay(input: Omit<Stay, 'id'>): Promise<string> {
 }
 
 export async function updateStay(id: string, changes: Partial<Omit<Stay, 'id' | 'tripId'>>): Promise<void> {
-  await db.stays.update(id, changes)
+  await db.transaction('rw', db.stays, db.days, db.legs, async () => {
+    await db.stays.update(id, changes)
+    const stay = await db.stays.get(id)
+    if (changes.base && stay) await syncBaseStops(stay, changes.base)
+  })
+}
+
+/**
+ * Keeps the days' "back to base" stops in sync with their stay's base
+ * (renamed, or another hotel). When it moved, routes to the old spot are removed.
+ */
+async function syncBaseStops(stay: Stay, base: StayBase): Promise<void> {
+  const days = await db.days.where('tripId').equals(stay.tripId).toArray()
+  for (const day of days) {
+    const stops = day.baseStops ?? []
+    if (!stops.some((s) => s.stayId === stay.id)) continue
+    for (const s of stops) {
+      if (s.stayId !== stay.id || (s.base.lat === base.lat && s.base.lng === base.lng)) continue
+      await db.legs.where('fromPlaceId').equals(s.id).delete()
+      await db.legs.where('toPlaceId').equals(s.id).delete()
+    }
+    await db.days.update(day.id, { baseStops: stops.map((s) => (s.stayId === stay.id ? { ...s, base } : s)) })
+  }
 }
 
 export async function deleteStay(id: string): Promise<void> {
@@ -18,9 +41,14 @@ export async function deleteStay(id: string): Promise<void> {
 
 const isDayTrip = (stay: Stay) => stay.kind === 'day-trip'
 
-/** The base's pin on the maps: what it is, or a house for older bases. */
-export function baseIcon(base: StayBase): string {
-  return base.kind === 'hotel' ? '🏨' : base.kind === 'station' ? '🚉' : base.kind === 'other' ? '📍' : '🏠'
+/** The base's icon (lists and map markers): a house for a hotel (and older bases), a train for a station, a pin otherwise. */
+export function baseIcon(base: Pick<StayBase, 'kind'>): IconName {
+  return base.kind === 'station' ? 'station' : base.kind === 'other' ? 'pin' : 'home'
+}
+
+/** The base's map marker: its icon on a small dark tile (not a pin: it's not a place of the day). */
+export function baseMarkerSvg(base: Pick<StayBase, 'kind'>): string {
+  return iconSvg(baseIcon(base), { size: 18, weight: 2, color: '#ffffff' })
 }
 
 /** Cities of a day: one, or two on a travel day (sorted by start; a day trip first, it's where the day is spent). */

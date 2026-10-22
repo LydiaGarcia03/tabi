@@ -1,3 +1,4 @@
+import type { IconName } from './iconPaths'
 import type { Money, SegmentMode } from './routing/types'
 
 const tokyoTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' })
@@ -41,26 +42,28 @@ export function formatMoney(money: Money | undefined): string {
   return new Intl.NumberFormat('en', { style: 'currency', currency: money.currency }).format(money.amount)
 }
 
-export const MODE_ICON: Record<SegmentMode, string> = {
-  walk: '🚶',
-  bus: '🚌',
-  train: '🚆',
-  shinkansen: '🚅',
-  subway: '🚇',
-  taxi: '🚕',
-  ferry: '⛴️',
-  other: '➡️',
+/** Line icon of each mode (see iconPaths.ts). */
+export const MODE_ICON: Record<SegmentMode, IconName> = {
+  walk: 'walk',
+  bus: 'bus',
+  train: 'train',
+  shinkansen: 'shinkansen',
+  subway: 'subway',
+  taxi: 'taxi',
+  ferry: 'ferry',
+  other: 'arrow',
 }
 
+/** Plain text (dropdowns, shared text and KML can't show icons). */
 export const MODE_LABEL: Record<SegmentMode, string> = {
-  walk: '🚶 Walk',
-  bus: '🚌 Bus',
-  train: '🚆 Train',
-  shinkansen: '🚅 Shinkansen',
-  subway: '🚇 Subway',
-  taxi: '🚕 Taxi',
-  ferry: '⛴️ Ferry',
-  other: '➡️ Other',
+  walk: 'Walk',
+  bus: 'Bus',
+  train: 'Train',
+  shinkansen: 'Shinkansen',
+  subway: 'Subway',
+  taxi: 'Taxi',
+  ferry: 'Ferry',
+  other: 'Other',
 }
 
 export const MODE_COLOR: Record<SegmentMode, string> = {

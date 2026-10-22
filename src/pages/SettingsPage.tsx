@@ -1,3 +1,4 @@
+import { Icon } from '../components/Icon'
 import { installApp, useInstallState } from '../install'
 import { SettingsPanel } from '../SettingsPanel'
 import { href } from '../router'
@@ -37,7 +38,12 @@ export function SettingsPage() {
       <SettingsPanel />
       <section className="card">
         <h2>Developer</h2>
-        <a href={href({ page: 'transit-spike' })}>Transit spike (Google vs NAVITIME)</a>
+        <p>
+          <a href={href({ page: 'transit-spike' })}>Transit spike (Google vs NAVITIME)</a>
+        </p>
+        <p>
+          <a href={href({ page: 'icons' })}>Icons</a>
+        </p>
       </section>
     </>
   )
@@ -70,7 +76,15 @@ function InstallCard() {
           </ul>
         </>
       )}
-      <p className="muted small">{offlineReady ? '✓ Saved for offline use on this device.' : 'Not saved for offline use yet: reload the page once.'}</p>
+      <p className="muted small">
+        {offlineReady ? (
+          <>
+            <Icon name="check" size={14} /> Saved for offline use on this device.
+          </>
+        ) : (
+          'Not saved for offline use yet: reload the page once.'
+        )}
+      </p>
     </section>
   )
 }

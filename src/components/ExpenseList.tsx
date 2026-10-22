@@ -4,7 +4,8 @@ import { addDays, daysBetween, formatDay } from '../dates'
 import { addExpense, deleteExpense, updateExpense } from '../db/expenses'
 import type { Expense, ExpenseCategory, Trip } from '../db/model'
 import { formatMoney } from '../format'
-import { journeyDetails, journeyTitle } from '../planning/journeys'
+import { JOURNEY_ICON, journeyDetails, journeyTitle } from '../planning/journeys'
+import { Icon, type IconName } from './Icon'
 import { JourneyItinerary } from './JourneyLegs'
 import { HotelForm, JourneyForm, type BookingValues } from './BookingForms'
 
@@ -84,10 +85,10 @@ export function ExpenseList({ trip, dayId, expenses }: Props) {
           {tripWide && (
             <>
               <button type="button" onClick={() => setEditing('new-journey')}>
-                + ✈️🚅 Transport
+                <Icon name="plus" size={14} /> <Icon name="plane" size={16} /> Transport
               </button>
               <button type="button" onClick={() => setEditing('new-hotel')}>
-                + 🏨 Hotel
+                <Icon name="plus" size={14} /> <Icon name="home" size={16} /> Hotel
               </button>
             </>
           )}
@@ -116,14 +117,17 @@ function ExpenseGroup({ title, aside, children }: { title?: string; aside?: Reac
 
 function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void }) {
   const { hotel, journey } = expense
-  let title = `${CATEGORY_ICON[expense.category]} ${expense.description}`
+  let icon: IconName = CATEGORY_ICON[expense.category]
+  let title = expense.description
   const details: string[] = []
   if (hotel) {
-    title = `🏨 ${hotel.name}`
+    icon = 'home'
+    title = hotel.name
     if (hotel.checkIn && hotel.checkOut) details.push(`${formatDay(hotel.checkIn)} → ${formatDay(hotel.checkOut)}`)
     details.push(`${hotel.nights} ${hotel.nights === 1 ? 'night' : 'nights'}`)
     if (hotel.perNight != null) details.push(`${formatMoney({ amount: hotel.perNight, currency: expense.amount.currency })}/night`)
   } else if (journey) {
+    icon = JOURNEY_ICON[journey.mode]
     title = journeyTitle(journey)
     if (journey.date) details.push(`${formatDay(journey.date)}${journey.time ? ` ${journey.time}` : ''}`)
     details.push(...journeyDetails(journey))
@@ -133,7 +137,9 @@ function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void 
   return (
     <div className="expense-row">
       <span className="expense-main">
-        <span>{title}</span>
+        <span>
+          <Icon name={icon} size={16} /> {title}
+        </span>
         {details.length > 0 && <span className="muted small">{details.join(' · ')}</span>}
         {journey && <JourneyItinerary journey={journey} />}
       </span>

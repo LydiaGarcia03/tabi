@@ -77,7 +77,7 @@ export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
               setError('')
             }}
           >
-            {KIND_ICON[k]} {KIND_PLURAL[k]} <span className="count">{count(k)}</span>
+            <Icon name={KIND_ICON[k]} size={16} /> {KIND_PLURAL[k]} <span className="count">{count(k)}</span>
           </button>
         ))}
       </div>
@@ -95,7 +95,8 @@ export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
             <optgroup key={city} label={city}>
               {list.map((o) => (
                 <option key={o.id} value={o.id} disabled={o.lat == null || o.lng == null}>
-                  {o.status === 'favorite' ? '🌟 ' : ''}
+                  {/* Inside a dropdown only text works: a plain star character, not an emoji. */}
+                  {o.status === 'favorite' ? '★ ' : ''}
                   {o.name}
                   {o.category ? ` · ${o.category}` : ''}
                   {o.lat == null || o.lng == null ? ' (not on the map yet)' : inPlan(o) ? ' (already in the itinerary)' : ''}

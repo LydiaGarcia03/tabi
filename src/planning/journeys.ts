@@ -1,16 +1,18 @@
 import { findAirline } from '../data/airlines'
 import type { Expense, Journey, JourneyLeg, JourneyMode } from '../db/model'
 import type { Stay } from '../db/model'
+import type { IconName } from '../iconPaths'
 
 export const JOURNEY_MODES: JourneyMode[] = ['flight', 'shinkansen', 'train', 'bus', 'ferry', 'car']
 
-export const JOURNEY_ICON: Record<JourneyMode, string> = {
-  flight: '✈️',
-  shinkansen: '🚅',
-  train: '🚆',
-  bus: '🚌',
-  ferry: '⛴️',
-  car: '🚗',
+/** Line icon of each mode (see iconPaths.ts). */
+export const JOURNEY_ICON: Record<JourneyMode, IconName> = {
+  flight: 'plane',
+  shinkansen: 'shinkansen',
+  train: 'train',
+  bus: 'bus',
+  ferry: 'ferry',
+  car: 'car',
 }
 
 export const JOURNEY_LABEL: Record<JourneyMode, string> = {
@@ -204,9 +206,9 @@ export function formatDuration(minutes: number): string {
   return formatHours(minutes / 60)
 }
 
-/** "✈️ Navegantes → Osaka" */
+/** "Navegantes → Osaka" (shown after the mode's icon, JOURNEY_ICON). */
 export function journeyTitle(journey: Journey): string {
-  return `${JOURNEY_ICON[journey.mode]} ${journey.from} → ${journey.to}`
+  return `${journey.from} → ${journey.to}`
 }
 
 export function journeyDetails(journey: Journey): string[] {

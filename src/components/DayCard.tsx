@@ -1,7 +1,8 @@
 import type { Budget } from '../budget'
 import { dateParts } from '../dates'
 import type { Day, Journey, Place, Trip } from '../db/model'
-import { journeyTitle } from '../planning/journeys'
+import { JOURNEY_ICON, journeyTitle } from '../planning/journeys'
+import { Icon } from './Icon'
 import { formatDuration } from '../format'
 import { href } from '../router'
 import { MoneyTotals } from './BudgetView'
@@ -44,7 +45,7 @@ export function DayCard({ trip, day, number, city, journeys, places, travelMinut
         </span>
         {journeys.map((j, i) => (
           <span key={i} className="day-card-journey small">
-            {journeyTitle(j)}
+            <Icon name={JOURNEY_ICON[j.mode]} size={15} /> {journeyTitle(j)}
             {j.time && <span className="muted"> · {j.time}</span>}
           </span>
         ))}

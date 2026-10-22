@@ -7,6 +7,7 @@ import { db } from './db/db'
 import { BudgetPage } from './pages/BudgetPage'
 import { DayPage } from './pages/DayPage'
 import { LogbookPage } from './pages/LogbookPage'
+import { IconsPage } from './pages/IconsPage'
 import { OptionsPage } from './pages/OptionsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TripPage } from './pages/TripPage'
@@ -117,5 +118,7 @@ function Page({ route }: { route: Route }) {
       return <SettingsPage />
     case 'transit-spike':
       return <TransitSpike hasGoogleKey={!!googleKey} />
+    case 'icons':
+      return <IconsPage />
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { MAX_PHOTOS, resizeImage } from '../db/photos'
+import { Icon } from './Icon'
 
 /** Shows a stored image through a temporary URL, released when no longer shown. */
 function BlobImage({ image, alt }: { image: Blob; alt: string }) {
@@ -141,7 +142,7 @@ export function PhotoPicker({ images, onChange }: { images: Blob[]; onChange: (i
             <BlobImage image={image} alt={`Photo ${i + 1}`} />
             <figcaption>
               <button type="button" className="link" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move left">
-                ←
+                <Icon name="back" size={16} />
               </button>
               <button type="button" className="link" onClick={() => onChange(images.filter((_, j) => j !== i))}>
                 Remove

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Leg, Place, StayBase } from '../db/model'
-import { baseIcon } from '../db/stays'
+import { baseMarkerSvg } from '../db/stays'
 import { drawingPoints, type Drawing } from '../drawing'
 import { segmentColor } from '../format'
 import { drawWalkDot, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT } from '../mapLines'
@@ -30,6 +30,8 @@ interface Props {
   onTap: (tap: LatLng & { name?: string }) => void
   drawing?: Drawing | null
   bases?: Base[]
+  /** The places with the day's "back to base" stops, for the leg lines (default: the places). */
+  route?: Place[]
 }
 
 /** Where a place is drawn on the offline map, and why. */
@@ -188,6 +190,7 @@ function OfflineDayMap({
   onTap,
   drawing,
   bases = [],
+  route,
 }: Omit<Props, 'tripId' | 'places'> & { places: Shown[] }) {
   const dark = useIsDark()
   const container = useRef<HTMLDivElement>(null)
@@ -283,7 +286,7 @@ function OfflineDayMap({
     const baseMarkers = bases.map((base) => {
       const el = document.createElement('span')
       el.className = 'base-pin'
-      el.textContent = baseIcon(base)
+      el.innerHTML = baseMarkerSvg(base)
       el.title = `Base in ${base.city}: ${base.name}`
       return new maplibregl.Marker({ element: el }).setLngLat([base.lng, base.lat]).addTo(map)
     })
@@ -291,15 +294,17 @@ function OfflineDayMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, pinsKey])
 
-  // Legs between consecutive places.
-  const legsKey = places.map((p) => `${p.id}:${p.lat},${p.lng}`).join('|')
+  // Legs between consecutive stops (places where they are drawn, and base stops).
+  const shownById = new Map(places.map((p) => [p.id, p]))
+  const stops = (route ?? places).map((p) => shownById.get(p.id) ?? p)
+  const legsKey = stops.map((p) => `${p.id}:${p.lat},${p.lng}`).join('|')
   useEffect(() => {
     const source = map?.getSource<GeoJSONSource>(LEGS_SOURCE)
     if (!source) return
     const features: GeoJSON.Feature[] = []
-    for (let i = 0; i < places.length - 1; i++) {
-      const from = places[i]
-      const to = places[i + 1]
+    for (let i = 0; i < stops.length - 1; i++) {
+      const from = stops[i]
+      const to = stops[i + 1]
       const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1)
       if (drawn.length === 0) {
         features.push(line([from, to], { style: 'undefined' }))

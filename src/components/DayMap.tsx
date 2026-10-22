@@ -1,7 +1,7 @@
 import { AdvancedMarker, Map, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useEffect, useMemo } from 'react'
 import { legKey } from '../db/legs'
-import { baseIcon } from '../db/stays'
+import { baseMarkerSvg } from '../db/stays'
 import type { Leg, Place, Stay } from '../db/model'
 import { drawingPoints, type Drawing } from '../drawing'
 import { segmentColor } from '../format'
@@ -26,11 +26,13 @@ interface Props {
   drawing?: Drawing | null
   /** Bases of the day's cities (hotel, station…), shown with their own pin. Two on a travel day. */
   bases?: Base[]
+  /** The places with the day's "back to base" stops, for the leg lines (default: the places). */
+  route?: Place[]
 }
 
 type Base = NonNullable<Stay['base']> & { city: string }
 
-export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, bases = [] }: Props) {
+export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, bases = [], route }: Props) {
   const dark = useIsDark()
   return (
     <div className="day-map">
@@ -63,12 +65,10 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
         ))}
         {bases.map((base) => (
           <AdvancedMarker key={`${base.city}|${base.lat},${base.lng}`} position={base} title={`Base in ${base.city}: ${base.name}`} zIndex={-1}>
-            <span className="base-pin" aria-hidden="true">
-              {baseIcon(base)}
-            </span>
+            <span className="base-pin" aria-hidden="true" dangerouslySetInnerHTML={{ __html: baseMarkerSvg(base) }} />
           </AdvancedMarker>
         ))}
-        <LegLines places={places} legs={legs} />
+        <LegLines places={route ?? places} legs={legs} />
         {drawing && <DraftLayer drawing={drawing} />}
         <FitToPlaces places={[...places, ...bases]} />
       </Map>

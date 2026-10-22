@@ -2,10 +2,12 @@
 // converted for display, with the trip's manual exchange rate
 // (1 baseCurrency = exchangeRate displayCurrency).
 
+import { dayRoute } from './db/baseStops'
 import { legKey } from './db/legs'
 import type { Day, Expense, ExpenseCategory, Leg, Place, PlaceKind, Segment, Trip, TripOption } from './db/model'
 import { orderPlaces } from './db/trips'
 import { formatMoney } from './format'
+import type { IconName } from './iconPaths'
 import type { Money } from './routing/types'
 
 /** Amount per currency code, e.g. { JPY: 12300, BRL: 200 }. */
@@ -18,16 +20,18 @@ export interface Budget {
 
 export const CATEGORIES: ExpenseCategory[] = ['activities', 'transport', 'lodging', 'food', 'shopping', 'other']
 
-export const CATEGORY_ICON: Record<ExpenseCategory, string> = {
-  activities: '🎟️',
-  transport: '🚆',
-  lodging: '🏨',
-  food: '🍜',
-  shopping: '🛍️',
-  other: '📦',
+/** Line icon of each category (see iconPaths.ts). */
+export const CATEGORY_ICON: Record<ExpenseCategory, IconName> = {
+  activities: 'ticket',
+  transport: 'train',
+  lodging: 'home',
+  food: 'food',
+  shopping: 'bag',
+  other: 'box',
 }
 
-const CATEGORY_NAME: Record<ExpenseCategory, string> = {
+/** Plain text (dropdowns can't show icons; elsewhere it goes after CATEGORY_ICON). */
+export const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
   activities: 'Activities',
   transport: 'Transport',
   lodging: 'Lodging',
@@ -35,10 +39,6 @@ const CATEGORY_NAME: Record<ExpenseCategory, string> = {
   shopping: 'Shopping',
   other: 'Other',
 }
-
-export const CATEGORY_LABEL = Object.fromEntries(
-  CATEGORIES.map((c) => [c, `${CATEGORY_ICON[c]} ${CATEGORY_NAME[c]}`]),
-) as Record<ExpenseCategory, string>
 
 export function emptyBudget(): Budget {
   return { total: {}, byCategory: {} }
@@ -132,11 +132,12 @@ export function dayBudget(
   travelers: number,
 ): Budget {
   const budget = emptyBudget()
-  const places = orderPlaces(day, dayPlaces)
-  places.forEach((place, i) => {
-    add(budget, PLACE_KIND_CATEGORY[place.kind ?? 'place'], placeCost(place, travelers))
-    const next = places[i + 1]
-    if (next) legs.get(legKey(place.id, next.id))?.segments.forEach((s) => add(budget, 'transport', segmentCost(s, travelers)))
+  // With the base stops: going back to the hotel costs its fares too.
+  const route = dayRoute(day, orderPlaces(day, dayPlaces))
+  route.forEach((stop, i) => {
+    if (!stop.baseStop) add(budget, PLACE_KIND_CATEGORY[stop.kind ?? 'place'], placeCost(stop, travelers))
+    const next = route[i + 1]
+    if (next) legs.get(legKey(stop.id, next.id))?.segments.forEach((s) => add(budget, 'transport', segmentCost(s, travelers)))
   })
   dayExpenses.forEach((e) => add(budget, e.category, e.amount))
   return budget

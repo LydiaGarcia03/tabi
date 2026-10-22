@@ -19,6 +19,7 @@ import {
 import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
 import { FaresEditor } from './FaresEditor'
+import { Icon } from './Icon'
 import { LocateSearch } from './LocateSearch'
 import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { PhotoPicker } from './Photos'
@@ -177,7 +178,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
         <div className="segmented" role="radiogroup" aria-label="Kind">
           {OPTION_KINDS.map((k) => (
             <button key={k} type="button" role="radio" aria-checked={kind === k} className={kind === k ? 'active' : ''} onClick={() => setKind(k)}>
-              {KIND_ICON[k]} {KIND_SINGULAR[k]}
+              <Icon name={KIND_ICON[k]} size={16} /> {KIND_SINGULAR[k]}
             </button>
           ))}
         </div>
@@ -321,7 +322,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
           <span className="field-label">Location on map</span>
           {location ? (
             <p className="small">
-              📍 {location.address ?? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}{' '}
+              <Icon name="pin" size={15} /> {location.address ?? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}{' '}
               <button type="button" className="link" onClick={() => setLocation(null)}>
                 Change
               </button>

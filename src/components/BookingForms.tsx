@@ -15,6 +15,7 @@ import {
   withLegSummary,
 } from '../planning/journeys'
 import { BaggageBreakdown } from './AirlineGuide'
+import { Icon } from './Icon'
 import { ExtraInfo, JourneyLegsEditor, legsHaveDetails } from './JourneyLegs'
 
 /** "+ Connections" with what it does on a second line ("choose the airlines on the way"). */
@@ -96,7 +97,9 @@ export function HotelForm({ trip, expense, onSave, onCancel }: FormProps) {
 
   return (
     <form className="expense-form booking-form" onSubmit={submit}>
-      <h4>🏨 Hotel</h4>
+      <h4>
+        <Icon name="home" /> Hotel
+      </h4>
       <label>
         Hotel name
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Hotel Gracery Shinjuku" autoFocus />
@@ -194,7 +197,7 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
   return (
     <form className="expense-form booking-form" onSubmit={submit}>
       <h4>
-        {JOURNEY_ICON[journey.mode]} {JOURNEY_LABEL[journey.mode]}
+        <Icon name={JOURNEY_ICON[journey.mode]} /> {JOURNEY_LABEL[journey.mode]}
       </h4>
       <JourneyFields journey={journey} onChange={setJourney} />
       <div className="field-row">
@@ -295,7 +298,7 @@ export function JourneyFields({
             className={journey.mode === m ? 'active' : ''}
             onClick={() => set({ mode: m })}
           >
-            {JOURNEY_ICON[m]} {JOURNEY_LABEL[m]}
+            <Icon name={JOURNEY_ICON[m]} size={16} /> {JOURNEY_LABEL[m]}
           </button>
         ))}
       </div>
