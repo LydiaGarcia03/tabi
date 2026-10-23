@@ -39,17 +39,28 @@ export function windowFor(hours: OpeningHours | undefined, weekday: number): Win
   return ranges.map(rangeMinutes).sort((a, b) => a.open - b.open)
 }
 
+/** Open 24 hours: stored as one range that opens and closes at midnight. */
+export const ALL_DAY: TimeRange = { open: '00:00', close: '00:00' }
+
+/** A range that closes when it opens (a full turn of the clock) means open all day. */
+export function isAllDay(ranges: TimeRange[] | null | undefined): boolean {
+  return !!ranges?.some((r) => r.open === r.close)
+}
+
 export function rangeMinutes(range: TimeRange): Interval {
+  // Never closes: no visit can run late.
+  if (range.open === range.close) return { open: 0, close: Infinity }
   const open = toMinutes(range.open)
   let close = toMinutes(range.close)
   if (close <= open) close += 1440 // Ends after midnight ("00:00" = midnight).
   return { open, close }
 }
 
-/** "09:00–17:00", "11:00–13:00, 18:00–22:00", "Closed" or "" when unknown. */
+/** "09:00–17:00", "11:00–13:00, 18:00–22:00", "Open 24 hours", "Closed" or "" when unknown. */
 export function describeWindow(window: Window): string {
   if (window === 'unknown') return ''
   if (window === 'closed') return 'Closed'
+  if (window.some((i) => i.close === Infinity)) return 'Open 24 hours'
   return window.map((i) => `${formatMinutes(i.open)}–${formatMinutes(i.close)}`).join(', ')
 }
 
@@ -70,8 +81,10 @@ export function describeWeek(hours: OpeningHours): string {
   const open = groups.filter((g) => g.text)
   const closed = groups.filter((g) => !g.text)
   const texts = new Set(open.map((g) => g.text))
+  // After a day name: "Sat–Sun 24 hours".
+  const short = (text: string) => (text === 'Open 24 hours' ? '24 hours' : text)
   // The same hours on every open day: no need to name the days.
-  const openText = texts.size === 1 ? [...texts][0] : open.map((g) => `${label(g.days)} ${g.text}`).join('; ')
+  const openText = texts.size === 1 ? [...texts][0] : open.map((g) => `${label(g.days)} ${short(g.text)}`).join('; ')
   const closedText = closed.length ? `Closed ${closed.map((g) => label(g.days)).join(', ')}` : ''
   return [openText, closedText].filter(Boolean).join(' · ')
 }

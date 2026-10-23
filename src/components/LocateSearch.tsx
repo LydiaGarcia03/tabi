@@ -3,7 +3,7 @@ import { searchPlaces, type PlaceResult } from '../places/googlePlaces'
 import { useOnline } from '../useOnline'
 
 interface Props {
-  /** Prefilled search text (e.g. the option name and city). */
+  /** Prefilled search text (e.g. the option name). */
   initialQuery?: string
   onPick: (place: PlaceResult) => void
   placeholder?: string

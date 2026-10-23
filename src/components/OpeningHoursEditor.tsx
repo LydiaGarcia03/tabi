@@ -1,5 +1,5 @@
 import type { OpeningHours, TimeRange } from '../db/model'
-import { formatMinutes, toMinutes, WEEKDAYS } from '../planning/hours'
+import { ALL_DAY, formatMinutes, isAllDay, toMinutes, WEEKDAYS } from '../planning/hours'
 import { useDraft } from '../useDraft'
 import { Icon } from './Icon'
 
@@ -133,6 +133,29 @@ export function OpeningHoursEditor({ value, onChange }: Props) {
   )
 }
 
+/** "All day", next to the first closing time: open 24 hours (unticked = back to the default hours). */
+function AllDayCheck({
+  ranges,
+  onChange,
+  label,
+}: {
+  ranges: TimeRange[]
+  onChange: (ranges: TimeRange[]) => void
+  label: string
+}) {
+  return (
+    <label className="check all-day" title="Open 24 hours">
+      <input
+        type="checkbox"
+        checked={isAllDay(ranges)}
+        aria-label={`${label}: open all day`}
+        onChange={(e) => onChange(e.target.checked ? [ALL_DAY] : DEFAULT_RANGES)}
+      />
+      All day
+    </label>
+  )
+}
+
 /** One or more "opens – closes" rows, with add and remove. */
 function RangesEditor({
   ranges,
@@ -147,6 +170,18 @@ function RangesEditor({
 }) {
   const set = (i: number, change: Partial<TimeRange>) => onChange(ranges.map((r, j) => (j === i ? { ...r, ...change } : r)))
   const several = ranges.length > 1
+  if (isAllDay(ranges))
+    // The times stay in place, greyed out, so the checkbox doesn't move.
+    return (
+      <div className={`hours-ranges${compact ? ' compact' : ''}`}>
+        <span className="hours-range">
+          <input type="time" aria-label={`${label} opens`} value="00:00" disabled />
+          –
+          <input type="time" aria-label={`${label} closes`} value="00:00" disabled />
+          <AllDayCheck ranges={ranges} onChange={onChange} label={label} />
+        </span>
+      </div>
+    )
   return (
     <div className={`hours-ranges${compact ? ' compact' : ''}`}>
       {ranges.map((range, i) => {
@@ -166,6 +201,7 @@ function RangesEditor({
               value={range.close}
               onChange={(e) => e.target.value && set(i, { close: e.target.value })}
             />
+            {i === 0 && <AllDayCheck ranges={ranges} onChange={onChange} label={label} />}
             {several && (
               <button
                 type="button"

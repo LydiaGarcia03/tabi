@@ -329,7 +329,8 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
             </p>
           ) : (
             <LocateSearch
-              initialQuery={[name, city].filter(Boolean).join(' ')}
+              initialQuery={name}
+              near={city || undefined}
               onPick={(p) =>
                 setLocation({ lat: p.lat, lng: p.lng, address: p.address, googlePlaceId: p.googlePlaceId, googleFetchedAt: new Date().toISOString() })
               }
