@@ -270,8 +270,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
               )}
               <th>Rating</th>
               <th>Score</th>
-              {/* Transport rows are already full (baggage, comfort): their notes are in the edit form only. */}
-              {!isTransport && <th>Notes</th>}
+              {/* Notes are in the edit form only: a notes column squeezed the actions out of narrow windows. */}
               <th aria-label="Actions" />
             </tr>
           </thead>
@@ -302,7 +301,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
     (a, b) => Number(b.scope === 'international') - Number(a.scope === 'international'),
   )
   const inPlan = (option.placeId && placeIds.has(option.placeId)) || (option.expenseId && expenseIds.has(option.expenseId))
-  const columns = 7 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 1 : 0)
+  const columns = 6 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 2 : 0)
 
   const setStatus = (status: OptionStatus) => updateOption(option.id, { status: option.status === status ? 'idea' : status })
 
@@ -438,11 +437,6 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             </span>
           )}
         </td>
-        {!isTransport && (
-          <td className="option-notes" data-label="Notes">
-            {option.notes ? <span className="small">{option.notes}</span> : <span className="muted">—</span>}
-          </td>
-        )}
         <td className="option-actions">
           <button
             type="button"

@@ -2271,10 +2271,6 @@ h2 > .city-tag {
   display: block;
 }
 
-.option-notes {
-  max-width: 320px;
-}
-
 /* Transport option: the route as a chain (NVT Gol → GRU Qatar → DOH…), facts as chips. */
 /* Flows like text, breaking only between steps ("Qatar Airways → KIX" stays together). */
 .route-chain-step {
@@ -2854,7 +2850,6 @@ dialog.photo-viewer::backdrop {
   }
 
   .options-table .option-name,
-  .options-table .option-notes,
   .options-table .option-actions {
     grid-column: 1 / -1;
     max-width: none;
