@@ -3318,6 +3318,39 @@ button.day-toggle.active {
   margin-top: 12px;
 }
 
+/* Sync conflict: each choice with what it does next to it. */
+.conflict-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.conflict-choices li {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .conflict-choices li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .conflict-choices button {
+    justify-self: start;
+  }
+}
+
+.conflict-confirm {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
 /* --- Transit spike (developer page) -------------------------------------- */
 
 .result {

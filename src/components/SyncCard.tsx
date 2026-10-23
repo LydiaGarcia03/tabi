@@ -120,44 +120,103 @@ function DriveSpace({ quota }: { quota: SyncStatus['quota'] }) {
   )
 }
 
+interface ChoiceInfo {
+  choice: ConflictChoice
+  label: string
+  /** What happens, shown under the button. */
+  effect: string
+  /** Shown before confirming. */
+  confirm: string
+  danger?: boolean
+}
+
+function conflictChoices(name: string, kind: SyncConflict['kind']): ChoiceInfo[] {
+  return kind === 'both-changed'
+    ? [
+        {
+          choice: 'device',
+          label: "Keep this device's",
+          effect: 'Use the version on this device. The one in Drive (and on your other device) is replaced.',
+          confirm: `Keep this device's “${name}”? The version in Drive and on your other device is replaced by it.`,
+        },
+        {
+          choice: 'drive',
+          label: "Keep Drive's",
+          effect: 'Use the version from your other device. The one on this device is replaced.',
+          confirm: `Keep Drive's “${name}”? The version on this device is replaced by it.`,
+          danger: true,
+        },
+        {
+          choice: 'both',
+          label: 'Keep both',
+          effect: 'Rarely what you want: you end up with two trips, Drive’s version as “(copy)”.',
+          confirm: `Keep both? You'll have two trips: “${name}” from this device and “${name} (copy)” from Drive. You can delete one later.`,
+        },
+      ]
+    : [
+        {
+          choice: 'device',
+          label: 'Keep it',
+          effect: 'The trip stays here and is sent to Drive again (it comes back on your other device).',
+          confirm: `Keep “${name}”? It comes back on your other device too.`,
+        },
+        {
+          choice: 'delete-here',
+          label: 'Delete here too',
+          effect: 'The trip is deleted from this device as well.',
+          confirm: `Delete “${name}” from this device too? This can't be undone.`,
+          danger: true,
+        },
+      ]
+}
+
 function ConflictChoiceBox({ conflict }: { conflict: SyncConflict }) {
   const [busy, setBusy] = useState(false)
+  // Every choice replaces or deletes something: a second tap confirms it.
+  const [picked, setPicked] = useState<ChoiceInfo | null>(null)
   const choose = (choice: ConflictChoice) => {
     setBusy(true)
-    void resolveConflict(conflict.tripId, choice).finally(() => setBusy(false))
+    void resolveConflict(conflict.tripId, choice).finally(() => {
+      setBusy(false)
+      setPicked(null)
+    })
   }
-  const choices: [ConflictChoice, string, string?][] =
-    conflict.kind === 'both-changed'
-      ? [
-          ['device', "Keep this device's"],
-          ['drive', "Keep Drive's", 'danger'],
-          ['both', 'Keep both'],
-        ]
-      : [
-          ['device', 'Keep it'],
-          ['delete-here', 'Delete here too', 'danger'],
-        ]
   return (
     <div className="import-conflict">
       <p className="small">
         {conflict.kind === 'both-changed' ? (
           <>
-            “{conflict.name}” is different here and in Drive (changed on both devices since the last sync). Which one do
-            you keep? The other version is replaced; “Keep both” makes a copy.
+            “{conflict.name}” is different on this device and in Drive: it was changed on both devices since the last
+            sync. Usually you keep the version you edited last.
           </>
         ) : (
-          <>
-            “{conflict.name}” was deleted on another device. Delete it here too, or keep it (it is sent to Drive again)?
-          </>
+          <>“{conflict.name}” was deleted on another device, but it is still here.</>
         )}
       </p>
-      <div className="row wrap">
-        {choices.map(([choice, label, className]) => (
-          <button key={choice} type="button" className={className} disabled={busy} onClick={() => choose(choice)}>
-            {label}
-          </button>
-        ))}
-      </div>
+      {picked ? (
+        <div className="conflict-confirm">
+          <p className="small">{picked.confirm}</p>
+          <div className="row wrap">
+            <button type="button" className={picked.danger ? 'danger' : 'primary'} disabled={busy} onClick={() => choose(picked.choice)}>
+              {busy ? 'Working…' : `Yes, ${picked.label.charAt(0).toLowerCase()}${picked.label.slice(1)}`}
+            </button>
+            <button type="button" disabled={busy} onClick={() => setPicked(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <ul className="conflict-choices">
+          {conflictChoices(conflict.name, conflict.kind).map((info) => (
+            <li key={info.choice}>
+              <button type="button" className={info.danger ? 'danger' : undefined} onClick={() => setPicked(info)}>
+                {info.label}
+              </button>
+              <span className="muted small">{info.effect}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
