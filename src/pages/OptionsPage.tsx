@@ -95,7 +95,11 @@ export function OptionsPage({ tripId }: { tripId: string }) {
   if (trip === undefined || !options || !stays || !days || !placeIds || !expenseIds || !photos) return null
   if (!trip) return <NotFound />
 
-  const counts = Object.fromEntries(OPTION_KINDS.map((k) => [k, options.filter((o) => o.kind === k && o.status !== 'discarded').length]))
+  // Same city filter as the list, so the tab counts match what each tab shows.
+  const inCity = (o: TripOption) => !city || (o.city ?? '').trim().toLowerCase() === city.toLowerCase()
+  const counts = Object.fromEntries(
+    OPTION_KINDS.map((k) => [k, options.filter((o) => o.kind === k && o.status !== 'discarded' && inCity(o)).length]),
+  )
   const context = { trip, stays, days, placeIds, expenseIds, photos, onEdit: (o: TripOption) => setEditing(o) }
   // Airlines in the transport options, highlighted in the airline guide.
   const myAirlines = [
