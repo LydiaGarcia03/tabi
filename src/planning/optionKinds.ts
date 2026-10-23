@@ -53,7 +53,7 @@ export const PRICE_LABEL: Record<OptionKind, string> = {
 /** Common types, picked with one tap (anything else can be typed). */
 export const CATEGORY_PRESETS: Record<OptionKind, string[]> = {
   hotel: ['Business hotel', 'Ryokan', 'Resort', 'Hostel', 'Capsule hotel', 'Apartment'],
-  restaurant: ['Ramen', 'Sushi', 'Izakaya', 'Yakiniku', 'Café', 'Street food'],
+  restaurant: ['Ramen', 'Sushi', 'Izakaya', 'Yakiniku', 'Cafe', 'Street food'],
   place: ['Temple / shrine', 'Museum', 'Park / garden', 'Viewpoint', 'Theme park', 'Neighborhood'],
   shop: ['Anime / manga', 'Souvenirs', 'Records', 'Fashion', 'Department store', 'Market'],
   transport: [],
