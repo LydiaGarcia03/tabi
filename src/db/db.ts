@@ -57,6 +57,37 @@ db.version(8)
     await tx.table('places').toCollection().modify((place) => void upgradePlace(place))
   })
 
+// Tells Drive sync that trip data changed (not the offline map cache).
+const TRIP_TABLES = ['trips', 'days', 'places', 'legs', 'expenses', 'stays', 'options', 'photos']
+const changeListeners = new Set<() => void>()
+
+export function onTripDataChange(listener: () => void): () => void {
+  changeListeners.add(listener)
+  return () => changeListeners.delete(listener)
+}
+
+db.use({
+  stack: 'dbcore',
+  name: 'tripDataChanges',
+  create(down) {
+    return {
+      ...down,
+      table(name) {
+        const table = down.table(name)
+        if (!TRIP_TABLES.includes(name)) return table
+        return {
+          ...table,
+          async mutate(req) {
+            const result = await table.mutate(req)
+            changeListeners.forEach((listener) => listener())
+            return result
+          },
+        }
+      },
+    }
+  },
+})
+
 /** Asks the browser not to evict our data when the device is low on space. */
 export async function requestPersistentStorage(): Promise<void> {
   try {

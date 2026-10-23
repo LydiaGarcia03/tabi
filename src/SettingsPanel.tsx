@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getRapidApiKey, setRapidApiKey } from './settings'
+import { syncNow } from './sync/sync'
 
 export function SettingsPanel() {
   const [key, setKey] = useState(() => getRapidApiKey() ?? '')
@@ -13,6 +14,7 @@ export function SettingsPanel() {
           e.preventDefault()
           setRapidApiKey(key.trim())
           setSaved(true)
+          void syncNow()
         }}
       >
         <label>
@@ -27,7 +29,10 @@ export function SettingsPanel() {
             }}
           />
         </label>
-        <p className="muted small">Stored only on this device. Never sent anywhere except RapidAPI.</p>
+        <p className="muted small">
+          Stored on this device, and in your Google Drive when you are signed in (Account &amp; sync). Never sent anywhere
+          else except RapidAPI.
+        </p>
         <button type="submit">Save</button> {saved && <span className="muted small">Saved.</span>}
       </form>
     </section>

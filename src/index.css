@@ -231,6 +231,19 @@ a {
   border: 1px solid var(--accent);
 }
 
+.sync-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sync-banner span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .page-title {
   align-items: center;
 }

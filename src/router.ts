@@ -56,6 +56,21 @@ export function navigate(route: Route): void {
   window.location.hash = href(route)
 }
 
+// The page Settings was opened from, so its back button returns there. Pages
+// opened from Settings (the developer pages) don't count.
+const SETTINGS_PAGES: Route['page'][] = ['settings', 'transit-spike', 'icons']
+let beforeSettings = '#/'
+window.addEventListener('hashchange', (e) => {
+  const from = new URL(e.oldURL).hash
+  if (parseRoute(window.location.hash).page === 'settings' && !SETTINGS_PAGES.includes(parseRoute(from).page)) {
+    beforeSettings = from || '#/'
+  }
+})
+
+export function settingsBackHref(): string {
+  return beforeSettings
+}
+
 function subscribe(onChange: () => void) {
   window.addEventListener('hashchange', onChange)
   return () => window.removeEventListener('hashchange', onChange)

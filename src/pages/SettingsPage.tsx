@@ -1,7 +1,8 @@
 import { Icon } from '../components/Icon'
+import { SyncCard } from '../components/SyncCard'
 import { installApp, useInstallState } from '../install'
 import { SettingsPanel } from '../SettingsPanel'
-import { href } from '../router'
+import { href, settingsBackHref } from '../router'
 import { setTheme, useTheme, type ThemeChoice } from '../theme'
 
 const THEMES: { value: ThemeChoice; label: string }[] = [
@@ -14,9 +15,13 @@ export function SettingsPage() {
   const theme = useTheme()
   return (
     <>
-      <div className="page-title">
+      <div className="page-title row">
+        <a className="icon-button" href={settingsBackHref()} aria-label="Back" title="Back">
+          <Icon name="back" size={20} />
+        </a>
         <h1>Settings</h1>
       </div>
+      <SyncCard />
       <section className="card">
         <h2>Appearance</h2>
         <div className="segmented" role="radiogroup" aria-label="Theme">

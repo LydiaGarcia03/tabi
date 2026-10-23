@@ -17,18 +17,23 @@ const VERSION = 5
 
 /** In the file, a photo's image is a "data:image/jpeg;base64,…" URL. */
 type PhotoInFile = Omit<OptionPhoto, 'image'> & { image: string }
+export type PhotoRef = Omit<OptionPhoto, 'image'>
 
 interface BackupFile extends Omit<TripData, 'photos'> {
   format: typeof FORMAT
   version: number
   exportedAt: string
   photos?: PhotoInFile[]
+  /** Photos without their images (Drive sync stores each image as its own file). */
+  photoRefs?: PhotoRef[]
   /** Device settings, only when the user chose to include them (the file is then private). */
   settings?: { rapidApiKey?: string }
 }
 
 export interface ParsedBackup {
   data: TripData
+  /** Photos whose images are stored apart (synced files); empty in exported backups. */
+  photoRefs: PhotoRef[]
   /** NAVITIME (RapidAPI) key carried in the file, if any. */
   rapidApiKey?: string
 }
@@ -38,6 +43,19 @@ export async function toBackupJson(data: TripData, rapidApiKey?: string | null):
   const file: BackupFile = { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), ...data, photos }
   if (rapidApiKey) file.settings = { rapidApiKey }
   return JSON.stringify(file, null, 2)
+}
+
+/** The same file with photos as references only (their images are uploaded separately). */
+export function toBackupJsonWithoutImages(data: TripData): string {
+  const { photos, ...rest } = data
+  const file: BackupFile = {
+    format: FORMAT,
+    version: VERSION,
+    exportedAt: new Date().toISOString(),
+    ...rest,
+    photoRefs: photos.map(({ image: _image, ...ref }) => ref),
+  }
+  return JSON.stringify(file)
 }
 
 /** Reads a backup file; throws a readable error if it isn't one. */
@@ -52,8 +70,8 @@ export function parseBackup(text: string): ParsedBackup {
   if (typeof file.version !== 'number' || file.version > VERSION) {
     throw new Error('This backup was made by a newer version of Tabi. Reload the app to update it, then try again.')
   }
-  const { trip, days, places, legs, expenses, stays = [], options = [], photos = [] } = file
-  if (!trip?.id || ![days, places, legs, expenses, stays, options, photos].every(Array.isArray)) {
+  const { trip, days, places, legs, expenses, stays = [], options = [], photos = [], photoRefs = [] } = file
+  if (!trip?.id || ![days, places, legs, expenses, stays, options, photos, photoRefs].every(Array.isArray)) {
     throw new Error('This backup is incomplete or damaged.')
   }
   const key = file.settings?.rapidApiKey
@@ -70,6 +88,7 @@ export function parseBackup(text: string): ParsedBackup {
       options: options.map((o) => upgradeOption(o)),
       photos: photos.filter((p) => typeof p.image === 'string').map((p) => ({ ...p, image: dataUrlToBlob(p.image) })),
     },
+    photoRefs,
     rapidApiKey: typeof key === 'string' && key.trim() ? key.trim() : undefined,
   }
 }

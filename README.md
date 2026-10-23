@@ -131,6 +131,8 @@ Create a `.env.local` file in the project root (it is git-ignored — never comm
 
 ```bash
 VITE_GOOGLE_MAPS_API_KEY=your-google-maps-key
+# Optional: OAuth client ID for Google Drive sync (public, not a secret)
+VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ```
 
 Then start the dev server:
@@ -141,7 +143,7 @@ npm run dev
 
 The app opens at `http://localhost:5177/tabi/`. For the map to load locally, the Google key must allow the `http://localhost:5177/*` referrer.
 
-The RapidAPI key is not an environment variable: enter it in the app's **Settings** screen. It is stored only on your device.
+The RapidAPI key is not an environment variable: enter it in the app's **Settings** screen. It is stored on your device (and in your Google Drive when sync is on).
 
 ### Build
 
@@ -157,13 +159,13 @@ The production build installs a service worker (offline cache). To test it witho
 - **Install:** open the app on an Android phone in Chrome → menu ⋮ → *Install app*. Open it once while online; after that it works without internet.
 - **Offline map:** on a day page, switch to **Offline map** and download the trip's area while online.
 - **Organic Maps:** on the trip or day page, tap **Organic Maps (KML)** and open the file with [Organic Maps](https://organicmaps.app/) (download the country's map there beforehand).
-- **Phone ↔ PC:** **Backup (JSON)** on one device, **Import a backup** on the other. Tick *Include my NAVITIME key* to carry the RapidAPI key too (then keep that file private).
+- **Phone ↔ PC:** Settings → **Account & sync** → *Sign in with Google* on both devices: trips, photos and the NAVITIME key are kept in a hidden app folder in your Google Drive. Without signing in: **Backup (JSON)** on one device, **Import a backup** on the other. Tick *Include my NAVITIME key* to carry the RapidAPI key too (then keep that file private).
 
 ## 📦 Deployment
 
 Every push to `main` builds and deploys the app to GitHub Pages through GitHub Actions.
 
-The Google Maps key is passed to the build through the repository secret `VITE_GOOGLE_MAPS_API_KEY` (*Settings → Secrets and variables → Actions*). Maps JavaScript keys are always visible in the browser; the key is protected by its HTTP referrer and API restrictions in Google Cloud.
+The Google Maps key is passed to the build through the repository secret `VITE_GOOGLE_MAPS_API_KEY` (*Settings → Secrets and variables → Actions*). Maps JavaScript keys are always visible in the browser; the key is protected by its HTTP referrer and API restrictions in Google Cloud. The Drive sync OAuth client ID goes in the secret `VITE_GOOGLE_CLIENT_ID` (it is public too; its authorized JavaScript origins protect it).
 
 ## 💸 Keeping it free
 
@@ -172,6 +174,7 @@ Tabi is designed to run at **zero cost**:
 - **Google Maps Platform** — usage stays within the monthly free usage per API; the key is restricted to this site and to three APIs, and daily quotas cap usage. Places and routes are stored locally so they are never fetched twice.
 - **NAVITIME via RapidAPI** — Basic plan: $0, 500 requests/month with a hard limit (requests are blocked, never billed). Only called on an explicit tap.
 - **Offline map** — OpenFreeMap tiles (free, no key), downloaded within its limits.
+- **Sync** — Google Drive API (free, no billing) in the user's own Drive storage.
 - **Hosting** — GitHub Pages (free for public repositories).
 
 ## 🗺️ Roadmap

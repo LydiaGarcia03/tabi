@@ -14,6 +14,7 @@ import { TripPage } from './pages/TripPage'
 import { TripsPage } from './pages/TripsPage'
 import { href, useRoute, type Route } from './router'
 import { TransitSpike } from './spike/TransitSpike'
+import { syncNow, useSyncStatus } from './sync/sync'
 import { useOnline } from './useOnline'
 
 const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
@@ -46,6 +47,7 @@ export default function App() {
           Offline: showing what is saved on this device. Map, search and route suggestions need internet.
         </p>
       )}
+      {online && route.page !== 'settings' && <SyncBanner />}
       <main className={`page page-${route.page}`}>
         <ErrorBoundary key={location.hash} fallback={<PageError />}>
           <Page route={route} />
@@ -87,6 +89,42 @@ function TripBarTitle({ tripId }: { tripId: string }) {
       </a>
     </span>
   )
+}
+
+/** Drive sync needs the user: the sign-in expired, a trip needs a choice, or it failed. */
+function SyncBanner() {
+  const status = useSyncStatus()
+  if (!status.account) return null
+  if (status.conflicts.length > 0) {
+    const count = status.conflicts.length
+    return (
+      <p className="offline-banner sync-banner small">
+        <span>Sync: {count === 1 ? '1 trip needs' : `${count} trips need`} your choice.</span>
+        <a href={href({ page: 'settings' })}>Choose</a>
+      </p>
+    )
+  }
+  if (status.phase === 'signin') {
+    return (
+      <p className="offline-banner sync-banner small">
+        <span>Sync paused: the Google sign-in expired.</span>
+        <button type="button" onClick={() => void syncNow(true)}>
+          Sign in
+        </button>
+      </p>
+    )
+  }
+  if (status.phase === 'error') {
+    return (
+      <p className="offline-banner sync-banner small">
+        <span>Sync failed: {status.error}</span>
+        <button type="button" onClick={() => void syncNow(true)}>
+          Retry
+        </button>
+      </p>
+    )
+  }
+  return null
 }
 
 function PageError() {
