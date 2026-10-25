@@ -62,7 +62,10 @@ export function createNavitimeProvider(getApiKey: () => string | null): RoutePro
       const params = new URLSearchParams({
         start: coord(request.origin),
         goal: coord(request.destination),
-        start_time: toTokyoLocalTime(request.departureTime),
+        // goal_time = arrive by: the routes that get there in time, leaving as late as possible.
+        ...(request.arrivalTime
+          ? { goal_time: toTokyoLocalTime(request.arrivalTime) }
+          : { start_time: toTokyoLocalTime(request.departureTime) }),
         limit: '3',
         shape: 'true',
         shape_color: 'railway_line',

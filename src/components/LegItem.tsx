@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { formatDay } from '../dates'
-import { chooseAlternative, deleteLeg, saveLeg, toSegments } from '../db/legs'
+import { chooseAlternative, deleteLeg, legTimes, saveLeg, toSegments } from '../db/legs'
 import type { Leg, Place, Segment } from '../db/model'
 import type { Drawing } from '../drawing'
-import { MODE_ICON, formatDuration, formatMoney } from '../format'
+import { MODE_ICON, formatDuration, formatMoney, formatTime } from '../format'
+import { formatMinutes, toMinutes, visitMinutes } from '../planning/hours'
 import { directionsUrl } from '../googleMapsLinks'
 import { translateRouteResult } from '../i18n/japaneseNames'
 import { computeWalkingRoute } from '../routing/googleProvider'
@@ -63,8 +64,14 @@ export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, o
 function LegSummary({ segments }: { segments: Segment[] }) {
   const minutes = segments.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
   const fares = totalFares(segments)
+  const { depart, arrive } = legTimes(segments)
   return (
     <span className="leg-chips">
+      {depart && arrive && (
+        <span className="small leg-times">
+          {formatTime(depart)}–{formatTime(arrive)}
+        </span>
+      )}
       {segments.map((s) => (
         <span key={s.id} className="chip">
           <Icon name={MODE_ICON[s.mode]} size={15} /> {s.mode !== 'walk' && s.lineName ? `${s.lineName} ` : ''}
@@ -81,10 +88,36 @@ function LegSummary({ segments }: { segments: Segment[] }) {
 
 type Editing = { kind: 'new' } | { kind: 'edit'; id: string } | null
 
+/** When the suggested route should leave or arrive. */
+interface Timing {
+  kind: 'depart' | 'arrive'
+  time: string
+  /** Where the time comes from, e.g. "planned time at Senso-ji". */
+  hint?: string
+}
+
+/**
+ * Be at the next place at its planned time; else leave the previous one after
+ * its visit; else 09:00. Base stops have no time: leaving the hotel at 05:30
+ * comes from arriving at the first place at 07:00.
+ */
+function defaultTiming(from: Place, to: Place): Timing {
+  if (to.plannedTime) return { kind: 'arrive', time: to.plannedTime, hint: `planned time at ${to.name}` }
+  if (from.plannedTime) {
+    return {
+      kind: 'depart',
+      time: formatMinutes(toMinutes(from.plannedTime) + visitMinutes(from)),
+      hint: `after the visit to ${from.name}`,
+    }
+  }
+  return { kind: 'depart', time: '09:00' }
+}
+
 function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw, onAddBaseStop }: Omit<Props, 'open' | 'onToggle'>) {
   const [busy, setBusy] = useState<'transit' | 'walk' | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
+  const [timing, setTiming] = useState(() => defaultTiming(from, to))
   const segments = leg?.segments ?? []
 
   const save = (next: Segment[]) => saveLeg(tripId, from.id, to.id, { segments: next })
@@ -94,12 +127,13 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
     setError('')
     try {
       const askDate = suggestionDate(date)
-      const time = from.plannedTime ?? '09:00'
+      const at = new Date(`${askDate}T${timing.time}:00+09:00`)
       const result = await translateRouteResult(
         await navitimeProvider.computeTransit({
           origin: from,
           destination: to,
-          departureTime: new Date(`${askDate}T${time}:00+09:00`),
+          departureTime: at,
+          arrivalTime: timing.kind === 'arrive' ? at : undefined,
         }),
       )
       if (result.options.length === 0) throw new RouteProviderError('no-route', 'NAVITIME found no route.')
@@ -170,6 +204,25 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
         )}
       </div>
 
+      <div className="row wrap leg-timing">
+        <select
+          className="compact small"
+          value={timing.kind}
+          aria-label="Suggested transit time"
+          onChange={(e) => setTiming({ ...timing, kind: e.target.value as Timing['kind'], hint: undefined })}
+        >
+          <option value="arrive">Arrive by</option>
+          <option value="depart">Leave at</option>
+        </select>
+        <input
+          type="time"
+          className="compact small"
+          value={timing.time}
+          aria-label={timing.kind === 'arrive' ? 'Arrive by' : 'Leave at'}
+          onChange={(e) => e.target.value && setTiming({ ...timing, time: e.target.value, hint: undefined })}
+        />
+        {timing.hint && <span className="muted small">({timing.hint})</span>}
+      </div>
       <div className="row wrap">
         <button type="button" onClick={suggestTransit} disabled={busy != null}>
           {busy === 'transit' ? (
@@ -311,7 +364,8 @@ function Alternatives({ leg, options, from, to, date }: { leg: Leg; options: Rou
               {option.segments.map((s, k) => (
                 <Icon key={k} name={MODE_ICON[s.mode]} size={15} />
               ))}{' '}
-              · {formatDuration(option.durationMinutes)}
+              {option.departureTime && option.arrivalTime && `· ${formatTime(option.departureTime)}–${formatTime(option.arrivalTime)} `}·{' '}
+              {formatDuration(option.durationMinutes)}
               {option.fare && ` · ${formatMoney(option.fare)}`} · {option.transfers ?? 0} transfer(s)
             </span>
             <button type="button" className="link" onClick={() => chooseAlternative(leg, option, from, to)}>

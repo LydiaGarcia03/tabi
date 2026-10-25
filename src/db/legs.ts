@@ -7,6 +7,14 @@ export function legKey(fromPlaceId: string, toPlaceId: string): string {
   return `${fromPlaceId}>${toPlaceId}`
 }
 
+/** When a leg leaves and arrives (ISO), from the times of its segments (suggested routes have them). */
+export function legTimes(segments: Segment[] | undefined): { depart?: string; arrive?: string } {
+  return {
+    depart: segments?.find((s) => s.departureTime)?.departureTime,
+    arrive: segments?.findLast((s) => s.arrivalTime)?.arrivalTime,
+  }
+}
+
 type LegChanges =Partial<Omit<Leg, 'id' | 'tripId' | 'fromPlaceId' | 'toPlaceId'>>
 
 /** Creates or updates the leg between two places. */

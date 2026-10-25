@@ -1332,6 +1332,12 @@ button.toggle-link .muted {
   font-size: 0.9rem;
 }
 
+/* "Leave 05:30": when to walk out of the hotel, from the suggested route. */
+.base-stop-time {
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .base-stop select {
   width: auto;
 }
@@ -1386,6 +1392,15 @@ button.toggle-link .muted {
   gap: 4px 6px;
   align-items: center;
   color: var(--text);
+}
+
+.leg-times {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.leg-timing input[type='time'] {
+  width: auto;
 }
 
 .chip {

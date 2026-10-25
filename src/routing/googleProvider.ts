@@ -33,7 +33,7 @@ export const googleProvider: RouteProvider = {
           origin: request.origin,
           destination: request.destination,
           travelMode: 'TRANSIT',
-          departureTime: request.departureTime,
+          ...(request.arrivalTime ? { arrivalTime: request.arrivalTime } : { departureTime: request.departureTime }),
           computeAlternativeRoutes: true,
           language: 'en',
           region: 'jp',

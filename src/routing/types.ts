@@ -13,6 +13,8 @@ export interface RouteRequest {
   origin: LatLng
   destination: LatLng
   departureTime: Date
+  /** Ask for routes arriving by this time instead (departureTime is then ignored). */
+  arrivalTime?: Date
 }
 
 export interface Money {

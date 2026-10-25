@@ -20,7 +20,8 @@ import { PlaceItem } from '../components/PlaceItem'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { formatDay } from '../dates'
 import { db } from '../db/db'
-import { legKey } from '../db/legs'
+import { legKey, legTimes } from '../db/legs'
+import { formatTime } from '../format'
 import type { BaseStop, Day, Leg, Place, Stay } from '../db/model'
 import { addPlace, applyDayOrder, orderPlaces, updateDay } from '../db/trips'
 import type { Drawing } from '../drawing'
@@ -247,7 +248,16 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 <Fragment key={stop.id}>
                   {stop.baseStop ? (
                     // While dragging, base stops (between the old neighbours) are hidden like the legs.
-                    !draggingId && <BaseStopRow dayId={day.id} stop={stop.baseStop} label={baseStopLabel(i)} bases={dayBaseStays} />
+                    !draggingId && (
+                      <BaseStopRow
+                        dayId={day.id}
+                        stop={stop.baseStop}
+                        label={baseStopLabel(i)}
+                        bases={dayBaseStays}
+                        arrive={i > 0 ? legTimes(legs.get(legKey(listedRoute[i - 1].id, stop.id))?.segments).arrive : undefined}
+                        leave={next ? legTimes(legs.get(key)?.segments).depart : undefined}
+                      />
+                    )
                   ) : (
                     <PlaceItem
                       place={stop}
@@ -337,14 +347,33 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
 }
 
 /** "From base" / "Back to base": the city's hotel (or station), with no details, only the way there. */
-function BaseStopRow({ dayId, stop, label, bases }: { dayId: string; stop: BaseStop; label: string; bases: Stay[] }) {
+function BaseStopRow({
+  dayId,
+  stop,
+  label,
+  bases,
+  arrive,
+  leave,
+}: {
+  dayId: string
+  stop: BaseStop
+  label: string
+  bases: Stay[]
+  /** ISO times from the suggested routes to and from it, when known. */
+  arrive?: string
+  leave?: string
+}) {
+  const times = [arrive && `Arrive ${formatTime(arrive)}`, leave && `Leave ${formatTime(leave)}`].filter(Boolean).join(' · ')
   return (
     <li className="base-stop">
       <span className="base-stop-icon" aria-hidden="true">
         <Icon name={baseIcon(stop.base)} size={20} />
       </span>
       <span className="base-stop-text">
-        <span className="base-stop-label">{label}</span>
+        <span className="base-stop-label">
+          {label}
+          {times && <span className="base-stop-time"> · {times}</span>}
+        </span>
         <span className="muted small">{stop.base.name}</span>
       </span>
       {bases.length > 1 && (
