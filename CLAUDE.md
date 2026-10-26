@@ -88,6 +88,14 @@ Google Maps (app or API) does not provide transit/walking directions offline, an
 - KML/GPX generated client-side (plain string builders, no heavy deps).
 - Keep dependencies few and free/open source.
 
+## Scripts (`scripts/`)
+
+Run by hand when needed, never by the build or the deploy; their output is committed.
+
+- `npm run names:update` (`scripts/update-japanese-names.mjs`): downloads from Wikidata the official English names of Japanese stations, lines and operators into `src/data/japanese-names.json` (the dictionary that turns NAVITIME's 新宿 into "Shinjuku", offline, no API). Run it now and then to pick up new stations/lines, then commit the JSON.
+- `npm run icons` (`scripts/generate-icons.mjs`): generates the app's PNG icons (the torii on the app red) into `public/`. Only needed when the icon changes.
+- The README screenshot scripts (demo trip builder + Chromium driver, see Working agreements) are not in the repo: they were throwaway files in a session scratchpad.
+
 Platform support: latest Chrome on desktop and Android only (User's phone is Android; don't make changes for iOS/Safari). Mobile-first layout.
 
 ## Data model (initial sketch)
