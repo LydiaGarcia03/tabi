@@ -254,9 +254,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 <p className="muted small">Search for a place below or tap the map to add one.</p>
               </li>
             )}
-            {/* Base stops are added by the user only: at the start, between two places (in the leg) or at the end.
-                A day with no places can still have the way from one base to the other (moving to a new city): "From base" first, then "Back to base". */}
-            {!draggingId && morningBase && (places.length > 0 ? !listedRoute[0].baseStop : !listedRoute.some((s) => s.baseStop?.slot === 0)) && (
+            {/* Base stops are added by the user only: at the start, between two places (in the leg) or at the end. */}
+            {!draggingId && places.length > 0 && morningBase && !listedRoute[0].baseStop && (
               <li className="base-add">
                 <button type="button" className="link small" onClick={() => addBaseStop(day.id, 0, morningBase)}>
                   <Icon name="plus" size={14} /> <Icon name={baseIcon(morningBase.base!)} size={15} /> From base
@@ -328,11 +327,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 </Fragment>
               )
             })}
-            {!draggingId &&
-              nightBase &&
-              (places.length > 0
-                ? !listedRoute.at(-1)?.baseStop
-                : listedRoute.some((s) => s.baseStop?.slot === 0) && !listedRoute.some((s) => s.baseStop?.slot === 'end')) && (
+            {!draggingId && places.length > 0 && nightBase && !listedRoute.at(-1)?.baseStop && (
               <li className="base-add">
                 <button type="button" className="link small" onClick={() => addBaseStop(day.id, 'end', nightBase)}>
                   <Icon name="plus" size={14} /> <Icon name={baseIcon(nightBase.base!)} size={15} /> Back to base
