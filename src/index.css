@@ -3893,12 +3893,6 @@ button.photo-viewer-arrow:hover {
   min-width: 210px;
 }
 
-.options-table td[data-label='Comfort'] .small {
-  display: grid;
-  gap: 2px;
-  min-width: 130px;
-}
-
 /* In the phone cards (see options-table above) the column is narrower. */
 @media (max-width: 760px) {
   .options-table td[data-label] .small,

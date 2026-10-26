@@ -301,8 +301,8 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
               {isTransport ? (
                 <>
                   <th className="num">Time</th>
+                  {/* Comfort (legroom, premium economy) is in the option's details. */}
                   <th className="baggage-head">Baggage (economy)</th>
-                  <th>Comfort</th>
                 </>
               ) : (
                 <th className="num col-distance">Distance</th>
@@ -335,12 +335,8 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
   const cheapest = cheapestFare(fares)
   const stale = isStale(fare?.seenOn)
   const carriers = journey?.mode === 'flight' ? journeyCarriers(journey) : []
-  // Long-haul first: their legroom matters most.
-  const flightAirlines = [...new Map(carriers.map((c) => findAirline(c)).filter((a) => !!a).map((a) => [a!.name, a!])).values()].sort(
-    (a, b) => Number(b.scope === 'international') - Number(a.scope === 'international'),
-  )
   const inPlan = (option.placeId && placeIds.has(option.placeId)) || (option.expenseId && expenseIds.has(option.expenseId))
-  const columns = 6 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 2 : 0)
+  const columns = 6 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 1 : 0)
 
   const setStatus = (status: OptionStatus) => updateOption(option.id, { status: option.status === status ? 'idea' : status })
   // A tap on the row opens the details; its photo, link, stars, buttons and folded blocks keep their own job,
@@ -456,21 +452,6 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
                 <span className="muted small">{journey?.mode !== 'flight' ? '—' : 'set the airlines (Edit)'}</span>
               )}
             </td>
-            <td data-label="Comfort">
-              {flightAirlines.length > 0 ? (
-                <span className="small comfort-cell">
-                  {flightAirlines.map((a) => (
-                    <span key={a.name}>
-                      {flightAirlines.length > 1 && <span className="muted">{a.name}: </span>}
-                      {a.legroom?.economy ?? 'legroom not published'}
-                      {a.premiumEconomy !== 'no' && <span className="muted"> · premium eco{a.premiumEconomy === 'some aircraft' ? ' on some' : ''}</span>}
-                    </span>
-                  ))}
-                </span>
-              ) : (
-                <span className="muted">—</span>
-              )}
-            </td>
           </>
         ) : (
           <td className="num col-distance" data-label="Distance">
@@ -560,6 +541,10 @@ function OptionDetails({
   const journey = option.journey
   const fares = option.kind === 'transport' ? faresOf(option) : []
   const carriers = journey?.mode === 'flight' ? journeyCarriers(journey) : []
+  // Long-haul first: their legroom matters most.
+  const flightAirlines = [...new Map(carriers.map((c) => findAirline(c)).filter((a) => !!a).map((a) => [a!.name, a!])).values()].sort(
+    (a, b) => Number(b.scope === 'international') - Number(a.scope === 'international'),
+  )
   const priced = DAY_KINDS.includes(option.kind) ? optionPriced(option) : undefined
   const travelers = travelersOf(trip)
   // "¥1,500 × 2" next to the total; nothing when the total is the price itself.
@@ -656,6 +641,20 @@ function OptionDetails({
           <>
             <dt>Travel time</dt>
             <dd>{formatHours(journey.durationHours)}</dd>
+          </>
+        )}
+        {flightAirlines.length > 0 && (
+          <>
+            <dt>Comfort</dt>
+            <dd className="comfort-cell">
+              {flightAirlines.map((a) => (
+                <span key={a.name}>
+                  {flightAirlines.length > 1 && <span className="muted">{a.name}: </span>}
+                  {a.legroom?.economy ?? 'legroom not published'}
+                  {a.premiumEconomy !== 'no' && <span className="muted"> · premium economy{a.premiumEconomy === 'some aircraft' ? ' on some aircraft' : ''}</span>}
+                </span>
+              ))}
+            </dd>
           </>
         )}
         {item?.distanceKm != null && group?.reference && (
