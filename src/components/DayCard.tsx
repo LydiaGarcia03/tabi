@@ -3,7 +3,7 @@ import { dateParts } from '../dates'
 import type { Day, Journey, Place, Trip } from '../db/model'
 import { JOURNEY_ICON, journeyTitle } from '../planning/journeys'
 import { Icon } from './Icon'
-import { formatDuration } from '../format'
+import { formatDistance, formatDuration } from '../format'
 import { href } from '../router'
 import { MoneyTotals } from './BudgetView'
 import { CityTag } from './TripLayout'
@@ -20,11 +20,13 @@ interface Props {
   places: Place[]
   /** Minutes of travel between the places (from the legs' segments). */
   travelMinutes: number
+  /** Walked along the day's routes (`dayWalking`). */
+  walking: { meters: number; estimated: boolean }
   budget: Budget | undefined
 }
 
 /** One day in the trip overview: calendar badge, title, route at a glance, totals. */
-export function DayCard({ trip, day, number, city, journeys, places, travelMinutes, budget }: Props) {
+export function DayCard({ trip, day, number, city, journeys, places, travelMinutes, walking, budget }: Props) {
   const { weekday, day: dayOfMonth, month } = dateParts(day.date)
   const outside = day.date < trip.startDate || day.date > trip.endDate
   const shown = places.slice(0, 4)
@@ -71,6 +73,12 @@ export function DayCard({ trip, day, number, city, journeys, places, travelMinut
               </span>
             )}
             {travelMinutes > 0 && <span>{formatDuration(travelMinutes)} travel</span>}
+            {walking.meters > 0 && (
+              <span>
+                {walking.estimated ? '≈ ' : ''}
+                {formatDistance(walking.meters)} on foot
+              </span>
+            )}
             {hasCosts && <MoneyTotals totals={budget.total} trip={trip} />}
           </span>
         )}

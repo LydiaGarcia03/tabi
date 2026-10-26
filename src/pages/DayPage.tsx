@@ -20,8 +20,8 @@ import { PlaceItem } from '../components/PlaceItem'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { formatDay } from '../dates'
 import { db } from '../db/db'
-import { legKey, legTimes } from '../db/legs'
-import { formatTime } from '../format'
+import { dayWalking, legKey, legTimes } from '../db/legs'
+import { formatDistance, formatTime } from '../format'
 import type { BaseStop, Day, Leg, Place, Stay } from '../db/model'
 import { addPlace, applyDayOrder, orderPlaces, updateDay } from '../db/trips'
 import type { Drawing } from '../drawing'
@@ -126,6 +126,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const nightBase = dayBaseStays.at(-1)
   const route = dayRoute(day, places)
   const listedRoute = dayRoute(day, listed)
+  const walking = dayWalking(route, legs)
 
   return (
     <TripLayout trip={trip} active={{ dayId: day.id }}>
@@ -213,6 +214,13 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
               <div className="row between list-toolbar">
                 <span className="muted small">
                   {places.length} places
+                  {walking.meters > 0 && (
+                    <span title={walking.estimated ? 'Some walks only have their minutes: estimated at 4.5 km/h' : undefined}>
+                      {' '}
+                      · {walking.estimated ? '≈ ' : ''}
+                      {formatDistance(walking.meters)} on foot
+                    </span>
+                  )}
                   {conflicts > 0 && (
                     <span className="warning">
                       {' '}

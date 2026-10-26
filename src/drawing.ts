@@ -16,6 +16,11 @@ export interface Drawing {
    * ("End at …"), never forced (the segment may stop before it, e.g. at a bus stop).
    */
   destination?: LatLng & { name: string }
+  /**
+   * Where it would start automatically (the leg's origin, or where the previous
+   * step ends): offered as a checkbox, so the start can be tapped instead.
+   */
+  origin?: LatLng & { label: string }
   /** Points tapped by the user, in order, between start and end. */
   taps: LatLng[]
   /** Street-following path for the current points, once computed. */

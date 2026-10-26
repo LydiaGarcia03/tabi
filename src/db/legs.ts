@@ -1,3 +1,4 @@
+import { distanceKm } from '../geo'
 import { retranslateSegments } from '../i18n/japaneseNames'
 import type { RouteOption, RouteSegment } from '../routing/types'
 import { db } from './db'
@@ -14,6 +15,31 @@ export function legTimes(segments: Segment[] | undefined): { depart?: string; ar
     depart: segments?.find((s) => s.departureTime)?.departureTime,
     arrive: segments?.findLast((s) => s.arrivalTime)?.arrivalTime,
   }
+}
+
+/** Walking speed used when a walk only has its minutes (same as the order optimizer). */
+const WALK_METERS_PER_MINUTE = 75
+
+/**
+ * How far the day is walked: the walking steps of the legs along its route.
+ * A walk counts its distance, else its drawn path, else its minutes at 4.5 km/h
+ * (then `estimated`). Walks inside places (a big temple) aren't known.
+ */
+export function dayWalking(route: { id: string }[], legs: Map<string, Leg>): { meters: number; estimated: boolean } {
+  let meters = 0
+  let estimated = false
+  for (let i = 1; i < route.length; i++) {
+    for (const s of legs.get(legKey(route[i - 1].id, route[i].id))?.segments ?? []) {
+      if (s.mode !== 'walk') continue
+      if (s.distanceMeters) meters += s.distanceMeters
+      else if (s.path.length > 1) meters += s.path.slice(1).reduce((sum, p, k) => sum + distanceKm(s.path[k], p) * 1000, 0)
+      else if (s.durationMinutes) {
+        meters += s.durationMinutes * WALK_METERS_PER_MINUTE
+        estimated = true
+      }
+    }
+  }
+  return { meters, estimated }
 }
 
 type LegChanges =Partial<Omit<Leg, 'id' | 'tripId' | 'fromPlaceId' | 'toPlaceId'>>

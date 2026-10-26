@@ -6,6 +6,7 @@ import type { Drawing } from '../drawing'
 import { MODE_ICON, MODE_LABEL, formatDuration, formatMoney, formatTime, segmentColor } from '../format'
 import { formatMinutes, toMinutes, visitMinutes } from '../planning/hours'
 import { directionsUrl } from '../googleMapsLinks'
+import { distanceKm } from '../geo'
 import type { IconName } from '../iconPaths'
 import { translateRouteResult } from '../i18n/japaneseNames'
 import { computeWalkingRoute } from '../routing/googleProvider'
@@ -212,13 +213,21 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
     const segment = list[index]
     const previous = list[index - 1]
     const next = list[index + 1]
+    const previousEnd = previous?.path.at(-1)
+    const origin = previous
+      ? previousEnd && { ...previousEnd, label: 'Start where the previous step ends' }
+      : { lat: from.lat, lng: from.lng, label: `Start at ${from.name}` }
+    // A previous step that ends at the destination was drawn when the end was
+    // forced there: starting from it would start at the destination.
+    const endsAtDestination = !!previousEnd && distanceKm(previousEnd, to) < 0.03
     onDraw({
       fromPlaceId: from.id,
       toPlaceId: to.id,
       segmentId: segment.id,
       mode: segment.mode,
       color: segment.color,
-      start: previous ? previous.path.at(-1) : { lat: from.lat, lng: from.lng },
+      start: origin && !endsAtDestination ? { lat: origin.lat, lng: origin.lng } : undefined,
+      origin,
       end: next?.path[0],
       destination: next ? undefined : { lat: to.lat, lng: to.lng, name: to.name },
       taps: [],

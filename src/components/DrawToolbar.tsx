@@ -65,6 +65,22 @@ export function DrawToolbar({ drawing, onChange }: Props) {
         Tap the map to add points{drawing.end ? '; it ends at the red dot.' : ', the last one where this step ends.'}
         {!travelMode && ' Trains, subways and ferries are drawn as straight lines: tap along the tracks.'}
       </p>
+      {drawing.origin && (
+        <label className="small row">
+          <input
+            type="checkbox"
+            checked={!!drawing.start}
+            onChange={(e) =>
+              onChange({
+                ...drawing,
+                start: e.target.checked && drawing.origin ? { lat: drawing.origin.lat, lng: drawing.origin.lng } : undefined,
+                snapped: undefined,
+              })
+            }
+          />
+          {drawing.origin.label}
+        </label>
+      )}
       {drawing.destination && (
         <label className="small row">
           <input

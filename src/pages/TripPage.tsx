@@ -11,7 +11,7 @@ import { TripLayout } from '../components/TripLayout'
 import { formatDate } from '../dates'
 import { dayRoute } from '../db/baseStops'
 import { db } from '../db/db'
-import { legKey } from '../db/legs'
+import { dayWalking, legKey } from '../db/legs'
 import type { Trip } from '../db/model'
 import { cityLabel } from '../db/stays'
 import { deleteTrip, orderPlaces, updateTrip } from '../db/trips'
@@ -53,7 +53,7 @@ export function TripPage({ tripId }: { tripId: string }) {
           .flatMap((p, i) => legMap.get(legKey(route[i].id, p.id))?.segments ?? [])
           .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
         const budget = dayBudget(day, dayPlaces, legMap, expenses.filter((e) => e.dayId === day.id), travelers)
-        return [day.id, { places: ordered, travelMinutes, budget }]
+        return [day.id, { places: ordered, travelMinutes, walking: dayWalking(route, legMap), budget }]
       }),
     )
     const tripWide = expenses.filter((e) => !e.dayId)
@@ -93,6 +93,7 @@ export function TripPage({ tripId }: { tripId: string }) {
                     journeys={journeysOn(expenses ?? [], day.date).map((e) => e.journey!)}
                     places={info.places}
                     travelMinutes={info.travelMinutes}
+                    walking={info.walking}
                     budget={info.budget}
                   />
                 </li>
