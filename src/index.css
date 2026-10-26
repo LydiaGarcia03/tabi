@@ -1582,6 +1582,42 @@ button.toggle-link .muted {
   padding: 6px 0 10px;
 }
 
+/* Quiet pencil and ✕ at the top right of each step (reading mode). */
+.route-step-body.with-actions {
+  position: relative;
+  padding-right: 52px;
+}
+
+.route-step-actions {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  display: flex;
+  gap: 2px;
+}
+
+.step-action {
+  min-height: 0;
+  padding: 3px;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+
+.step-action:hover {
+  color: var(--accent-text);
+}
+
+@media (pointer: coarse) {
+  .step-action {
+    padding: 6px;
+  }
+
+  .route-step-body.with-actions {
+    padding-right: 64px;
+  }
+}
+
 .route-walk {
   display: flex;
   align-items: center;
@@ -1915,6 +1951,21 @@ button.toggle-link .muted {
   display: grid;
   gap: 6px;
   border-color: var(--accent);
+}
+
+.draw-toolbar-head {
+  align-items: baseline;
+  gap: 8px;
+}
+
+.draw-toolbar .line-colors {
+  margin-top: 0;
+}
+
+/* "Follow streets" and its "i" stay together. */
+.draw-follow {
+  gap: 2px;
+  align-items: center;
 }
 
 .draw-toolbar p {

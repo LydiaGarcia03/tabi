@@ -203,7 +203,11 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
     }
   }
 
-  /** Draw starting where the previous segment ends (or at the place), ending where the next begins. */
+  /**
+   * Draw starting where the previous segment ends (or at the place) and ending
+   * where the next one begins, when it's drawn. The last segment doesn't have
+   * to reach the destination (a walk to a bus stop): "End at …" is a button.
+   */
   function startDrawing(list: Segment[], index: number) {
     const segment = list[index]
     const previous = list[index - 1]
@@ -215,7 +219,8 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
       mode: segment.mode,
       color: segment.color,
       start: previous ? previous.path.at(-1) : { lat: from.lat, lng: from.lng },
-      end: next ? next.path[0] : { lat: to.lat, lng: to.lng },
+      end: next?.path[0],
+      destination: next ? undefined : { lat: to.lat, lng: to.lng, name: to.name },
       taps: [],
     })
   }
@@ -315,6 +320,27 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
                 onCancel={() => setEditing(null)}
               />
             ) : null
+          }
+          // Reading: a quiet pencil and ✕ on each step; "Edit route" adds drawing and moving.
+          stepActions={
+            editMode
+              ? undefined
+              : (i) => (
+                  <>
+                    <button type="button" className="step-action" title="Edit this step" aria-label="Edit this step" onClick={() => setEditing({ kind: 'edit', id: segments[i].id })}>
+                      <Icon name="edit" size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="step-action"
+                      title="Remove this step"
+                      aria-label="Remove this step"
+                      onClick={() => save(segments.filter((s) => s.id !== segments[i].id))}
+                    >
+                      <Icon name="close" size={14} />
+                    </button>
+                  </>
+                )
           }
           stepTools={
             editMode

@@ -21,6 +21,7 @@ export function RouteTimeline<T extends RouteSegment & { id: string; notes?: str
   start,
   end,
   stepTools,
+  stepActions,
   stepForm,
 }: {
   segments: T[]
@@ -28,6 +29,8 @@ export function RouteTimeline<T extends RouteSegment & { id: string; notes?: str
   end: End
   /** Shown under each step (edit buttons). */
   stepTools?: (index: number) => ReactNode
+  /** Small buttons at the top right of each step (edit, remove). */
+  stepActions?: (index: number) => ReactNode
   /** Replaces a step while it's being edited. */
   stepForm?: (index: number) => ReactNode | null
 }) {
@@ -42,7 +45,7 @@ export function RouteTimeline<T extends RouteSegment & { id: string; notes?: str
             {form ? (
               <li className="route-step-form">{form}</li>
             ) : (
-              <StepRow segment={segment} tools={stepTools?.(i)} />
+              <StepRow segment={segment} tools={stepTools?.(i)} actions={stepActions?.(i)} />
             )}
             {next ? (
               <Transfer prev={segment} next={next} />
@@ -135,14 +138,15 @@ function StationRow({
   )
 }
 
-function StepRow({ segment, tools }: { segment: RouteSegment & { notes?: string }; tools?: ReactNode }) {
+function StepRow({ segment, tools, actions }: { segment: RouteSegment & { notes?: string }; tools?: ReactNode; actions?: ReactNode }) {
   const color = segmentColor(segment)
   const walk = segment.mode === 'walk'
   return (
     <li className={`route-step${walk ? ' walk' : ''}`} style={{ '--line': color } as CSSProperties}>
       <span />
       <span className="route-bar" aria-hidden="true" />
-      <div className="route-step-body">
+      <div className={`route-step-body${actions ? ' with-actions' : ''}`}>
+        {actions && <span className="route-step-actions">{actions}</span>}
         {walk ? <WalkText segment={segment} /> : <RideText segment={segment} color={color} />}
         {segment.notes?.trim() && <div className="small segment-notes">{segment.notes}</div>}
         {tools}

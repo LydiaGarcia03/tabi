@@ -4,6 +4,7 @@ import { drawingPoints, streetTravelMode, type Drawing } from '../drawing'
 import { MODE_LABEL, formatDistance, formatDuration } from '../format'
 import { MAX_MIDDLE_POINTS, snapToStreets } from '../routing/googleProvider'
 import { RouteProviderError } from '../routing/types'
+import { InfoTip } from './InfoTip'
 import { LineColorPicker } from './LineColorPicker'
 
 interface Props {
@@ -46,27 +47,43 @@ export function DrawToolbar({ drawing, onChange }: Props) {
 
   return (
     <div className="card draw-toolbar">
-      <strong>Drawing: {MODE_LABEL[drawing.mode]}</strong>
+      {/* Compact: the whole box should fit under the map without scrolling the page. */}
+      <div className="row between draw-toolbar-head">
+        <strong>Drawing: {MODE_LABEL[drawing.mode]}</strong>
+        <span className="small muted">
+          {points.length} point{points.length === 1 ? '' : 's'}
+          {drawing.snapped && (
+            <>
+              {' '}
+              · follows streets: {formatDistance(drawing.snapped.distanceMeters)}, {formatDuration(drawing.snapped.durationMinutes)}
+            </>
+          )}
+        </span>
+      </div>
       <p className="small muted">
         {drawing.start ? 'Starts at the green dot. ' : 'Tap where it starts. '}
-        Tap the map to add points{drawing.end ? '; it ends at the red dot.' : ', ending where it arrives.'}
+        Tap the map to add points{drawing.end ? '; it ends at the red dot.' : ', the last one where this step ends.'}
         {!travelMode && ' Trains, subways and ferries are drawn as straight lines: tap along the tracks.'}
       </p>
-      {drawing.mode !== 'walk' && (
-        <div className="small">
-          Line color
-          <LineColorPicker mode={drawing.mode} color={drawing.color} onChange={(color) => onChange({ ...drawing, color })} />
-        </div>
+      {drawing.destination && (
+        <label className="small row">
+          <input
+            type="checkbox"
+            checked={!!drawing.end}
+            onChange={(e) =>
+              onChange({
+                ...drawing,
+                end: e.target.checked && drawing.destination ? { lat: drawing.destination.lat, lng: drawing.destination.lng } : undefined,
+                snapped: undefined,
+              })
+            }
+          />
+          End at {drawing.destination.name}
+        </label>
       )}
-      <p className="small">
-        {points.length} point(s)
-        {drawing.snapped && (
-          <>
-            {' '}
-            · follows streets: {formatDistance(drawing.snapped.distanceMeters)}, {formatDuration(drawing.snapped.durationMinutes)}
-          </>
-        )}
-      </p>
+      {drawing.mode !== 'walk' && (
+        <LineColorPicker mode={drawing.mode} color={drawing.color} onChange={(color) => onChange({ ...drawing, color })} />
+      )}
       {tooManyPoints && (
         <p className="error">Following streets allows at most {MAX_MIDDLE_POINTS} points between start and end.</p>
       )}
@@ -87,9 +104,12 @@ export function DrawToolbar({ drawing, onChange }: Props) {
           Clear
         </button>
         {travelMode && (
-          <button type="button" disabled={busy || points.length < 2 || tooManyPoints || !!drawing.snapped} onClick={followStreets}>
-            {busy ? 'Asking Google…' : 'Follow streets'}
-          </button>
+          <span className="row draw-follow">
+            <button type="button" disabled={busy || points.length < 2 || tooManyPoints || !!drawing.snapped} onClick={followStreets}>
+              {busy ? 'Asking Google…' : 'Follow streets'}
+            </button>
+            <InfoTip label="About Follow streets">“Follow streets” uses 1 Google request.</InfoTip>
+          </span>
         )}
         <button type="button" className="primary" disabled={points.length < 2} onClick={save}>
           Save
@@ -98,7 +118,6 @@ export function DrawToolbar({ drawing, onChange }: Props) {
           Cancel
         </button>
       </div>
-      {travelMode && <p className="muted small">“Follow streets” uses 1 Google request.</p>}
     </div>
   )
 }
