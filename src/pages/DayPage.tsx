@@ -24,7 +24,7 @@ import { dayWalking, legKey, legTimes } from '../db/legs'
 import { formatDistance, formatTime } from '../format'
 import type { BaseStop, Day, Leg, Place, Stay } from '../db/model'
 import { addPlace, applyDayOrder, orderPlaces, updateDay } from '../db/trips'
-import type { Drawing } from '../drawing'
+import type { Drawing, LegFocus } from '../drawing'
 import { dayText, shareText } from '../export/shareText'
 import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
 import { useRefreshStalePlaces } from '../places/refresh'
@@ -127,6 +127,18 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const route = dayRoute(day, places)
   const listedRoute = dayRoute(day, listed)
   const walking = dayWalking(route, legs)
+  // The open leg (or the one being drawn): the maps show only its line and zoom to it.
+  const focusKey = drawing ? legKey(drawing.fromPlaceId, drawing.toPlaceId) : openLeg
+  const focusFrom = focusKey && route.find((p) => focusKey.startsWith(`${p.id}>`))
+  const focusTo = focusKey && route.find((p) => focusKey.endsWith(`>${p.id}`))
+  const focus: LegFocus | undefined =
+    focusKey && focusFrom && focusTo
+      ? {
+          fromId: focusFrom.id,
+          toId: focusTo.id,
+          points: [focusFrom, focusTo, ...(legs.get(focusKey)?.segments.flatMap((s) => s.path) ?? [])],
+        }
+      : undefined
 
   return (
     <TripLayout trip={trip} active={{ dayId: day.id }}>
@@ -164,6 +176,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                   onSelectPlace={setSelectedId}
                   onTap={onOfflineTap}
                   drawing={drawing}
+                  focus={focus}
                   bases={bases}
                   route={route}
                 />
@@ -185,6 +198,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 onMapClick={onMapClick}
                 fallbackCenter={anyTripPlace ? { lat: anyTripPlace.lat, lng: anyTripPlace.lng } : undefined}
                 drawing={drawing}
+                focus={focus}
                 bases={bases}
                 route={route}
               />

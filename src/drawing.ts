@@ -27,6 +27,16 @@ export interface Drawing {
   snapped?: { path: LatLng[]; distanceMeters?: number; durationMinutes?: number }
 }
 
+/**
+ * The leg the maps focus on (opened in the list, or being drawn): only its
+ * line is shown, and the map fits `points` (both ends and every step's path).
+ */
+export interface LegFocus {
+  fromId: string
+  toId: string
+  points: LatLng[]
+}
+
 export function drawingPoints(drawing: Drawing): LatLng[] {
   return [drawing.start, ...drawing.taps, drawing.end].filter((p) => p != null)
 }

@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react'
 import { legKey } from '../db/legs'
 import { baseMarkerSvg } from '../db/stays'
 import type { Leg, Place, Stay } from '../db/model'
-import { drawingPoints, type Drawing } from '../drawing'
+import { drawingPoints, type Drawing, type LegFocus } from '../drawing'
 import { segmentColor } from '../format'
 import { placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, WALK_DOT_OUTER } from '../mapLines'
 import type { LatLng } from '../routing/types'
@@ -24,6 +24,8 @@ interface Props {
   fallbackCenter?: { lat: number; lng: number }
   /** Segment being drawn by hand, if any. */
   drawing?: Drawing | null
+  /** The open leg (or the one being drawn): only its line is shown and the map zooms to it. */
+  focus?: LegFocus
   /** Bases of the day's cities (hotel, station…), shown with their own pin. Two on a travel day. */
   bases?: Base[]
   /** The places with the day's "back to base" stops, for the leg lines (default: the places). */
@@ -32,7 +34,7 @@ interface Props {
 
 type Base = NonNullable<Stay['base']> & { city: string }
 
-export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, bases = [], route }: Props) {
+export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, focus, bases = [], route }: Props) {
   const dark = useIsDark()
   return (
     <div className="day-map">
@@ -68,9 +70,9 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
             <span className="base-pin" aria-hidden="true" dangerouslySetInnerHTML={{ __html: baseMarkerSvg(base) }} />
           </AdvancedMarker>
         ))}
-        <LegLines places={route ?? places} legs={legs} drawing={drawing} />
+        <LegLines places={route ?? places} legs={legs} focus={focus} hiddenSegmentId={drawing?.segmentId} />
         {drawing && <DraftLayer drawing={drawing} />}
-        <FitToPlaces places={[...places, ...bases]} />
+        <FitToPlaces places={focus ? focus.points : [...places, ...bases]} focusKey={focus && `${focus.fromId}>${focus.toId}`} />
       </Map>
     </div>
   )
@@ -79,27 +81,34 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
 /**
  * Draws each leg between consecutive places: segments with a path in their
  * mode's style (walking dotted, transit in the line color), otherwise a thin
- * dashed straight line meaning "route not defined yet". While a segment is
- * being drawn, only the other segments of its leg are shown.
+ * dashed straight line meaning "route not defined yet". With a focused leg
+ * (open in the list, or being drawn) only that leg is shown; the segment
+ * being drawn is left out (its draft is drawn instead).
  */
-function LegLines({ places, legs, drawing }: { places: Place[]; legs: Map<string, Leg>; drawing?: Drawing | null }) {
+function LegLines({
+  places,
+  legs,
+  focus,
+  hiddenSegmentId,
+}: {
+  places: Place[]
+  legs: Map<string, Leg>
+  focus?: LegFocus
+  hiddenSegmentId?: string
+}) {
   const map = useMap(DAY_MAP_ID)
-  const fromId = drawing?.fromPlaceId
-  const toId = drawing?.toPlaceId
-  const segmentId = drawing?.segmentId
+  const fromId = focus?.fromId
+  const toId = focus?.toId
   useEffect(() => {
     if (!map) return
     const lines: google.maps.Polyline[] = []
     for (let i = 0; i < places.length - 1; i++) {
       const from = places[i]
       const to = places[i + 1]
-      if (segmentId && (from.id !== fromId || to.id !== toId)) continue
-      const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1 && s.id !== segmentId)
-      if (segmentId) {
-        drawn.forEach((s) => lines.push(s.mode === 'walk' ? walkingLine(map, s.path, segmentColor(s)) : solidLine(map, s.path, segmentColor(s))))
-        continue
-      }
+      if (fromId && (from.id !== fromId || to.id !== toId)) continue
+      const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1 && s.id !== hiddenSegmentId)
       if (drawn.length === 0) {
+        if (hiddenSegmentId) continue
         lines.push(undefinedLine(map, [from, to]))
         continue
       }
@@ -113,7 +122,7 @@ function LegLines({ places, legs, drawing }: { places: Place[]; legs: Map<string
       }
     }
     return () => lines.forEach((line) => line.setMap(null))
-  }, [map, places, legs, fromId, toId, segmentId])
+  }, [map, places, legs, fromId, toId, hiddenSegmentId])
   return null
 }
 
@@ -220,9 +229,13 @@ function undefinedLine(map: google.maps.Map, path: LatLng[]) {
 }
 
 /** Fits the map to the places (and bases) whenever their set changes (not on edits). */
-function FitToPlaces({ places }: { places: (LatLng & { id?: string })[] }) {
+/**
+ * Fits the places, or the focused leg (`focusKey`): refits when the set of
+ * places changes or a leg is opened/closed, not on every edit of the leg.
+ */
+function FitToPlaces({ places, focusKey }: { places: (LatLng & { id?: string })[]; focusKey?: string }) {
   const map = useMap(DAY_MAP_ID)
-  const key = places.map((p) => `${p.id ?? ''}:${p.lat},${p.lng}`).sort().join('|')
+  const key = focusKey ?? places.map((p) => `${p.id ?? ''}:${p.lat},${p.lng}`).sort().join('|')
   useEffect(() => {
     if (!map || places.length === 0) return
     if (places.length === 1) {

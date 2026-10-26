@@ -7,7 +7,7 @@ import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Leg, Place, StayBase } from '../db/model'
 import { baseMarkerSvg } from '../db/stays'
-import { drawingPoints, type Drawing } from '../drawing'
+import { drawingPoints, type Drawing, type LegFocus } from '../drawing'
 import { segmentColor } from '../format'
 import { drawWalkDot, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT } from '../mapLines'
 import { areaTiles, isCovered } from '../offlineMap/area'
@@ -29,6 +29,8 @@ interface Props {
   /** A tap on the map; `name` when it was on a point of interest. */
   onTap: (tap: LatLng & { name?: string }) => void
   drawing?: Drawing | null
+  /** The open leg (or the one being drawn): only its line is shown and the map zooms to it. */
+  focus?: LegFocus
   bases?: Base[]
   /** The places with the day's "back to base" stops, for the leg lines (default: the places). */
   route?: Place[]
@@ -189,6 +191,7 @@ function OfflineDayMap({
   onSelectPlace,
   onTap,
   drawing,
+  focus,
   bases = [],
   route,
 }: Omit<Props, 'tripId' | 'places'> & { places: Shown[] }) {
@@ -298,8 +301,10 @@ function OfflineDayMap({
   const shownById = new Map(places.map((p) => [p.id, p]))
   const stops = (route ?? places).map((p) => shownById.get(p.id) ?? p)
   const legsKey = stops.map((p) => `${p.id}:${p.lat},${p.lng}`).join('|')
-  // While a segment is being drawn, only the other segments of its leg are shown.
+  // With a focused leg (open in the list, or being drawn) only that leg is
+  // shown; the segment being drawn is left out (its draft is drawn instead).
   const drawingSegment = drawing?.segmentId
+  const focusKey = focus && `${focus.fromId}>${focus.toId}`
   useEffect(() => {
     const source = map?.getSource<GeoJSONSource>(LEGS_SOURCE)
     if (!source) return
@@ -307,7 +312,7 @@ function OfflineDayMap({
     for (let i = 0; i < stops.length - 1; i++) {
       const from = stops[i]
       const to = stops[i + 1]
-      if (drawing && (from.id !== drawing.fromPlaceId || to.id !== drawing.toPlaceId)) continue
+      if (focus && (from.id !== focus.fromId || to.id !== focus.toId)) continue
       const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1 && s.id !== drawingSegment)
       if (drawn.length === 0) {
         if (!drawing) features.push(line([from, to], { style: 'undefined' }))
@@ -317,7 +322,7 @@ function OfflineDayMap({
     }
     source.setData({ type: 'FeatureCollection', features })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, legsKey, legs, drawingSegment])
+  }, [map, legsKey, legs, drawingSegment, focusKey])
 
   // The segment being drawn by hand, and its points.
   const draftPath = useMemo(() => (drawing ? (drawing.snapped?.path ?? drawingPoints(drawing)) : []), [drawing])
@@ -338,11 +343,12 @@ function OfflineDayMap({
     return () => markers.forEach((m) => m.remove())
   }, [map, drawing, draftPath])
 
-  // Fit the places (and bases) whenever their set changes, not on every edit.
-  const fitKey = [...places.map((p) => `${p.id}:${p.lat},${p.lng}`), ...bases.map((b) => `${b.lat},${b.lng}`)].sort().join('|')
+  // Fit the places (and bases), or the focused leg: when their set changes or a
+  // leg is opened/closed, not on every edit.
+  const fitKey = focusKey ?? [...places.map((p) => `${p.id}:${p.lat},${p.lng}`), ...bases.map((b) => `${b.lat},${b.lng}`)].sort().join('|')
   useEffect(() => {
     if (!map) return
-    const points = [...places, ...bases]
+    const points = focus ? focus.points : [...places, ...bases]
     if (points.length === 0) return
     if (points.length === 1) {
       map.easeTo({ center: [points[0].lng, points[0].lat], zoom: Math.max(map.getZoom(), 15) })
