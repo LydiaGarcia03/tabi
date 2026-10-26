@@ -152,10 +152,12 @@ let debounce: ReturnType<typeof setTimeout> | undefined
 export async function syncNow(fromTap = false): Promise<void> {
   if (!saved.account) return
   if (running) {
+    // A tap must not be swallowed by an automatic run that stops at "sign in again".
+    if (fromTap) return running.then(() => syncNow(true))
     runAgain = true
     return running
   }
-  running = (async () => {
+  const run = (async () => {
     try {
       do {
         runAgain = false
@@ -182,11 +184,16 @@ export async function syncNow(fromTap = false): Promise<void> {
       } while (runAgain)
     } catch (err) {
       setStatus({ phase: 'error', error: message(err) })
-    } finally {
-      running = null
     }
   })()
-  return running
+  // Cleared after the run, never inside it: a run that ends before its first
+  // `await` (sign-in expired) would clear `running` before it was even set, and
+  // `running` would then stay set forever, ignoring every later sync and tap.
+  running = run
+  void run.finally(() => {
+    if (running === run) running = null
+  })
+  return run
 }
 
 async function syncOnce(token: string): Promise<void> {
