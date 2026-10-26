@@ -19,7 +19,7 @@ keep notes and costs together, and carry everything in your pocket without inter
 
 <br>
 
-<img src="docs/screenshots/day-desktop-light.png" alt="A day in Tabi: the places of the day with the way between them open as a station timeline (walk, Ginza Line from Asakusa G19 to Ueno G16 with exits, stops and fare), next to a Google map with numbered pins and the route drawn by transport mode" width="900">
+<img src="docs/screenshots/tour.webp" alt="Tabi in a loop: a day with the way between two places open as a station timeline (walk, Ginza Line from Asakusa G19 to Ueno G16 with exits, stops and fare) next to a Google map with numbered pins and the route by transport mode, in light and then dark mode; then the options board comparing Tokyo hotels by photo, price, distance, rating and score" width="900">
 
 </div>
 
