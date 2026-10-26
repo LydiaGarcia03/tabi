@@ -1610,6 +1610,47 @@ button.option-select-button {
   border-color: var(--accent-text);
 }
 
+/* "+ Add the way there" and "Use my flight" side by side. */
+.leg-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: 8px;
+}
+
+.leg-add.use-flight {
+  border-style: solid;
+  border-color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.use-flight-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.use-flight-menu {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.use-flight-menu button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
 .leg-timing input[type='time'] {
   width: auto;
 }

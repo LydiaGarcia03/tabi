@@ -73,6 +73,7 @@ export const MODE_ICON: Record<SegmentMode, IconName> = {
   subway: 'subway',
   taxi: 'taxi',
   ferry: 'ferry',
+  flight: 'plane',
   other: 'arrow',
 }
 
@@ -85,6 +86,7 @@ export const MODE_LABEL: Record<SegmentMode, string> = {
   subway: 'Subway',
   taxi: 'Taxi',
   ferry: 'Ferry',
+  flight: 'Flight',
   other: 'Other',
 }
 
@@ -97,6 +99,7 @@ export const MODE_COLOR: Record<SegmentMode, string> = {
   subway: '#9333ea',
   taxi: '#eab308',
   ferry: '#0891b2',
+  flight: '#475569',
   other: '#f97316',
 }
 

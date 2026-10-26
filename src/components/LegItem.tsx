@@ -9,6 +9,8 @@ import { directionsUrl } from '../googleMapsLinks'
 import { distanceKm } from '../geo'
 import type { IconName } from '../iconPaths'
 import { translateRouteResult } from '../i18n/japaneseNames'
+import { flightRoute, flightSegments, refreshFlightSteps, type FlightSource } from '../planning/flightSteps'
+import { journeyCarriers } from '../planning/journeys'
 import { computeWalkingRoute } from '../routing/googleProvider'
 import { navitimeProvider, suggestionDate } from '../routing/providers'
 import { RouteProviderError, type Money, type RouteOption } from '../routing/types'
@@ -33,6 +35,10 @@ interface Props {
   onDraw: (drawing: Drawing) => void
   /** Adds a "back to base" stop between the two places (hidden when not given). */
   onAddBaseStop?: () => void
+  /** Flights of the day (booked or in the options) not used in its route yet: "Use my flight". */
+  flights?: FlightSource[]
+  /** Every flight of the day, used or not: keeps the flight steps up to date with their booking. */
+  allFlights?: FlightSource[]
 }
 
 /**
@@ -40,14 +46,17 @@ interface Props {
  * 2026-10-25): "GETTING THERE · 1 h 7 min · ¥1,080", the line chain under it
  * while closed, a chevron; "+ Add the way there" when there's no route yet.
  */
-export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw, onAddBaseStop }: Props) {
+export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw, onAddBaseStop, flights = [], allFlights = [] }: Props) {
   const segments = leg?.segments ?? []
   return (
     <li className={`leg-item${open ? ' open' : ''}${segments.length ? '' : ' empty'}`}>
       {segments.length === 0 && !open ? (
-        <button type="button" className="leg-add" onClick={onToggle} aria-expanded={false}>
-          <Icon name="plus" size={15} /> Add the way there
-        </button>
+        <div className="leg-add-row">
+          <button type="button" className="leg-add" onClick={onToggle} aria-expanded={false}>
+            <Icon name="plus" size={15} /> Add the way there
+          </button>
+          <UseFlight flights={flights} onUse={(f) => saveLeg(tripId, from.id, to.id, { segments: flightSegments(f) })} />
+        </div>
       ) : (
         <button type="button" className="leg-summary" onClick={onToggle} aria-expanded={open}>
           <span className="leg-label">
@@ -74,9 +83,53 @@ export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, o
           hasGoogleKey={hasGoogleKey}
           onDraw={onDraw}
           onAddBaseStop={onAddBaseStop}
+          flights={flights}
+          allFlights={allFlights}
         />
       )}
     </li>
+  )
+}
+
+/**
+ * "✈ Use my flight ITM → OKA" (design chosen by User from a mock,
+ * 2026-10-26); with several flights, a short list (booked ones first).
+ */
+function UseFlight({ flights, onUse }: { flights: FlightSource[]; onUse: (flight: FlightSource) => void }) {
+  const [choosing, setChoosing] = useState(false)
+  if (flights.length === 0) return null
+  if (flights.length === 1) {
+    return (
+      <button type="button" className="leg-add use-flight" onClick={() => onUse(flights[0])}>
+        <Icon name="plane" size={15} /> Use my flight {flightRoute(flights[0].journey)}
+      </button>
+    )
+  }
+  return (
+    <span className="use-flight-wrap">
+      <button type="button" className="leg-add use-flight" onClick={() => setChoosing(!choosing)} aria-expanded={choosing}>
+        <Icon name="plane" size={15} /> Use my flight…
+      </button>
+      {choosing && (
+        <ul className="use-flight-menu">
+          {flights.map((f) => (
+            <li key={f.id}>
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  setChoosing(false)
+                  onUse(f)
+                }}
+              >
+                <Icon name="plane" size={14} /> {[journeyCarriers(f.journey).join(' + '), flightRoute(f.journey), f.journey.date && formatDay(f.journey.date)].filter(Boolean).join(' · ')}
+                <span className="muted small"> · {f.kind === 'booking' ? 'booked' : 'from my options'}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </span>
   )
 }
 
@@ -117,7 +170,8 @@ function shortLineName(name: string | undefined): string | undefined {
   return name?.replace(/\s+(Main\s+)?Line$/i, '')
 }
 
-type Editing = { kind: 'new' } | { kind: 'edit'; id: string } | null
+/** `first`: the new step goes before the others (the way to the airport). */
+type Editing = { kind: 'new'; first?: boolean } | { kind: 'edit'; id: string } | null
 
 /** When the suggested route should leave or arrive. */
 interface Timing {
@@ -139,7 +193,19 @@ function defaultTiming(from: Place, to: Place): Timing {
   return { kind: 'depart', time: '09:00' }
 }
 
-function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw, onAddBaseStop }: Omit<Props, 'open' | 'onToggle'>) {
+function LegEditor({
+  tripId,
+  leg,
+  from,
+  to,
+  date,
+  currency,
+  hasGoogleKey,
+  onDraw,
+  onAddBaseStop,
+  flights = [],
+  allFlights = [],
+}: Omit<Props, 'open' | 'onToggle'>) {
   const [busy, setBusy] = useState<'transit' | 'walk' | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
@@ -157,6 +223,43 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
   }, [legId])
 
   const save = (next: Segment[]) => saveLeg(tripId, from.id, to.id, { segments: next })
+
+  // Flight steps follow their booking/option (times or number typed after "Use my flight").
+  useEffect(() => {
+    const refreshed = leg && refreshFlightSteps(leg.segments, allFlights)
+    if (refreshed) void save(refreshed)
+    // Once per opened leg, like the retranslation above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [legId])
+
+  // A flight first, leaving from an airport away from the start: the way to the airport is still missing.
+  const first = segments[0]
+  const needsWayToAirport = first?.mode === 'flight' && !!first.fromCoord && distanceKm(from, first.fromCoord) > 2
+  const newStepForm = (atStart: boolean) => (
+    <SegmentForm
+      currency={currency}
+      defaults={
+        atStart
+          ? { fromName: from.name, toName: first?.fromName }
+          : { fromName: segments.at(-1)?.toName ?? from.name, toName: segments.length === 0 ? undefined : to.name }
+      }
+      onSave={(segment) => {
+        void save(atStart ? [segment, ...segments] : [...segments, segment])
+        setEditing(null)
+      }}
+      onSaveAndDraw={
+        hasGoogleKey
+          ? async (segment) => {
+              const next = atStart ? [segment, ...segments] : [...segments, segment]
+              await save(next)
+              setEditing(null)
+              startDrawing(next, atStart ? 0 : next.length - 1)
+            }
+          : undefined
+      }
+      onCancel={() => setEditing(null)}
+    />
+  )
 
   async function suggestTransit() {
     setBusy('transit')
@@ -295,6 +398,7 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
           Transit uses 1 of the 500 free NAVITIME requests per month.
           {segments.length > 0 && ' A suggestion replaces the current steps.'}
         </InfoTip>
+        <UseFlight flights={flights} onUse={(f) => save([...segments, ...flightSegments(f)])} />
       </div>
       {error && <p className="error">{error}</p>}
 
@@ -307,6 +411,17 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
           segments={segments}
           start={{ name: from.name, icon: endIcon(from) }}
           end={{ name: to.name, icon: endIcon(to) }}
+          beforeFirst={
+            needsWayToAirport ? (
+              editing?.kind === 'new' && editing.first ? (
+                newStepForm(true)
+              ) : (
+                <button type="button" className="leg-add" onClick={() => setEditing({ kind: 'new', first: true })} disabled={editing != null}>
+                  <Icon name="plus" size={15} /> Add the way to {first?.fromName}
+                </button>
+              )
+            ) : undefined
+          }
           stepForm={(i) =>
             editing?.kind === 'edit' && editing.id === segments[i].id ? (
               <SegmentForm
@@ -398,30 +513,7 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
         />
       )}
 
-      {editing?.kind === 'new' && (
-        <SegmentForm
-          currency={currency}
-          defaults={{
-            fromName: segments.at(-1)?.toName ?? from.name,
-            toName: segments.length === 0 ? undefined : to.name,
-          }}
-          onSave={(segment) => {
-            void save([...segments, segment])
-            setEditing(null)
-          }}
-          onSaveAndDraw={
-            hasGoogleKey
-              ? async (segment) => {
-                  const next = [...segments, segment]
-                  await save(next)
-                  setEditing(null)
-                  startDrawing(next, next.length - 1)
-                }
-              : undefined
-          }
-          onCancel={() => setEditing(null)}
-        />
-      )}
+      {editing?.kind === 'new' && !editing.first && newStepForm(false)}
 
       {/* PC: one line. Phone: "Open in Google Maps … Edit route" above "Add step · Clear route". */}
       <div className="leg-footer">

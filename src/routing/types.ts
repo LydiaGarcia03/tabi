@@ -2,7 +2,7 @@
 // ones) is hidden behind RouteProvider and returns these shapes, so the rest
 // of the app never depends on a specific API.
 
-export type SegmentMode = 'walk' | 'bus' | 'train' | 'shinkansen' | 'subway' | 'taxi' | 'ferry' | 'other'
+export type SegmentMode = 'walk' | 'bus' | 'train' | 'shinkansen' | 'subway' | 'taxi' | 'ferry' | 'flight' | 'other'
 
 export interface LatLng {
   lat: number
@@ -54,6 +54,11 @@ export interface RouteSegment {
   distanceMeters?: number
   durationMinutes?: number
   fare?: Money
+  /**
+   * A flight taken from a booked journey or a transport option ("Use my
+   * flight"): its price stays there (never in `fare`, so it isn't counted twice).
+   */
+  booking?: { kind: 'booking' | 'option'; id: string; price?: Money }
   /** Line color as a CSS color, when the provider knows it. */
   color?: string
   path: LatLng[]

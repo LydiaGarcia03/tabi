@@ -23,10 +23,16 @@ export function RouteTimeline<T extends RouteSegment & { id: string; notes?: str
   stepTools,
   stepActions,
   stepForm,
+  beforeFirst,
 }: {
   segments: T[]
   start: End
   end: End
+  /**
+   * The way still missing between the start and the first step (a flight
+   * leaving from an airport far away): shown before the first step's station.
+   */
+  beforeFirst?: ReactNode
   /** Shown under each step (edit buttons). */
   stepTools?: (index: number) => ReactNode
   /** Small buttons at the top right of each step (edit, remove). */
@@ -36,7 +42,17 @@ export function RouteTimeline<T extends RouteSegment & { id: string; notes?: str
 }) {
   return (
     <ol className="route-timeline">
-      <StationRow time={segments[0]?.departureTime} name={start.name} icon={start.icon} terminal />
+      <StationRow time={beforeFirst ? undefined : segments[0]?.departureTime} name={start.name} icon={start.icon} terminal />
+      {beforeFirst && (
+        <>
+          <li className="route-step walk">
+            <span />
+            <span className="route-bar" aria-hidden="true" />
+            <div className="route-step-body">{beforeFirst}</div>
+          </li>
+          <StationRow time={segments[0].departureTime} name={segments[0].fromName ?? '?'} />
+        </>
+      )}
       {segments.map((segment, i) => {
         const next = segments[i + 1]
         const form = stepForm?.(i)
@@ -174,6 +190,10 @@ function RideText({ segment, color }: { segment: RouteSegment; color: string }) 
     segment.durationMinutes != null && formatDuration(segment.durationMinutes),
     segment.distanceMeters && !stops ? formatDistance(segment.distanceMeters) : undefined,
     segment.fare && formatMoney(segment.fare),
+    segment.booking &&
+      (segment.booking.kind === 'booking'
+        ? `Booked${segment.booking.price ? ` · ${formatMoney(segment.booking.price)} in the trip's bookings` : ''}`
+        : `From your options${segment.booking.price ? ` · ${formatMoney(segment.booking.price)}, not booked yet` : ' · not booked yet'}`),
     segment.carHint && `Best car: ${segment.carHint.replace(/^Cars? /, '').replace(/ of the train$/, '').toLowerCase()}`,
   ].filter(Boolean)
   return (

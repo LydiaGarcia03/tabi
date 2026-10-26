@@ -28,6 +28,7 @@ import type { Drawing, LegFocus } from '../drawing'
 import { dayText, shareText } from '../export/shareText'
 import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
 import { useRefreshStalePlaces } from '../places/refresh'
+import { flightSources } from '../planning/flightSteps'
 import { timeConflict } from '../planning/hours'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
@@ -57,6 +58,9 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const trip = useLiveQuery(async () => (await db.trips.get(tripId)) ?? null, [tripId])
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
   const dayExpenses = useLiveQuery(() => db.expenses.where('dayId').equals(dayId).toArray(), [dayId])
+  // Flights booked or kept as options: "Use my flight" in the day's legs.
+  const tripExpenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
+  const options = useLiveQuery(() => db.options.where('tripId').equals(tripId).toArray(), [tripId])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openLeg, setOpenLeg] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingAdd | null>(null)
@@ -127,6 +131,11 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const route = dayRoute(day, places)
   const listedRoute = dayRoute(day, listed)
   const walking = dayWalking(route, legs)
+  const dayFlights = flightSources(tripExpenses ?? [], options ?? [], day.date, (stays ? staysOn(stays, day.date) : []).map((s) => s.city))
+  const usedFlights = new Set(
+    route.slice(1).flatMap((p, i) => legs.get(legKey(route[i].id, p.id))?.segments.flatMap((s) => (s.booking ? [s.booking.id] : [])) ?? []),
+  )
+  const unusedFlights = dayFlights.filter((f) => !usedFlights.has(f.id))
   // The open leg (or the one being drawn): the maps show only its line and zoom to it.
   const focusKey = drawing ? legKey(drawing.fromPlaceId, drawing.toPlaceId) : openLeg
   const focusFrom = focusKey && route.find((p) => focusKey.startsWith(`${p.id}>`))
@@ -305,6 +314,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                       date={day.date}
                       currency={trip.baseCurrency}
                       hasGoogleKey={hasGoogleKey}
+                      flights={unusedFlights}
+                      allFlights={dayFlights}
                       open={openLeg === key}
                       onToggle={() => setOpenLeg(openLeg === key ? null : key)}
                       onDraw={(d) => {
