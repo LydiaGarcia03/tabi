@@ -8,7 +8,7 @@ import type { Place, Segment } from './db/model'
 // a place with an ID is sent by name + ID; one without (custom pin, base) by
 // coordinates.
 
-export function placeUrl(place: Place): string {
+export function placeUrl(place: Pick<Place, 'name' | 'lat' | 'lng' | 'googlePlaceId'>): string {
   const params = new URLSearchParams({ api: '1', query: place.googlePlaceId ? place.name : coords(place) })
   if (place.googlePlaceId) params.set('query_place_id', place.googlePlaceId)
   return `https://www.google.com/maps/search/?${params}`
@@ -27,7 +27,7 @@ export function directionsUrl(from: Place, to: Place, segments: Segment[]): stri
   return `https://www.google.com/maps/dir/?${params}`
 }
 
-function coords(place: Place): string {
+function coords(place: Pick<Place, 'lat' | 'lng'>): string {
   return `${place.lat},${place.lng}`
 }
 

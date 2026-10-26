@@ -1,12 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type MouseEvent } from 'react'
 import { AirlineGuideTable, BaggageBreakdown } from '../components/AirlineGuide'
 import { HotelForm, JourneyForm, type BookingValues } from '../components/BookingForms'
 import { Icon, type IconName } from '../components/Icon'
 import { findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
 import { FlightPlanner } from '../components/FlightPlanner'
-import { LeadPhoto } from '../components/Photos'
+import { BlobImage, LeadPhoto, PhotoViewer } from '../components/Photos'
 import { Sheet } from '../components/Sheet'
 import { JourneyItinerary, journeyChips, RouteChain } from '../components/JourneyLegs'
 import { Stars } from '../components/Stars'
@@ -22,7 +22,8 @@ import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, t
 import { cheapestFare, chosenFare, faresOf, isStale } from '../planning/fares'
 import { describeWeek } from '../planning/hours'
 import { formatHours, JOURNEY_ICON, journeyCarriers } from '../planning/journeys'
-import { BOOK_AHEAD_LABEL, DAY_KINDS, KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
+import { BOOK_AHEAD_LABEL, DAY_KINDS, KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS, PRICE_LABEL } from '../planning/optionKinds'
+import { placeUrl } from '../googleMapsLinks'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { NotFound } from './TripPage'
@@ -65,7 +66,8 @@ export function OptionsPage({ tripId }: { tripId: string }) {
   const [kind, setKind] = useState<OptionKind | 'all'>('all')
   const [city, setCity] = useState('')
   const [showDiscarded, setShowDiscarded] = useState(false)
-  const [editing, setEditing] = useState<TripOption | 'new' | null>(null)
+  // An option's details (read-only) or its form; `back`: the form was opened from the details and returns to them.
+  const [open, setOpen] = useState<{ id: string; edit: boolean; back?: boolean } | 'new' | null>(null)
   const [planning, setPlanning] = useState(false)
   const [weights, setWeightsState] = useState<Weights>(() => loadJson<Weights>(WEIGHTS_KEY) ?? DEFAULT_WEIGHTS)
   const setWeights = (w: Weights) => {
@@ -100,7 +102,20 @@ export function OptionsPage({ tripId }: { tripId: string }) {
   const counts = Object.fromEntries(
     OPTION_KINDS.map((k) => [k, options.filter((o) => o.kind === k && o.status !== 'discarded' && inCity(o)).length]),
   )
-  const context = { trip, stays, days, placeIds, expenseIds, photos, onEdit: (o: TripOption) => setEditing(o) }
+  const context = {
+    trip,
+    stays,
+    days,
+    placeIds,
+    expenseIds,
+    photos,
+    onEdit: (o: TripOption) => setOpen({ id: o.id, edit: true }),
+    onOpen: (o: TripOption) => setOpen({ id: o.id, edit: false }),
+  }
+  // Gone when it was just deleted: the sheet closes.
+  const openOption = open && open !== 'new' ? options.find((o) => o.id === open.id) : undefined
+  const openGroup = openOption && groups.find((g) => g.items.some((i) => i.option.id === openOption.id))
+  const closeForm = () => setOpen(open && open !== 'new' && open.back ? { id: open.id, edit: false } : null)
   // Airlines in the transport options, highlighted in the airline guide.
   const myAirlines = [
     ...new Set(
@@ -118,7 +133,7 @@ export function OptionsPage({ tripId }: { tripId: string }) {
           <p className="hero-kicker trip-kicker">{trip.name}</p>
           <h1>Options</h1>
         </span>
-        <button type="button" className="primary" onClick={() => setEditing('new')}>
+        <button type="button" className="primary" onClick={() => setOpen('new')}>
           <Icon name="plus" /> Add option
         </button>
       </header>
@@ -140,19 +155,36 @@ export function OptionsPage({ tripId }: { tripId: string }) {
         </Sheet>
       )}
 
-      {editing && (
-        <Sheet
-          key={editing === 'new' ? 'new' : editing.id}
-          title={editing === 'new' ? 'New option' : `Edit ${KIND_SINGULAR[editing.kind].toLowerCase()}`}
-          onClose={() => setEditing(null)}
-        >
+      {open === 'new' && (
+        <Sheet key="new" title="New option" onClose={() => setOpen(null)}>
           <OptionForm
             trip={trip}
             cities={cities}
-            option={editing === 'new' ? undefined : editing}
             defaults={{ kind: kind === 'all' ? undefined : kind, city: city || undefined }}
-            onDone={() => setEditing(null)}
+            onDone={() => setOpen(null)}
           />
+        </Sheet>
+      )}
+      {open && open !== 'new' && openOption && (
+        <Sheet
+          key={openOption.id}
+          title={open.edit ? `Edit ${KIND_SINGULAR[openOption.kind].toLowerCase()}` : KIND_SINGULAR[openOption.kind]}
+          onClose={() => setOpen(null)}
+        >
+          {open.edit ? (
+            <OptionForm trip={trip} cities={cities} option={openOption} onDone={closeForm} />
+          ) : (
+            <OptionDetails
+              option={openOption}
+              item={openGroup?.items.find((i) => i.option.id === openOption.id)}
+              group={openGroup}
+              trip={trip}
+              images={photos.get(openOption.id) ?? []}
+              inPlan={!!((openOption.placeId && placeIds.has(openOption.placeId)) || (openOption.expenseId && expenseIds.has(openOption.expenseId)))}
+              onEdit={() => setOpen({ id: openOption.id, edit: true, back: true })}
+              onClose={() => setOpen(null)}
+            />
+          )}
         </Sheet>
       )}
 
@@ -224,6 +256,8 @@ interface Context {
   /** Photos by option id. */
   photos: Map<string, Blob[]>
   onEdit: (option: TripOption) => void
+  /** The option's details, read-only. */
+  onOpen: (option: TripOption) => void
 }
 
 function OptionGroup({ group, ...context }: { group: Group } & Context) {
@@ -290,7 +324,7 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
   )
 }
 
-function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photos, onEdit }: { item: Scored; group: Group } & Context) {
+function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photos, onEdit, onOpen }: { item: Scored; group: Group } & Context) {
   const { option } = item
   const [choosing, setChoosing] = useState(false)
   const journey = option.journey
@@ -309,10 +343,16 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
   const columns = 6 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 2 : 0)
 
   const setStatus = (status: OptionStatus) => updateOption(option.id, { status: option.status === status ? 'idea' : status })
+  // A tap on the row opens the details; its photo, link, stars, buttons and folded blocks keep their own job,
+  // and selecting text doesn't open anything.
+  const openDetails = (e: MouseEvent) => {
+    if ((e.target as Element).closest('a, button, input, select, textarea, label, details') || getSelection()?.toString()) return
+    onOpen(option)
+  }
 
   return (
     <>
-      <tr className={`option-row status-${option.status}`}>
+      <tr className={`option-row status-${option.status}`} onClick={openDetails}>
         <td className="option-name" data-label="Name">
           <div className="option-with-photo">
             <LeadPhoto images={photos.get(option.id) ?? []} name={option.name} />
@@ -496,6 +536,213 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
   )
 }
 
+/** Everything about one option, read-only, with room to read it; "Edit" turns the sheet into the form. */
+function OptionDetails({
+  option,
+  item,
+  group,
+  trip,
+  images,
+  inPlan,
+  onEdit,
+  onClose,
+}: {
+  option: TripOption
+  /** Missing when the option isn't on the board (discarded while discarded ones are hidden). */
+  item?: Scored
+  group?: Group
+  trip: Trip
+  images: Blob[]
+  inPlan: boolean
+  onEdit: () => void
+  onClose: () => void
+}) {
+  const journey = option.journey
+  const fares = option.kind === 'transport' ? faresOf(option) : []
+  const carriers = journey?.mode === 'flight' ? journeyCarriers(journey) : []
+  const priced = DAY_KINDS.includes(option.kind) ? optionPriced(option) : undefined
+  const travelers = travelersOf(trip)
+  // "¥1,500 × 2" next to the total; nothing when the total is the price itself.
+  const calculation = priced?.price ? describePriced(priced, travelers).split(' = ')[0] : ''
+
+  return (
+    <div className="option-details">
+      {images.length > 0 && <DetailPhotos images={images} name={option.name} />}
+
+      <div>
+        <p className="option-details-kicker">
+          {option.category && <span className="muted small">{option.category}</span>}
+          {option.city && <CityTag city={option.city} />}
+          {inPlan && <span className="tag in-plan">{option.expenseId ? 'Booked' : 'In the itinerary'}</span>}
+        </p>
+        <h3 className="option-details-title">
+          {option.status === 'favorite' && (
+            <span className="status-mark favorite" title="Favorite">
+              <Icon name="star" size={18} filled />
+            </span>
+          )}
+          {option.status === 'chosen' && (
+            <span className="status-mark chosen" title="Chosen">
+              <Icon name="check" size={18} weight={2.6} />
+            </span>
+          )}
+          {option.status === 'discarded' && <span className="muted small">Discarded · </span>}
+          {journey ? (
+            <>
+              <Icon name={JOURNEY_ICON[journey.mode]} /> <RouteChain journey={journey} />
+            </>
+          ) : (
+            option.name
+          )}
+        </h3>
+        {journey && (
+          <span className="chips option-chips">
+            {journeyChips(journey).map((c) => (
+              <span key={c.text} className={`chip${c.warn ? ' warn' : ''}`}>
+                {c.warn && <Icon name="warning" size={14} />} {c.text}
+              </span>
+            ))}
+          </span>
+        )}
+        {item && item.badges.length > 0 && (
+          <span className="badges">
+            {item.badges.map((b) => (
+              <span key={b} className={`badge badge-${b}`}>
+                <Icon name={BADGE_ICON[b]} size={13} filled={b === 'top-rated'} /> {BADGE_LABEL[b]}
+              </span>
+            ))}
+          </span>
+        )}
+      </div>
+
+      <dl className="option-details-facts">
+        {option.kind !== 'transport' && option.price && (
+          <>
+            <dt>{option.kind === 'hotel' ? 'Per night' : DAY_KINDS.includes(option.kind) ? 'Price' : PRICE_LABEL[option.kind]}</dt>
+            <dd>
+              <strong>{formatMoney(priced ? pricedTotal(priced, travelers)! : option.price)}</strong>
+              {calculation && calculation !== formatMoney(option.price) && <span className="muted small"> {calculation}</span>}
+            </dd>
+          </>
+        )}
+        {option.kind === 'hotel' && item?.total && (
+          <>
+            <dt>Stay total</dt>
+            <dd>
+              <strong>{formatMoney(item.total)}</strong>
+              {item.nights != null && <span className="muted small"> {item.nights === 1 ? '1 night' : `${item.nights} nights`}</span>}
+            </dd>
+          </>
+        )}
+        {fares.length > 0 && (
+          <>
+            <dt>{fares.length === 1 ? 'Fare' : 'Fares'}</dt>
+            <dd>
+              <ul className="option-details-fares">
+                {fares.map((f, i) => (
+                  <li key={i} className={isStale(f.seenOn) ? 'stale-price' : ''}>
+                    {/* The marked fare (the one in the budget) in bold. */}
+                    <span className={fares.length > 1 && i === (option.fareIndex ?? 0) ? 'strong' : ''}>
+                      {[f.name, f.price && formatMoney(f.price), f.bags].filter(Boolean).join(' · ')}
+                    </span>
+                    {f.seenOn && <span className="muted small"> · seen {formatDay(f.seenOn)}</span>}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </>
+        )}
+        {journey?.durationHours != null && (
+          <>
+            <dt>Travel time</dt>
+            <dd>{formatHours(journey.durationHours)}</dd>
+          </>
+        )}
+        {item?.distanceKm != null && group?.reference && (
+          <>
+            <dt>Distance</dt>
+            <dd>
+              {formatKm(item.distanceKm)} <span className="muted small">from {group.reference.name}</span>
+            </dd>
+          </>
+        )}
+        {option.rating != null && (
+          <>
+            <dt>Your rating</dt>
+            <dd>
+              <Stars value={option.rating} />
+            </dd>
+          </>
+        )}
+        {(option.openingHours || option.hours) && (
+          <>
+            <dt>Hours</dt>
+            <dd>{[option.openingHours && describeWeek(option.openingHours), option.hours].filter(Boolean).join(' · ')}</dd>
+          </>
+        )}
+        {option.bookAhead && (
+          <>
+            <dt>Book ahead</dt>
+            <dd>{BOOK_AHEAD_LABEL[option.bookAhead]}</dd>
+          </>
+        )}
+        {option.lat != null && option.lng != null && (
+          <>
+            <dt>Location</dt>
+            <dd>
+              {option.address ?? `${option.lat.toFixed(5)}, ${option.lng.toFixed(5)}`}
+              <br />
+              <a href={placeUrl({ name: option.name, lat: option.lat, lng: option.lng, googlePlaceId: option.googlePlaceId })} target="_blank" rel="noreferrer">
+                Open in Google Maps
+              </a>
+            </dd>
+          </>
+        )}
+        {option.link && (
+          <>
+            <dt>Link</dt>
+            <dd className="option-details-link">
+              {/* Only the site: search links are long. */}
+              <a href={option.link} target="_blank" rel="noreferrer" title={option.link}>
+                {siteOf(option.link)}
+              </a>
+            </dd>
+          </>
+        )}
+      </dl>
+
+      {/* The route is already in the title: only the timed flights are added. */}
+      {journey && <JourneyItinerary journey={journey} timesOnly />}
+      {carriers.length > 0 && <BaggageBreakdown carriers={carriers} main={journey!.carrier} fare={journey!.fare} />}
+      {option.notes && <p className="option-details-notes">{option.notes}</p>}
+
+      <div className="row wrap sheet-actions">
+        <button type="button" className="primary" onClick={onEdit}>
+          <Icon name="edit" /> Edit
+        </button>
+        <button type="button" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** The option's photos on top of its details: the first one big, the others beside it; each opens the carousel. */
+function DetailPhotos({ images, name }: { images: Blob[]; name: string }) {
+  const [viewing, setViewing] = useState<number | null>(null)
+  return (
+    <div className={`option-details-photos count-${Math.min(images.length, 3)}`}>
+      {images.slice(0, 3).map((image, i) => (
+        <button key={i} type="button" onClick={() => setViewing(i)} aria-label={`Photo ${i + 1} of ${name}`}>
+          <BlobImage image={image} alt="" />
+        </button>
+      ))}
+      {viewing != null && <PhotoViewer images={images} start={viewing} name={name} onClose={() => setViewing(null)} />}
+    </div>
+  )
+}
+
 /** Picking an option: hotels and transport become bookings; the rest goes into a day. */
 function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: Trip; stays: Stay[]; days: Day[]; onDone: () => void }) {
   const { option } = item
@@ -638,6 +885,15 @@ function WeightsPanel({ weights, onChange }: { weights: Weights; onChange: (w: W
       </div>
     </details>
   )
+}
+
+/** "booking.com" from a full link; the link as typed when it isn't a URL. */
+function siteOf(link: string): string {
+  try {
+    return new URL(link).hostname.replace(/^www\./, '')
+  } catch {
+    return link
+  }
 }
 
 function formatKm(km: number): string {
