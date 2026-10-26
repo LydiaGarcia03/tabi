@@ -6,7 +6,7 @@ import { Icon, type IconName } from '../components/Icon'
 import { findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
 import { FlightPlanner } from '../components/FlightPlanner'
-import { PhotoStrip } from '../components/Photos'
+import { LeadPhoto } from '../components/Photos'
 import { Sheet } from '../components/Sheet'
 import { JourneyItinerary, journeyChips, RouteChain } from '../components/JourneyLegs'
 import { Stars } from '../components/Stars'
@@ -16,7 +16,7 @@ import { db } from '../db/db'
 import type { Day, Expense, OptionKind, OptionStatus, Stay, Trip, TripOption } from '../db/model'
 import { addOptionToDay, bookOption, updateOption } from '../db/options'
 import { cityLabel, stayNights, stayOfCity } from '../db/stays'
-import { describePriced, optionPriced, travelersOf } from '../budget'
+import { describePriced, optionPriced, pricedTotal, travelersOf } from '../budget'
 import { formatMoney } from '../format'
 import { compareOptions, DEFAULT_WEIGHTS, type Badge, type Group, type Scored, type Weights } from '../planning/compare'
 import { cheapestFare, chosenFare, faresOf, isStale } from '../planning/fares'
@@ -260,9 +260,10 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
         <table className={`compare-table options-table${isTransport ? ' transport-table' : ''}`}>
           <thead>
             <tr>
+              {/* Fixed widths (col-*) so the columns line up from one group's table to the next. */}
               <th>Name</th>
-              <th className="num">{group.kind === 'hotel' ? 'Per night' : group.kind === 'restaurant' ? 'Per person' : 'Price'}</th>
-              {group.kind === 'hotel' && <th className="num">Stay total</th>}
+              <th className={`num${isTransport ? '' : ' col-price'}`}>{group.kind === 'hotel' ? 'Per night' : 'Price'}</th>
+              {group.kind === 'hotel' && <th className="num col-price">Stay total</th>}
               {isTransport ? (
                 <>
                   <th className="num">Time</th>
@@ -270,12 +271,12 @@ function OptionGroup({ group, ...context }: { group: Group } & Context) {
                   <th>Comfort</th>
                 </>
               ) : (
-                <th className="num">Distance</th>
+                <th className="num col-distance">Distance</th>
               )}
-              <th>Rating</th>
-              <th>Score</th>
+              <th className="col-rating">Rating</th>
+              <th className="col-score">Score</th>
               {/* Notes are in the edit form only: a notes column squeezed the actions out of narrow windows. */}
-              <th aria-label="Actions" />
+              <th className="col-actions" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
@@ -313,73 +314,83 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
     <>
       <tr className={`option-row status-${option.status}`}>
         <td className="option-name" data-label="Name">
-          <span className="option-title">
-            {option.status === 'favorite' && (
-              <span className="status-mark favorite" title="Favorite">
-                <Icon name="star" size={15} filled />
+          <div className="option-with-photo">
+            <LeadPhoto images={photos.get(option.id) ?? []} name={option.name} />
+            <div>
+              <span className="option-title">
+                {option.status === 'favorite' && (
+                  <span className="status-mark favorite" title="Favorite">
+                    <Icon name="star" size={15} filled />
+                  </span>
+                )}
+                {option.status === 'chosen' && (
+                  <span className="status-mark chosen" title="Chosen">
+                    <Icon name="check" size={15} weight={2.6} />
+                  </span>
+                )}
+                {journey && (
+                  <span aria-hidden="true">
+                    <Icon name={JOURNEY_ICON[journey.mode]} size={16} />{' '}
+                  </span>
+                )}
+                {option.link ? (
+                  <a href={option.link} target="_blank" rel="noreferrer">
+                    {journey ? <RouteChain journey={journey} /> : option.name}
+                  </a>
+                ) : journey ? (
+                  <RouteChain journey={journey} />
+                ) : (
+                  option.name
+                )}
               </span>
-            )}
-            {option.status === 'chosen' && (
-              <span className="status-mark chosen" title="Chosen">
-                <Icon name="check" size={15} weight={2.6} />
-              </span>
-            )}
-            {journey && (
-              <span aria-hidden="true">
-                <Icon name={JOURNEY_ICON[journey.mode]} size={16} />{' '}
-              </span>
-            )}
-            {option.link ? (
-              <a href={option.link} target="_blank" rel="noreferrer">
-                {journey ? <RouteChain journey={journey} /> : option.name}
-              </a>
-            ) : journey ? (
-              <RouteChain journey={journey} />
-            ) : (
-              option.name
-            )}
-          </span>
-          {journey ? (
-            <span className="chips option-chips">
-              {journeyChips(journey).map((c) => (
-                <span key={c.text} className={`chip${c.warn ? ' warn' : ''}`}>
-                  {c.warn && <Icon name="warning" size={14} />} {c.text}
+              {journey ? (
+                <span className="chips option-chips">
+                  {journeyChips(journey).map((c) => (
+                    <span key={c.text} className={`chip${c.warn ? ' warn' : ''}`}>
+                      {c.warn && <Icon name="warning" size={14} />} {c.text}
+                    </span>
+                  ))}
+                  {fares.length > 1 && cheapest?.price && (
+                    <span className="chip">
+                      {fares.length} fares from {formatMoney(cheapest.price)}
+                    </span>
+                  )}
                 </span>
-              ))}
-              {fares.length > 1 && cheapest?.price && (
-                <span className="chip">
-                  {fares.length} fares from {formatMoney(cheapest.price)}
+              ) : (
+                <span className="muted small">
+                  {[
+                    option.category,
+                    option.openingHours && describeWeek(option.openingHours),
+                    option.hours,
+                    option.bookAhead && BOOK_AHEAD_LABEL[option.bookAhead],
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </span>
               )}
-            </span>
-          ) : (
-            <span className="muted small">
-              {[
-                option.category,
-                option.openingHours && describeWeek(option.openingHours),
-                option.hours,
-                option.bookAhead && BOOK_AHEAD_LABEL[option.bookAhead],
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </span>
-          )}
-          {journey && <JourneyItinerary journey={journey} timesOnly />}
-          <PhotoStrip images={photos.get(option.id) ?? []} name={option.name} />
-          {inPlan && <span className="tag in-plan">{option.expenseId ? 'Booked' : 'In the itinerary'}</span>}
-          {item.badges.length > 0 && (
-            <span className="badges">
-              {item.badges.map((b) => (
-                <span key={b} className={`badge badge-${b}`}>
-                  <Icon name={BADGE_ICON[b]} size={13} filled={b === 'top-rated'} /> {BADGE_LABEL[b]}
+              {journey && <JourneyItinerary journey={journey} timesOnly />}
+              {(inPlan || item.badges.length > 0) && (
+                <span className="badges">
+                  {inPlan && <span className="tag in-plan">{option.expenseId ? 'Booked' : 'In the itinerary'}</span>}
+                  {item.badges.map((b) => (
+                    <span key={b} className={`badge badge-${b}`}>
+                      <Icon name={BADGE_ICON[b]} size={13} filled={b === 'top-rated'} /> {BADGE_LABEL[b]}
+                    </span>
+                  ))}
                 </span>
-              ))}
-            </span>
-          )}
+              )}
+            </div>
+          </div>
         </td>
-        <td className="num" data-label={group.kind === 'hotel' ? 'Per night' : 'Price'}>
-          <span className={stale ? 'stale-price' : ''}>
-            {!option.price ? '—' : DAY_KINDS.includes(option.kind) ? describePriced(optionPriced(option), travelersOf(trip)) : formatMoney(option.price)}
+        <td className={`num${isTransport ? '' : ' col-price'}`} data-label={group.kind === 'hotel' ? 'Per night' : 'Price'}>
+          {/* Only the total here; the calculation ("¥1,500 × 2 = ¥3,000") is in the edit form (and on hover). */}
+          <span
+            className={stale ? 'stale-price' : ''}
+            title={option.price && DAY_KINDS.includes(option.kind) ? describePriced(optionPriced(option), travelersOf(trip)) : undefined}
+          >
+            {!option.price
+              ? '—'
+              : formatMoney(DAY_KINDS.includes(option.kind) ? pricedTotal(optionPriced(option), travelersOf(trip))! : option.price)}
           </span>
           {fare && (fare.name || fare.seenOn) && (
             <span className={`muted small fare-seen${stale ? ' stale-price' : ''}`}>
@@ -388,7 +399,7 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
           )}
         </td>
         {group.kind === 'hotel' && (
-          <td className="num" data-label="Stay total">
+          <td className="num col-price" data-label="Stay total">
             {item.total ? formatMoney(item.total) : '—'}
             {item.nights != null && item.total && <span className="muted small"> ({item.nights}×)</span>}
           </td>
@@ -422,14 +433,14 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
             </td>
           </>
         ) : (
-          <td className="num" data-label="Distance">
+          <td className="num col-distance" data-label="Distance">
             {item.distanceKm == null ? (option.lat == null ? <span className="muted small">not located</span> : '—') : formatKm(item.distanceKm)}
           </td>
         )}
-        <td data-label="Rating">
+        <td className="col-rating" data-label="Rating">
           <Stars value={option.rating} onChange={(rating) => updateOption(option.id, { rating })} />
         </td>
-        <td data-label="Score">
+        <td className="col-score" data-label="Score">
           {item.score == null ? (
             <span className="muted">—</span>
           ) : (

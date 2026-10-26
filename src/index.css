@@ -1056,9 +1056,147 @@ button.toggle-link .muted {
   gap: 8px;
 }
 
-.option-picker select {
+/* "Choose from my options": our own dropdown, so each option shows its photo. */
+.option-select {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+button.option-select-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 10px 4px 6px;
+  text-align: left;
+  font-weight: 400;
+  background: var(--surface);
+}
+
+.option-select-button > .icon {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.option-select-button .option-select-name.muted {
+  padding-left: 4px;
+}
+
+.option-select-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.14);
+}
+
+.option-select-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option-select-city {
+  display: block;
+  padding: 8px 10px 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.option-select-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.option-select-item.active {
+  background: var(--surface-2);
+}
+
+.option-select-item[aria-selected='true'] .option-select-name {
+  color: var(--accent-text);
+}
+
+.option-select-item[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.option-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.option-select-button .option-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+.option-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.option-select-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.option-select-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.option-select-name .status-mark {
+  margin-right: 4px;
+}
+
+.option-select-type {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.option-select-button .option-select-type {
+  align-self: center;
+  margin-top: 0;
 }
 
 /* Phones: the map goes edge to edge, like a native maps app. */
@@ -2784,7 +2922,7 @@ h2 > .city-tag {
   font-weight: 650;
 }
 
-.option-name > .small {
+.option-with-photo > div > .small {
   display: block;
 }
 
@@ -2866,7 +3004,6 @@ h2 > .city-tag {
 
 .tag.in-plan {
   display: inline-block;
-  margin: 4px 0 0;
   background: color-mix(in srgb, #2f8f5b 18%, transparent);
   color: var(--text);
 }
@@ -2907,6 +3044,35 @@ h2 > .city-tag {
 .option-actions {
   white-space: nowrap;
   text-align: right;
+}
+
+/* Same width in every group's table (they are separate tables), so the columns line up down the page. */
+.options-table .col-price {
+  width: 120px;
+}
+
+.options-table .col-distance {
+  width: 90px;
+}
+
+.options-table .col-rating {
+  width: 130px;
+}
+
+.options-table .col-score {
+  width: 110px;
+}
+
+.options-table .col-actions {
+  width: 170px;
+}
+
+/* Short values (prices, —, 3.7 km, stars, score) sit centered under their heading, so the
+   headings are evenly spaced. Only in the table: phones show cards. */
+@media (min-width: 761px) {
+  .options-table :is(th, td):is(.col-price, .col-distance, .col-rating, .col-score) {
+    text-align: center;
+  }
 }
 
 /* All on one center line (the pencil is a bit taller than the toggles). */
@@ -3225,13 +3391,26 @@ fieldset.journey-leg {
 
 /* --- Option photos ------------------------------------------------------- */
 
-.photo-strip {
+/* The first photo before the option's name ("+2" when there are more). */
+.option-with-photo {
   display: flex;
-  gap: 4px;
-  margin-top: 6px;
+  gap: 10px;
+  align-items: flex-start;
 }
 
-button.photo-thumb {
+.option-with-photo > div {
+  min-width: 0;
+  flex: 1;
+}
+
+/* Tags start at the line's edge, like the text above them (.tag has a left margin elsewhere). */
+.badges > .tag.in-plan {
+  margin-left: 0;
+}
+
+button.lead-photo {
+  position: relative;
+  flex: none;
   padding: 0;
   min-height: 0;
   width: 56px;
@@ -3240,14 +3419,46 @@ button.photo-thumb {
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--surface-2);
+  cursor: zoom-in;
 }
 
-.photo-thumb img,
-.photo-picker-item img {
+.lead-photo-more {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  button.lead-photo {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+.lead-photo img,
+.photo-picker-item img,
+.photo-viewer-thumbs img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+button.photo-picker-view {
+  display: block;
+  width: 100%;
+  padding: 0;
+  min-height: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
 }
 
 .photo-picker-list {
@@ -3258,8 +3469,15 @@ button.photo-thumb {
 }
 
 .photo-picker-item {
+  position: relative;
   margin: 0;
   width: 104px;
+}
+
+.photo-picker-item.dragging {
+  z-index: 2;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 0.35);
+  border-radius: var(--radius-sm);
 }
 
 .photo-picker-item img {
@@ -3268,10 +3486,57 @@ button.photo-thumb {
   border: 1px solid var(--border);
 }
 
-.photo-picker-item figcaption {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
+/* Controls on the photo: drag handle top left, trash top right, "Cover" on the first. */
+button.photo-picker-grip,
+button.photo-picker-remove {
+  position: absolute;
+  top: 4px;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+}
+
+button.photo-picker-grip {
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: grab;
+  /* The handle drags; the page must not scroll instead. */
+  touch-action: none;
+}
+
+.photo-picker-item.dragging .photo-picker-grip {
+  cursor: grabbing;
+}
+
+button.photo-picker-remove {
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+button.photo-picker-grip:hover,
+button.photo-picker-remove:hover {
+  background: rgb(0 0 0 / 0.75);
+}
+
+.photo-picker-cover {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 button.photo-add {
@@ -3285,9 +3550,12 @@ button.photo-add {
   margin: 4px 0 0;
 }
 
+/* The carousel: name and ✕ on top, the photo (swipe / side arrows), every photo below. */
 dialog.photo-viewer {
-  max-width: min(96vw, 1100px);
-  max-height: 94vh;
+  width: min(96vw, 1100px);
+  max-width: none;
+  max-height: none;
+  height: min(94vh, 900px);
   padding: 0;
   border: none;
   border-radius: var(--radius);
@@ -3296,34 +3564,136 @@ dialog.photo-viewer {
   overflow: hidden;
 }
 
+dialog.photo-viewer[open] {
+  display: flex;
+  flex-direction: column;
+}
+
 dialog.photo-viewer::backdrop {
   background: rgb(0 0 0 / 0.75);
 }
 
-.photo-viewer img {
-  display: block;
-  max-width: 100%;
-  max-height: calc(94vh - 56px);
-  margin: 0 auto;
-  object-fit: contain;
-}
-
-.photo-viewer-bar {
+.photo-viewer-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px;
+  padding: 6px 6px 6px 14px;
 }
 
-.photo-viewer-bar span {
+.photo-viewer-head strong {
   flex: 1;
-  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.photo-viewer-bar button {
-  background: #2a2724;
-  border-color: #3a3530;
+.photo-viewer-head button {
   color: inherit;
+}
+
+.photo-viewer-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* Horizontal swipes are ours; the page keeps vertical gestures. */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.photo-viewer-photo {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease;
+}
+
+.photo-viewer-photo.dragging {
+  transition: none;
+}
+
+.photo-viewer-photo img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+button.photo-viewer-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff;
+}
+
+button.photo-viewer-arrow:hover {
+  background: rgb(0 0 0 / 0.7);
+}
+
+.photo-viewer-arrow.prev {
+  left: 8px;
+}
+
+.photo-viewer-arrow.next {
+  right: 8px;
+}
+
+.photo-viewer-count {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 0.5);
+  font-size: 0.75rem;
+}
+
+.photo-viewer-thumbs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px 12px;
+}
+
+.photo-viewer-thumbs button {
+  width: 56px;
+  height: 42px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #2a2724;
+  opacity: 0.55;
+}
+
+.photo-viewer-thumbs button.active {
+  border-color: #f4efe8;
+  opacity: 1;
+}
+
+/* Phones: full screen, swiping is the main way to move. */
+@media (max-width: 760px) {
+  dialog.photo-viewer {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  button.photo-viewer-arrow {
+    width: 34px;
+    height: 34px;
+  }
 }
 
 /* On phones the comparison table becomes one card per option. */

@@ -10,23 +10,33 @@ const SLIDE = 'transform 180ms ease'
  * passes that neighbour's middle, and the others slide to their new place
  * (FLIP: measure before and after, animate the difference). The new order is
  * saved on release. Arrow keys on a focused handle move by one.
- * Items are found by `data-reorder-id` inside `listRef`.
+ * Items are found by `data-reorder-id` inside `listRef`. `axis: 'x'` is for
+ * a row (photos): left/right instead of up/down, no page scrolling.
  */
-export function useReorder(ids: string[], onReorder: (ids: string[]) => Promise<void>) {
-  const listRef = useRef<HTMLOListElement>(null)
+export function useReorder<L extends HTMLElement = HTMLOListElement>(
+  ids: string[],
+  onReorder: (ids: string[]) => Promise<void>,
+  axis: 'x' | 'y' = 'y',
+) {
+  const listRef = useRef<L>(null)
   const [drag, setDrag] = useState<{ id: string; order: string[] } | null>(null)
   // Shown after the drop until the saved order arrives (avoids a flash of the old order).
   const [dropped, setDropped] = useState<{ order: string[]; base: string } | null>(null)
   // Positions before the last change (for the slide), and where the pointer holds the dragged item.
   const before = useRef<Map<string, number> | null>(null)
-  const pointer = useRef<{ id: string; y: number; grab: number } | null>(null)
+  const pointer = useRef<{ id: string; at: number; grab: number } | null>(null)
+
+  const startOf = (rect: DOMRect) => (axis === 'x' ? rect.left : rect.top)
+  const size = (rect: DOMRect) => (axis === 'x' ? rect.width : rect.height)
+  const coord = (e: { clientX: number; clientY: number }) => (axis === 'x' ? e.clientX : e.clientY)
+  const translate = (px: number) => (axis === 'x' ? `translateX(${px}px)` : `translateY(${px}px)`)
 
   const items = () =>
     new Map([...(listRef.current?.querySelectorAll<HTMLElement>('[data-reorder-id]') ?? [])].map((el) => [el.dataset.reorderId!, el]))
 
   /** Remembers where every item is on screen now. */
   const snapshot = () => {
-    before.current = new Map([...items()].map(([id, el]) => [id, el.getBoundingClientRect().top]))
+    before.current = new Map([...items()].map(([id, el]) => [id, startOf(el.getBoundingClientRect())]))
   }
 
   /** Puts the dragged item under the pointer. */
@@ -36,8 +46,8 @@ export function useReorder(ids: string[], onReorder: (ids: string[]) => Promise<
     if (!p || !el) return
     el.style.transition = 'none'
     el.style.transform = ''
-    const natural = el.getBoundingClientRect().top
-    el.style.transform = `translateY(${p.y - p.grab - natural}px)`
+    const natural = startOf(el.getBoundingClientRect())
+    el.style.transform = translate(p.at - p.grab - natural)
   }
 
   // After each change of order: slide every other item from where it was to where it is now.
@@ -51,9 +61,9 @@ export function useReorder(ids: string[], onReorder: (ids: string[]) => Promise<
         if (id === pointer.current?.id || was == null) continue
         el.style.transition = 'none'
         el.style.transform = ''
-        const now = el.getBoundingClientRect().top
+        const now = startOf(el.getBoundingClientRect())
         if (Math.abs(was - now) < 1) continue
-        el.style.transform = `translateY(${was - now}px)`
+        el.style.transform = translate(was - now)
         void el.offsetHeight // apply the start position before animating
         el.style.transition = SLIDE
         el.style.transform = ''
@@ -69,7 +79,7 @@ export function useReorder(ids: string[], onReorder: (ids: string[]) => Promise<
     if (!el) return
     e.preventDefault()
     navigator.vibrate?.(10)
-    pointer.current = { id, y: e.clientY, grab: e.clientY - el.getBoundingClientRect().top }
+    pointer.current = { id, at: coord(e), grab: coord(e) - startOf(el.getBoundingClientRect()) }
     let order = ids
     snapshot() // the legs between items hide while dragging: slide into the closer list
     setDrag({ id, order })
@@ -78,17 +88,17 @@ export function useReorder(ids: string[], onReorder: (ids: string[]) => Promise<
     // while it is dragged, which would end a pointer capture.
     const move = (ev: PointerEvent) => {
       if (ev.pointerId !== e.pointerId || !pointer.current) return
-      const y = ev.clientY
-      pointer.current.y = y
+      const at = coord(ev)
+      pointer.current.at = at
       const all = items()
       const middleOf = (other: string) => {
         const rect = all.get(other)?.getBoundingClientRect()
-        return rect ? rect.top + rect.height / 2 : null
+        return rect ? startOf(rect) + size(rect) / 2 : null
       }
       const from = order.indexOf(id)
       let to = from
-      while (to > 0 && y < (middleOf(order[to - 1]) ?? -Infinity)) to--
-      if (to === from) while (to < order.length - 1 && y > (middleOf(order[to + 1]) ?? Infinity)) to++
+      while (to > 0 && at < (middleOf(order[to - 1]) ?? -Infinity)) to--
+      if (to === from) while (to < order.length - 1 && at > (middleOf(order[to + 1]) ?? Infinity)) to++
       if (to !== from) {
         order = order.filter((other) => other !== id)
         order.splice(to, 0, id)
@@ -97,8 +107,10 @@ export function useReorder(ids: string[], onReorder: (ids: string[]) => Promise<
       } else {
         follow()
       }
-      if (y < EDGE) window.scrollBy(0, -12)
-      else if (y > window.innerHeight - EDGE) window.scrollBy(0, 12)
+      if (axis === 'y') {
+        if (at < EDGE) window.scrollBy(0, -12)
+        else if (at > window.innerHeight - EDGE) window.scrollBy(0, 12)
+      }
     }
     const end = (ev: PointerEvent) => {
       if (ev.pointerId !== e.pointerId) return
@@ -118,10 +130,11 @@ export function useReorder(ids: string[], onReorder: (ids: string[]) => Promise<
   }
 
   function handleProps(id: string) {
+    const [back, forward] = axis === 'x' ? ['ArrowLeft', 'ArrowRight'] : ['ArrowUp', 'ArrowDown']
     return {
       onPointerDown: (e: ReactPointerEvent<HTMLElement>) => start(id, e),
       onKeyDown(e: KeyboardEvent<HTMLElement>) {
-        const delta = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0
+        const delta = e.key === back ? -1 : e.key === forward ? 1 : 0
         const from = ids.indexOf(id)
         if (!delta || from + delta < 0 || from + delta >= ids.length) return
         e.preventDefault()

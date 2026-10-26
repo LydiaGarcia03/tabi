@@ -339,7 +339,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
         </div>
       )}
 
-      {savedPhotos && <PhotoPicker images={photos ?? savedPhotos} onChange={setPhotos} />}
+      {savedPhotos && <PhotoPicker images={photos ?? savedPhotos} name={name || 'Photos'} onChange={setPhotos} />}
       <label>
         Link
         <input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />

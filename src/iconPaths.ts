@@ -29,6 +29,9 @@ export const ICON_PATHS = {
   door: 'M6 20V5a1 1 0 011-1h10a1 1 0 011 1v15M4 20h16M14.5 12h.01',
   sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z',
   reorder: 'M9 5l3-3 3 3M9 19l3 3 3-3M6 9h12M6 12h12M6 15h12',
+  // Six dots: the handle that drags a photo sideways.
+  grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
   check: 'M5 12.5l4.5 4.5L19 7',
   star: 'M12 3.8l2.5 5.1 5.6.8-4.05 3.95.95 5.6L12 16.6l-5 2.65.95-5.6L3.9 9.7l5.6-.8z',
   bed:'M3 6v13M3 15h18v4M21 15v-2.5a3 3 0 00-3-3h-8V15M6.5 12.75a1.75 1.75 0 100-3.5 1.75 1.75 0 000 3.5z',

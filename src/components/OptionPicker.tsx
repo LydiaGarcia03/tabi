@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { db } from '../db/db'
 import type { OptionKind, TripOption } from '../db/model'
 import { addOptionToDay } from '../db/options'
 import { DAY_KINDS, KIND_ICON, KIND_PLURAL } from '../planning/optionKinds'
 import { Icon } from './Icon'
+import { BlobImage } from './Photos'
 
 const NO_CITY = 'No city'
 
@@ -20,12 +21,18 @@ interface Props {
 export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
   const options = useLiveQuery(() => db.options.where('tripId').equals(tripId).toArray(), [tripId])
   const placeIds = useLiveQuery(async () => new Set(await db.places.where('tripId').equals(tripId).primaryKeys()), [tripId])
+  // First photo of each option, shown in the list.
+  const photos = useLiveQuery(async () => {
+    const first = new Map<string, Blob>()
+    for (const p of await db.photos.where('tripId').equals(tripId).sortBy('order')) if (!first.has(p.optionId)) first.set(p.optionId, p.image)
+    return first
+  }, [tripId])
   const [open, setOpen] = useState(false)
   const [kind, setKind] = useState<OptionKind | null>(null)
   const [optionId, setOptionId] = useState('')
   const [error, setError] = useState('')
 
-  if (!options || !placeIds) return null
+  if (!options || !placeIds || !photos) return null
   const available = options.filter((o) => DAY_KINDS.includes(o.kind) && o.status !== 'discarded')
   if (available.length === 0) return null
 
@@ -33,7 +40,6 @@ export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
   const shownKind = kind ?? DAY_KINDS.find((k) => count(k) > 0)!
   const ofKind = available.filter((o) => o.kind === shownKind)
   const selected = ofKind.find((o) => o.id === optionId)
-  const inPlan = (o: TripOption) => o.placeId != null && placeIds.has(o.placeId)
 
   // Grouped by city: the day's cities first, then the others alphabetically.
   const groups = new Map<string, TripOption[]>()
@@ -82,29 +88,17 @@ export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
         ))}
       </div>
       <div className="row">
-        <select
-          value={optionId}
-          onChange={(e) => {
-            setOptionId(e.target.value)
+        <OptionSelect
+          groups={sortedGroups}
+          selected={selected}
+          photos={photos}
+          inPlan={(o) => o.placeId != null && placeIds.has(o.placeId)}
+          placeholder={`Pick one of the ${KIND_PLURAL[shownKind].toLowerCase()}…`}
+          onPick={(o) => {
+            setOptionId(o.id)
             setError('')
           }}
-          aria-label={`Pick one of the ${KIND_PLURAL[shownKind].toLowerCase()}`}
-        >
-          <option value="">Pick one of the {KIND_PLURAL[shownKind].toLowerCase()}…</option>
-          {sortedGroups.map(([city, list]) => (
-            <optgroup key={city} label={city}>
-              {list.map((o) => (
-                <option key={o.id} value={o.id} disabled={o.lat == null || o.lng == null}>
-                  {/* Inside a dropdown only text works: a plain star character, not an emoji. */}
-                  {o.status === 'favorite' ? '★ ' : ''}
-                  {o.name}
-                  {o.category ? ` · ${o.category}` : ''}
-                  {o.lat == null || o.lng == null ? ' (not on the map yet)' : inPlan(o) ? ' (already in the itinerary)' : ''}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        />
         <button type="button" className="primary" disabled={!selected} onClick={add}>
           Add
         </button>
@@ -116,6 +110,144 @@ export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
           Close
         </button>
       </p>
+    </div>
+  )
+}
+
+const located = (o: TripOption) => o.lat != null && o.lng != null
+
+/** The option's first photo, or its kind's icon when it has none. */
+function OptionThumb({ option, photo }: { option: TripOption; photo?: Blob }) {
+  return <span className="option-thumb">{photo ? <BlobImage image={photo} alt="" /> : <Icon name={KIND_ICON[option.kind]} size={18} />}</span>
+}
+
+/**
+ * A dropdown of options with their photo, name and type (a native <select>
+ * can only hold text). Keyboard: ↑ ↓ to move, Enter to pick, Esc to close.
+ */
+function OptionSelect({
+  groups,
+  selected,
+  photos,
+  inPlan,
+  placeholder,
+  onPick,
+}: {
+  groups: [string, TripOption[]][]
+  selected?: TripOption
+  photos: Map<string, Blob>
+  inPlan: (o: TripOption) => boolean
+  placeholder: string
+  onPick: (o: TripOption) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [active, setActive] = useState<string | null>(null)
+  const root = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLUListElement>(null)
+  const pickable = groups.flatMap(([, options]) => options).filter(located)
+
+  // A tap anywhere else closes the list.
+  useEffect(() => {
+    if (!expanded) return
+    const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setExpanded(false)
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [expanded])
+
+  // Keep the highlighted row in view while moving with the keyboard.
+  useEffect(() => {
+    if (expanded && active) list.current?.querySelector(`[data-id="${active}"]`)?.scrollIntoView({ block: 'nearest' })
+  }, [expanded, active])
+
+  const show = () => {
+    setActive(selected?.id ?? pickable[0]?.id ?? null)
+    setExpanded(true)
+  }
+  const pick = (o: TripOption) => {
+    onPick(o)
+    setExpanded(false)
+  }
+
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && expanded) {
+      e.preventDefault()
+      setExpanded(false)
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (!expanded) return show()
+      const i = pickable.findIndex((o) => o.id === active)
+      const next = pickable[Math.min(pickable.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))]
+      if (next) setActive(next.id)
+    } else if ((e.key === 'Enter' || e.key === ' ') && expanded) {
+      e.preventDefault()
+      const o = pickable.find((p) => p.id === active)
+      if (o) pick(o)
+    }
+  }
+
+  return (
+    <div className="option-select" ref={root}>
+      <button
+        type="button"
+        className="option-select-button"
+        aria-haspopup="listbox"
+        aria-expanded={expanded}
+        aria-activedescendant={expanded && active ? `option-select-${active}` : undefined}
+        onClick={() => (expanded ? setExpanded(false) : show())}
+        onKeyDown={onKeyDown}
+      >
+        {selected ? (
+          <>
+            <OptionThumb option={selected} photo={photos.get(selected.id)} />
+            <span className="option-select-name">{selected.name}</span>
+            {selected.category && <span className="option-select-type">{selected.category}</span>}
+          </>
+        ) : (
+          <span className="option-select-name muted">{placeholder}</span>
+        )}
+        <Icon name={expanded ? 'up' : 'down'} size={18} />
+      </button>
+      {expanded && (
+        <ul className="option-select-list" role="listbox" ref={list}>
+          {groups.map(([city, options]) => (
+            <li key={city} role="presentation">
+              <span className="option-select-city">{city}</span>
+              <ul role="group" aria-label={city}>
+                {options.map((o) => {
+                  const note = !located(o) ? 'Not on the map yet' : inPlan(o) ? 'Already in the itinerary' : ''
+                  return (
+                    <li
+                      key={o.id}
+                      id={`option-select-${o.id}`}
+                      data-id={o.id}
+                      role="option"
+                      aria-selected={o.id === selected?.id}
+                      aria-disabled={!located(o)}
+                      className={`option-select-item${o.id === active ? ' active' : ''}`}
+                      onPointerEnter={() => located(o) && setActive(o.id)}
+                      onClick={() => located(o) && pick(o)}
+                    >
+                      <OptionThumb option={o} photo={photos.get(o.id)} />
+                      <span className="option-select-text">
+                        <span className="option-select-name">
+                          {o.status === 'favorite' && (
+                            <span className="status-mark favorite" title="Favorite">
+                              <Icon name="star" size={14} filled />
+                            </span>
+                          )}
+                          {o.name}
+                        </span>
+                        {note && <span className="muted small">{note}</span>}
+                      </span>
+                      {o.category && <span className="option-select-type">{o.category}</span>}
+                    </li>
+                  )
+                })}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
