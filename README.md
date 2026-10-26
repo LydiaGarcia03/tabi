@@ -61,24 +61,21 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 <div align="center">
 <table>
 <tr>
-<td align="center" valign="top">
-<img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places with a short summary of the way between them" width="260">
-<br><sub><b>On the phone</b> — installed as an app</sub>
+<td align="center" valign="top" width="33%">
+<img src="docs/screenshots/trip-phone-light.png" alt="The trip page on a phone: one card per day with its city, route of places, travel time, distance on foot and cost, and the bottom navigation bar" width="260">
+<br><sub><b>The trip</b> — one card per day</sub>
 </td>
-<td align="center" valign="top">
-<img src="docs/screenshots/trip-desktop-light.png" alt="The trip overview: one card per day, the cities route, budget and checklist" width="560">
-<br><sub><b>Trip overview</b> — days, cities, budget and checklist</sub>
+<td align="center" valign="top" width="33%">
+<img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places with a short summary of the way between them" width="260">
+<br><sub><b>A day</b> — map and the way between places</sub>
+</td>
+<td align="center" valign="top" width="33%">
+<img src="docs/screenshots/option-details-phone-light.png" alt="An option's details on a phone: two photos of a Tokyo hotel, its badges, price per night, stay total, distance from Shinjuku Station, rating and location, with Edit and Close buttons" width="260">
+<br><sub><b>An option</b> — photos, prices and notes</sub>
 </td>
 </tr>
 <tr>
-<td align="center" valign="top">
-<img src="docs/screenshots/option-details-phone-light.png" alt="An option's details on a phone: two photos of a Tokyo hotel, its badges, price per night, stay total, distance from Shinjuku Station, rating and location, with Edit and Close buttons" width="260">
-<br><sub><b>Option details</b> — tap a row to read it all</sub>
-</td>
-<td align="center" valign="top">
-<img src="docs/screenshots/options-desktop-light.png" alt="The options board: hotels in Tokyo with their first photo, price per night, stay total, distance from the city's base, rating and a score, with badges such as Closest, Cheapest and Best match" width="560">
-<br><sub><b>Options board</b> — photos, prices, distances and a score to compare them</sub>
-</td>
+<td align="center" colspan="3"><sub>On the phone: installed as an app, works without internet. The PC screens are in the animation at the top.</sub></td>
 </tr>
 </table>
 </div>
