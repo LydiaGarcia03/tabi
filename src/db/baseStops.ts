@@ -1,6 +1,7 @@
 // "Back to base" stops between a day's places: the hotel (or station) of the
 // day's city, with no details of its own, only the way there.
 
+import { addDays } from '../dates'
 import { db } from './db'
 import type { BaseStop, Day, Place, Stay } from './model'
 import { homeOf, staysOn } from './stays'
@@ -9,10 +10,21 @@ import { homeOf, staysOn } from './stays'
 export type RouteStop = Place & { baseStop?: BaseStop }
 
 /**
- * Bases a day can leave from or go back to: where you sleep (two on a travel
- * day, the morning's first), else the home of a day trip, else any city's base.
+ * Bases a day can leave from or go back to, the morning's first: where you
+ * sleep (two on a travel day), else the home of a day trip, else any city's
+ * base. On the first day in a new city, last night's hotel comes first: the day
+ * is spent in the new city, but it starts with the way there.
  */
 export function dayBases(stays: Stay[], date: string): Stay[] {
+  const bases = todaysBases(stays, date)
+  const yesterday = addDays(date, -1)
+  const lastNight = stays.find(
+    (s) => (s.kind ?? 'stay') === 'stay' && s.base && s.startDate <= yesterday && yesterday <= s.endDate && s.endDate < date,
+  )
+  return lastNight && !bases.some((s) => s.id === lastNight.id) ? [lastNight, ...bases] : bases
+}
+
+function todaysBases(stays: Stay[], date: string): Stay[] {
   const on = staysOn(stays, date).filter((s) => s.kind !== 'day-trip' || s.base)
   const overnight = on.filter((s) => (s.kind ?? 'stay') === 'stay' && s.base).sort((a, b) => a.startDate.localeCompare(b.startDate))
   if (overnight.length > 0) return overnight
@@ -45,9 +57,9 @@ export function dayRoute(day: Day, places: Place[]): RouteStop[] {
   return route
 }
 
-/** "From base" when the day starts there (first in its route), else "Back to base". */
-export function baseStopLabel(routeIndex: number): string {
-  return routeIndex === 0 ? 'From base' : 'Back to base'
+/** "From base" when the day starts there (first in its route, not the end stop of a day without places), else "Back to base". */
+export function baseStopLabel(routeIndex: number, stop?: BaseStop): string {
+  return routeIndex === 0 && stop?.slot !== 'end' ? 'From base' : 'Back to base'
 }
 
 /** Slots after a removed place (at `index` in the day's order) move back one place. */

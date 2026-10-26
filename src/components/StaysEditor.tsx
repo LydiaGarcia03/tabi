@@ -62,7 +62,7 @@ export function StaysEditor({
     />
   )
 
-  const nightsTotal = route.reduce((sum, s) => sum + stayNights(s, trip).nights, 0)
+  const nightsTotal = route.reduce((sum, s) => sum + stayNights(s, trip, sorted).nights, 0)
 
   return (
     <section className="card">
@@ -82,7 +82,7 @@ export function StaysEditor({
         <ol className="city-route">
           {route.length > 0 && leg('arrival', undefined, route[0])}
           {route.map((stay, i) => [
-            <CityItem key={stay.id} stay={stay} trip={trip} onEdit={() => setEditing({ city: stay })} />,
+            <CityItem key={stay.id} stay={stay} stays={sorted} trip={trip} onEdit={() => setEditing({ city: stay })} />,
             ...dayTrips
               .filter((t) => homes.get(t.id)?.id === stay.id)
               .map((t) => (
@@ -103,7 +103,7 @@ export function StaysEditor({
           {dayTrips
             .filter((t) => !homes.get(t.id))
             .map((t) => (
-              <CityItem key={t.id} stay={t} trip={trip} onEdit={() => setEditing({ city: t })} />
+              <CityItem key={t.id} stay={t} stays={sorted} trip={trip} onEdit={() => setEditing({ city: t })} />
             ))}
         </ol>
       )}
@@ -154,9 +154,9 @@ function EditButton({ label, onClick }: { label: string; onClick: () => void }) 
 }
 
 /** A city on the route: name, dates and nights, base. Its marker carries the city color. */
-function CityItem({ stay, trip, onEdit }: { stay: Stay; trip: Trip; onEdit: () => void }) {
+function CityItem({ stay, stays, trip, onEdit }: { stay: Stay; stays: Stay[]; trip: Trip; onEdit: () => void }) {
   const hue = useCityHue(stay.city)
-  const nights = stayNights(stay, trip).nights
+  const nights = stayNights(stay, trip, stays).nights
   const note =
     stay.kind === 'day-trip' ? 'Day trip' : stay.kind === 'stopover' ? 'Stop on the way · no hotel' : `${nights} ${nights === 1 ? 'night' : 'nights'}`
   return (

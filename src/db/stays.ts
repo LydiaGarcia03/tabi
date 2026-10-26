@@ -82,12 +82,14 @@ export function homeOf(stays: Stay[], dayTrip: Stay): Stay | undefined {
 
 /**
  * Hotel nights for a stay: you sleep there every day of the stay and leave
- * the morning after, except on the last day of the trip. Day trips and stops
- * on the way have none.
+ * the morning after, except on the last day of the trip, or on a travel day
+ * (the next city starts on the stay's last day: half a day in each). Day trips
+ * and stops on the way have none.
  */
-export function stayNights(stay: Stay, trip: Trip): { checkIn: string; checkOut: string; nights: number } {
+export function stayNights(stay: Stay, trip: Trip, stays: Stay[]): { checkIn: string; checkOut: string; nights: number } {
   if ((stay.kind ?? 'stay') !== 'stay') return { checkIn: stay.startDate, checkOut: stay.startDate, nights: 0 }
-  const checkOut = stay.endDate >= trip.endDate ? stay.endDate : addDays(stay.endDate, 1)
+  const travelDay = stays.some((s) => s.id !== stay.id && !isDayTrip(s) && s.startDate === stay.endDate && s.startDate > stay.startDate)
+  const checkOut = stay.endDate >= trip.endDate || travelDay ? stay.endDate : addDays(stay.endDate, 1)
   const nights = Math.max(0, daysBetween(stay.startDate, checkOut))
   return { checkIn: stay.startDate, checkOut, nights }
 }

@@ -261,8 +261,8 @@ interface Context {
 }
 
 function OptionGroup({ group, ...context }: { group: Group } & Context) {
-  const { trip } = context
-  const nights = group.kind === 'hotel' && group.stay ? stayNights(group.stay, trip) : null
+  const { trip, stays } = context
+  const nights = group.kind === 'hotel' && group.stay ? stayNights(group.stay, trip, stays) : null
   const isTransport = group.kind === 'transport'
   const sorted = [...group.items].sort(
     (a, b) =>
@@ -755,7 +755,7 @@ function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored; trip: 
   }
 
   if (option.kind === 'hotel') {
-    const stayed = stay ? stayNights(stay, trip) : null
+    const stayed = stay ? stayNights(stay, trip, stays) : null
     const nights = stayed && stayed.nights > 0 ? stayed : null
     const initial = {
       id: '',

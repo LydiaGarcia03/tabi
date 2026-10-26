@@ -13,7 +13,7 @@ export function dayText(day: Day, number: number, places: Place[], legs: Map<str
   let placeNumber = 0
   route.forEach((place, i) => {
     if (place.baseStop) {
-      lines.push(`${baseStopLabel(i)}: ${place.name}`)
+      lines.push(`${baseStopLabel(i, place.baseStop)}: ${place.name}`)
     } else {
       const facts = [place.plannedTime, describePlaceCost(place, travelers)].filter(Boolean).join(' · ')
       lines.push(`${++placeNumber}. ${place.name}${facts ? ` (${facts})` : ''}`)

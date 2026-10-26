@@ -68,7 +68,7 @@ export function compareOptions(options: TripOption[], trip: Trip, stays: Stay[],
     const route = kind === 'transport' && list[0].journey ? `${list[0].journey.from} → ${list[0].journey.to}` : undefined
     const stay = stayOfCity(stays, city)
     const reference = referencePoint(kind, stay, options, city)
-    const nights = stay ? stayNights(stay, trip).nights : undefined
+    const nights = stay ? stayNights(stay, trip, stays).nights : undefined
 
     const items: Scored[] = list.map((option) => {
       let total: Money | undefined
