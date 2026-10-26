@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { formatDay } from '../dates'
 import { addExpense } from '../db/expenses'
-import type { Expense, Stay, StayBase, StayKind, Trip, TripOption } from '../db/model'
+import type { Day, Expense, Leg, Stay, StayBase, StayKind, Trip, TripOption } from '../db/model'
+import { legTimes } from '../db/legs'
+import { formatTime } from '../format'
 import { addStay, baseIcon, deleteStay, homeOf, routeStays, stayNights, updateStay } from '../db/stays'
 import { JOURNEY_LABEL, journeyDetails, journeysOnRoute } from '../planning/journeys'
 import { href } from '../router'
@@ -24,12 +26,17 @@ export function StaysEditor({
   stays,
   expenses,
   options,
+  days,
+  legs,
 }: {
   trip: Trip
   stays: Stay[]
   expenses: Expense[]
   /** The trip's options: hotels for the city's base, transport to compare per route. */
   options: TripOption[]
+  /** Days and legs: a day trip's way there and back can be planned in the day ("From base" / "Back to base"). */
+  days: Day[]
+  legs: Leg[]
 }) {
   const [editing, setEditing] = useState<Editing>(null)
   const sorted = [...stays].sort((a, b) => a.startDate.localeCompare(b.startDate))
@@ -85,6 +92,7 @@ export function StaysEditor({
                   home={stay}
                   stays={sorted}
                   expenses={expenses}
+                  planned={plannedInDays(t, days, legs)}
                   onEdit={() => setEditing({ city: t })}
                   onAddTransport={() => setEditing({ transfer: { from: stay, to: t, roundTrip: true } })}
                 />
@@ -176,12 +184,42 @@ function CityItem({ stay, trip, onEdit }: { stay: Stay; trip: Trip; onEdit: () =
   )
 }
 
+/** A day trip's way there and back as planned in its day(s): the legs from "From base" and to "Back to base". */
+interface PlannedWay {
+  there?: { depart?: string }
+  back?: { arrive?: string }
+}
+
+function plannedInDays(dayTrip: Stay, days: Day[], legs: Leg[]): PlannedWay | null {
+  const inTrip = days.filter((d) => d.date >= dayTrip.startDate && d.date <= dayTrip.endDate)
+  if (inTrip.length === 0) return null
+  const drawn = (l: Leg) => l.segments.length > 0
+  // The way there leaves the first day's starting base stop; the way back arrives at a later base stop of the last day.
+  const start = inTrip[0].baseStops?.find((s) => s.slot === 0)
+  const there = start && legs.find((l) => l.fromPlaceId === start.id && drawn(l))
+  const ends = new Set((inTrip.at(-1)!.baseStops ?? []).filter((s) => s.slot !== 0).map((s) => s.id))
+  const back = legs.find((l) => ends.has(l.toPlaceId) && drawn(l))
+  if (!there && !back) return null
+  return {
+    there: there && { depart: legTimes(there.segments).depart },
+    back: back && { arrive: legTimes(back.segments).arrive },
+  }
+}
+
+/** "Leave 05:35 · back 21:10", with what is still missing. */
+function plannedText(planned: PlannedWay): string {
+  const there = planned.there ? (planned.there.depart ? `Leave ${formatTime(planned.there.depart)}` : 'Way there planned') : 'Way there not planned'
+  const back = planned.back ? (planned.back.arrive ? `back ${formatTime(planned.back.arrive)}` : 'way back planned') : 'way back not planned'
+  return `${there} · ${back}`
+}
+
 /** A day trip from the city you sleep in, with its way there and back. */
 function DayTripItem({
   dayTrip,
   home,
   stays,
   expenses,
+  planned,
   onEdit,
   onAddTransport,
 }: {
@@ -189,6 +227,7 @@ function DayTripItem({
   home: Stay
   stays: Stay[]
   expenses: Expense[]
+  planned: PlannedWay | null
   onEdit: () => void
   onAddTransport: () => void
 }) {
@@ -209,6 +248,12 @@ function DayTripItem({
             <>
               {' · '}
               <span className="cr-strong">{journeyDetails(booked[0].journey!).join(' · ') || 'Transport booked'}</span>
+            </>
+          ) : planned ? (
+            // Planned in the day itself (e.g. trains from the hotel): the day has the details.
+            <>
+              {' · '}
+              <span className="cr-strong">{plannedText(planned)}</span>
             </>
           ) : (
             <>

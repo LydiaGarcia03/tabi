@@ -103,7 +103,14 @@ export function TripPage({ tripId }: { tripId: string }) {
         </section>
 
         <div className="overview-side">
-          <StaysEditor trip={trip} stays={stays} expenses={expenses?.filter((e) => !e.dayId) ?? []} options={options ?? []} />
+          <StaysEditor
+            trip={trip}
+            stays={stays}
+            expenses={expenses?.filter((e) => !e.dayId) ?? []}
+            options={options ?? []}
+            days={days ?? []}
+            legs={legs ?? []}
+          />
 
           <a className="card budget-link" href={href({ page: 'budget', tripId: trip.id })}>
             <span className="row between">
