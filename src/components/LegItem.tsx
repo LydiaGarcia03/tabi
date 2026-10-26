@@ -123,7 +123,6 @@ function UseFlight({ flights, onUse }: { flights: FlightSource[]; onUse: (flight
                 }}
               >
                 <Icon name="plane" size={14} /> {[journeyCarriers(f.journey).join(' + '), flightRoute(f.journey), f.journey.date && formatDay(f.journey.date)].filter(Boolean).join(' · ')}
-                <span className="muted small"> · {f.kind === 'booking' ? 'booked' : 'from my options'}</span>
               </button>
             </li>
           ))}

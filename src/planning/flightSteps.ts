@@ -3,7 +3,7 @@
 
 import { addDays } from '../dates'
 import { airport } from '../data/flightNetwork'
-import type { Expense, Journey, Segment, TripOption } from '../db/model'
+import type { Expense, Journey, Segment } from '../db/model'
 import type { LatLng, Money } from '../routing/types'
 import { airportCode } from './journeys'
 
@@ -15,22 +15,14 @@ export interface FlightSource {
 }
 
 /**
- * Flights that can be used on a day: booked flights leaving that date first,
- * then transport options (not discarded, not booked yet) leaving that date,
- * or without a date and landing in one of the day's cities.
+ * Flights that can be used on a day: the booked ones leaving that date. Options
+ * not booked are left out (User's choice, 2026-10-26: a flight shows in the
+ * itinerary only once it's booked, like in Cities and on the day cards).
  */
-export function flightSources(expenses: Expense[], options: TripOption[], date: string, cities: string[]): FlightSource[] {
-  const isFlight = (j: Journey | undefined): j is Journey => j?.mode === 'flight'
-  const expenseIds = new Set(expenses.map((e) => e.id))
-  const lands = (j: Journey) => cities.some((c) => j.to.toLowerCase().includes(c.trim().toLowerCase()))
-  const booked = expenses
-    .filter((e) => isFlight(e.journey) && e.journey.date === date)
+export function flightSources(expenses: Expense[], date: string): FlightSource[] {
+  return expenses
+    .filter((e) => e.journey?.mode === 'flight' && e.journey.date === date)
     .map((e): FlightSource => ({ kind: 'booking', id: e.id, journey: e.journey!, price: e.amount }))
-  const ideas = options
-    .filter((o) => o.kind === 'transport' && o.status !== 'discarded' && isFlight(o.journey) && !(o.expenseId && expenseIds.has(o.expenseId)))
-    .filter((o) => (o.journey!.date ? o.journey!.date === date : lands(o.journey!)))
-    .map((o): FlightSource => ({ kind: 'option', id: o.id, journey: o.journey!, price: o.price }))
-  return [...booked, ...ideas]
 }
 
 /** "ITM → OKA" (codes when known, else the names). */
