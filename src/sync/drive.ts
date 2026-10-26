@@ -9,10 +9,17 @@ const TIMEOUT_MS = 60_000
 export interface DriveFile {
   id: string
   name: string
-  /** Increases every time the file changes. */
+  /**
+   * Increases with every change on Google's side, even ones nobody made (so it
+   * can't tell alone whether the other device changed the file: see `md5Checksum`).
+   */
   version: string
+  /** MD5 of the file's content: changes only when the content does. */
+  md5Checksum?: string
   appProperties?: Record<string, string>
 }
+
+const FILE_FIELDS = 'id,name,version,md5Checksum,appProperties'
 
 export interface DriveAbout {
   email: string
@@ -63,7 +70,7 @@ export async function listFiles(token: string): Promise<DriveFile[]> {
   do {
     const params = new URLSearchParams({
       spaces: 'appDataFolder',
-      fields: 'nextPageToken,files(id,name,version,appProperties)',
+      fields: `nextPageToken,files(${FILE_FIELDS})`,
       pageSize: '1000',
     })
     if (pageToken) params.set('pageToken', pageToken)
@@ -93,8 +100,8 @@ export async function uploadFile(
   body.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
   body.append('file', file.content)
   const url = file.fileId
-    ? `${UPLOAD}/files/${file.fileId}?uploadType=multipart&fields=id,name,version,appProperties`
-    : `${UPLOAD}/files?uploadType=multipart&fields=id,name,version,appProperties`
+    ? `${UPLOAD}/files/${file.fileId}?uploadType=multipart&fields=${FILE_FIELDS}`
+    : `${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS}`
   return (await call(token, url, { method: file.fileId ? 'PATCH' : 'POST', body })).json()
 }
 

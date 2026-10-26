@@ -37,6 +37,8 @@ interface TripSyncState {
   fileId: string
   /** Drive file version when last synced. */
   version: string
+  /** Drive file content MD5 when last synced (states saved before it have none). */
+  md5?: string
   /** Content hash on this device when last synced. */
   hash: string
 }
@@ -221,12 +223,12 @@ async function syncOnce(token: string): Promise<void> {
         // Both sides have it and it was never synced from here (e.g. moved with a backup file).
         const remoteData = parseBackup(await drive.downloadText(token, remote.id))
         if ((await contentHash({ ...remoteData.data, photos: [] }, remoteData.photoRefs)) === hash) {
-          setTripState(id, { fileId: remote.id, version: remote.version, hash })
+          setTripState(id, { fileId: remote.id, version: remote.version, md5: remote.md5Checksum, hash })
         } else conflicts.push({ tripId: id, name, kind: 'both-changed' })
         continue
       }
       const localChanged = state.hash !== hash
-      const remoteChanged = state.version !== remote.version
+      const remoteChanged = await changedInDrive(token, id, state, remote)
       if (localChanged && remoteChanged) conflicts.push({ tripId: id, name, kind: 'both-changed' })
       else if (localChanged) await uploadTrip(token, localData, hash, remote.id, byName)
       else if (remoteChanged) await downloadTrip(token, id, remote, byName, 'replace')
@@ -237,7 +239,7 @@ async function syncOnce(token: string): Promise<void> {
         await uploadTrip(token, localData, await contentHash(localData), undefined, byName)
       }
     } else if (remote) {
-      if (state && state.version === remote.version) await deleteRemoteTrip(token, id, remote, byName)
+      if (state && !(await changedInDrive(token, id, state, remote))) await deleteRemoteTrip(token, id, remote, byName)
       // New from another device, or changed there after being deleted here (kept: nothing is lost).
       else await downloadTrip(token, id, remote, byName, 'replace')
     } else {
@@ -247,6 +249,25 @@ async function syncOnce(token: string): Promise<void> {
 
   await syncSettings(token, byName.get(SETTINGS_FILE))
   setStatus({ conflicts })
+}
+
+/**
+ * Whether the other device changed the trip's file since this one last synced.
+ * Drive's `version` also goes up with changes nobody made, which made every
+ * edit here look like a conflict ("changed on both"): the content decides —
+ * its MD5, or (states saved before the MD5 was kept) the downloaded content
+ * compared with what was last synced. A false alarm just updates the state.
+ */
+async function changedInDrive(token: string, tripId: string, state: TripSyncState, remote: drive.DriveFile): Promise<boolean> {
+  if (state.version === remote.version) return false
+  if (state.md5 && remote.md5Checksum) {
+    if (state.md5 !== remote.md5Checksum) return true
+  } else {
+    const remoteData = parseBackup(await drive.downloadText(token, remote.id))
+    if ((await contentHash({ ...remoteData.data, photos: [] }, remoteData.photoRefs)) !== state.hash) return true
+  }
+  setTripState(tripId, { ...state, version: remote.version, md5: remote.md5Checksum })
+  return false
 }
 
 /** What "keep" means for each side of a conflict. */
@@ -300,7 +321,7 @@ async function uploadTrip(
     content: new Blob([toBackupJsonWithoutImages(data)], { type: 'application/json' }),
     appProperties: { tripName: data.trip.name },
   })
-  setTripState(tripId, { fileId: file.id, version: file.version, hash })
+  setTripState(tripId, { fileId: file.id, version: file.version, md5: file.md5Checksum, hash })
   for (const [name, f] of byName) {
     if (name.startsWith(photoPrefix(tripId)) && !keep.has(name)) await drive.deleteFile(token, f.id)
   }
@@ -324,7 +345,7 @@ async function downloadTrip(
   await withRemoteWrites(() => importBackup({ ...data, photos }, mode))
   if (mode === 'replace') {
     const saved = (await loadTripData(tripId))!
-    setTripState(tripId, { fileId: remote.id, version: remote.version, hash: await contentHash(saved) })
+    setTripState(tripId, { fileId: remote.id, version: remote.version, md5: remote.md5Checksum, hash: await contentHash(saved) })
   }
 }
 
