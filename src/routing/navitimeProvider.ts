@@ -307,6 +307,8 @@ function moveToMode(section: NtMove): SegmentMode {
   if (move.includes('bus')) return 'bus'
   if (move.includes('ferry') || move.includes('ship')) return 'ferry'
   if (move === 'car') return 'taxi'
+  // Flights come as "空路 (…空港-…空港)" (the move name isn't documented for the Basic plan).
+  if (/air|plane|flight/i.test(move) || /^空路/.test(section.transport?.name ?? section.line_name ?? '')) return 'flight'
   if (move.includes('train')) {
     const names = `${section.transport?.company?.name ?? ''} ${section.line_name ?? ''} ${section.transport?.name ?? ''}`
     if (/新幹線|shinkansen/i.test(names) || move.includes('superexpress')) return 'shinkansen'

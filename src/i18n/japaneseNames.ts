@@ -78,10 +78,12 @@ function translateSegment<T extends RouteSegment>(dict: Dictionary, segment: T):
     headsign: before.headsign ?? segment.headsign,
     carHint: before.carHint ?? segment.carHint,
   }
-  const line = translateLine(dict, source.line)
+  // NAVITIME routes can include a flight: "空路 ([大阪]関西空港-[沖縄]那覇空港)". It shows as "Flight", from airport to airport.
+  const flight = isFlightLine(source.line)
+  const line = flight ? { name: undefined } : translateLine(dict, source.line)
   const operator = translateName(dict, source.operator)
-  const fromName = translateStation(dict, source.from, segment.fromCoord ?? segment.path[0])
-  const toName = translateStation(dict, source.to, segment.toCoord ?? segment.path.at(-1))
+  const fromName = (flight && translateAirport(source.from)) || translateStation(dict, source.from, segment.fromCoord ?? segment.path[0])
+  const toName = (flight && translateAirport(source.to)) || translateStation(dict, source.to, segment.toCoord ?? segment.path.at(-1))
   // The type glued to the line name is the precise one: NAVITIME's `type` says
   // 快速 (Rapid) for a 新快速 (Special Rapid).
   const service = line.service ?? translateService(source.service)
@@ -98,6 +100,7 @@ function translateSegment<T extends RouteSegment>(dict: Dictionary, segment: T):
   const original = (now: string | undefined, from: string | undefined) => (now !== from ? from : undefined)
   const next = {
     ...segment,
+    mode: flight ? 'flight' : segment.mode,
     lineName: line.name,
     operator,
     fromName,
@@ -119,7 +122,7 @@ function translateSegment<T extends RouteSegment>(dict: Dictionary, segment: T):
     },
   }
   const changed =
-    (['lineName', 'operator', 'fromName', 'toName', 'fromCode', 'toCode', 'service', 'headsign', 'carHint'] as const).some(
+    (['mode', 'lineName', 'operator', 'fromName', 'toName', 'fromCode', 'toCode', 'service', 'headsign', 'carHint'] as const).some(
       (key) => next[key] !== segment[key],
     ) ||
     JSON.stringify(next.originalNames) !== JSON.stringify(segment.originalNames ?? next.originalNames) ||
@@ -296,6 +299,46 @@ export function translateCarHint(hint: string | undefined): string | undefined {
     return consecutive && cars.length > 2 ? `Cars ${cars[0]}–${cars.at(-1)}` : `Cars ${cars.join(', ')}`
   }
   return hint
+}
+
+/** NAVITIME's flights: the "line" is 空路 (air route), with the two airports after it. */
+export function isFlightLine(line: string | undefined): boolean {
+  return !!line && /^空路/.test(normalize(line))
+}
+
+/**
+ * Japanese airports as NAVITIME names them, in English with their code (the
+ * code also finds them in the flight network, src/data/flightNetwork.ts).
+ * Longest names first: "関西国際空港" before "関西空港".
+ */
+const AIRPORTS_JA: [string, string][] = [
+  ['関西国際空港', 'Kansai Airport (KIX)'],
+  ['関西空港', 'Kansai Airport (KIX)'],
+  ['大阪国際空港', 'Osaka Itami Airport (ITM)'],
+  ['伊丹空港', 'Osaka Itami Airport (ITM)'],
+  ['神戸空港', 'Kobe Airport (UKB)'],
+  ['東京国際空港', 'Haneda Airport (HND)'],
+  ['羽田空港', 'Haneda Airport (HND)'],
+  ['成田国際空港', 'Narita Airport (NRT)'],
+  ['成田空港', 'Narita Airport (NRT)'],
+  ['中部国際空港', 'Chubu Centrair Airport (NGO)'],
+  ['新千歳空港', 'New Chitose Airport (CTS)'],
+  ['福岡空港', 'Fukuoka Airport (FUK)'],
+  ['那覇空港', 'Naha Airport (OKA)'],
+  ['新石垣空港', 'Ishigaki Airport (ISG)'],
+  ['石垣空港', 'Ishigaki Airport (ISG)'],
+  ['宮古空港', 'Miyako Airport (MMY)'],
+  ['下地島空港', 'Shimojishima Airport (SHI)'],
+  ['鹿児島空港', 'Kagoshima Airport (KOJ)'],
+  ['広島空港', 'Hiroshima Airport (HIJ)'],
+  ['仙台空港', 'Sendai Airport (SDJ)'],
+]
+
+/** "[大阪]関西空港" → "Kansai Airport (KIX)"; unknown airports: undefined. */
+function translateAirport(name: string | undefined): string | undefined {
+  if (!name) return undefined
+  const text = normalize(name)
+  return AIRPORTS_JA.find(([ja]) => text.includes(ja))?.[1]
 }
 
 function hasJapanese(segment: RouteSegment): boolean {
