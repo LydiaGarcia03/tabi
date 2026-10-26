@@ -120,7 +120,7 @@ a {
 }
 
 :is(button, a.button, .link, label, .field-label, .tag, .badge, .warning, .ok-text, .base-stop-label, .option-title,
-    details.disclosure > summary, .leg-label > .small) .icon {
+    details.disclosure > summary, .leg-title) .icon {
   stroke-width: 2.2;
 }
 
@@ -1332,10 +1332,34 @@ button.toggle-link .muted {
   font-size: 0.9rem;
 }
 
-/* "Leave 05:30": when to walk out of the hotel, from the suggested route. */
+/* The base's name after "From base": quieter than the label. */
+.base-stop-name {
+  margin-left: 2px;
+  font-size: 0.85em;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.base-stop-name-below {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .base-stop-name {
+    display: none;
+  }
+
+  .base-stop-name-below {
+    display: block;
+    flex-basis: 100%;
+  }
+}
+
+/* "Leave at 05:30": when to walk out of the hotel, from the suggested route. */
 .base-stop-time {
+  white-space: nowrap;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .base-stop select {
@@ -1372,31 +1396,80 @@ button.toggle-link .muted {
   font-weight: inherit;
 }
 
-.leg-arrow {
-  display: none;
+.leg-label {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 5px;
 }
 
-.leg-label {
-  display: grid;
-  gap: 4px;
+/* "GETTING THERE · 1 h 7 min · ¥1,080" */
+.leg-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--accent-text);
 }
 
-.leg-label > .small {
-  font-weight: 650;
+.leg-totals {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
 }
 
-.leg-chips {
+.leg-chevron {
+  align-self: flex-start;
+  flex-shrink: 0;
+  color: var(--accent-text);
+}
+
+/* Closed leg: "🚶4′ › Yotsubashi › 🚶6′ › JR Kyoto › …" */
+.leg-chain {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 6px;
   align-items: center;
-  color: var(--text);
+  gap: 3px 4px;
+  font-size: 0.75rem;
 }
 
-.leg-times {
+.leg-chain-sep {
+  color: var(--muted);
+}
+
+.leg-chain-walk {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--muted);
+}
+
+.leg-chain-ride {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px;
+  border-radius: 4px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+}
+
+/* A leg without a route yet: a small dashed pill. */
+.leg-add {
+  min-height: 0;
+  margin: 6px 0;
+  padding: 3px 10px;
+  gap: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  font-size: 0.8rem;
+  color: var(--accent-text);
+}
+
+.leg-add:hover {
+  border-color: var(--accent-text);
 }
 
 .leg-timing input[type='time'] {
@@ -1421,26 +1494,368 @@ button.toggle-link .muted {
   margin: 0;
 }
 
-.segment-list {
+/* A leg as a timeline (RouteTimeline): time | dot or line bar | text. */
+.route-timeline {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 12px;
 }
 
-.segment-view {
-  border-left: 4px solid var(--muted);
-  padding-left: 10px;
+.route-station,
+.route-step {
+  display: grid;
+  grid-template-columns: 44px 18px minmax(0, 1fr);
+  column-gap: 8px;
+}
+
+.route-time {
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-top: 1px;
+}
+
+.route-dot {
+  display: flex;
+  justify-content: center;
+}
+
+.route-dot::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 50%;
+  border: 2.5px solid var(--text);
+  background: var(--surface);
+}
+
+.route-station.terminal .route-dot::before {
+  background: var(--text);
+}
+
+.route-station-name {
+  font-weight: 600;
+}
+
+.station-code {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+/* The Japanese name, on its own line or after the English, small: to match the signs. */
+.ja {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.route-bar {
+  display: flex;
+  justify-content: center;
+}
+
+.route-bar::before {
+  content: '';
+  width: 5px;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.route-step.walk .route-bar::before {
+  width: 0;
+  border-radius: 0;
+  border-left: 4px dotted var(--line);
+  background: none;
+}
+
+.route-step-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 0 10px;
+}
+
+.route-walk {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.line-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.route-stations ol {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.route-step-form {
+  margin: 6px 0 10px;
+}
+
+.route-time-inline {
+  display: none;
+}
+
+/* Phones: the dots and line bars go first, then the time before the station
+   name (User's idea); every line of a station and of a ride starts at the same
+   place, and rides use almost the whole width. */
+@media (max-width: 480px) {
+  .route-station,
+  .route-step {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+
+  .route-station .route-dot {
+    order: -1;
+  }
+
+  .route-time,
+  .route-step > :first-child {
+    display: none;
+  }
+
+  .route-time-inline {
+    display: inline;
+    margin-right: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .segment-notes {
   white-space: pre-wrap;
 }
 
-.segment-actions {
-  margin: 4px 0 0 14px;
-  gap: 14px;
+/* "Edit route" mode: small buttons under each step. */
+.step-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.step-tool {
+  display: inline-grid;
+  place-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.step-tool.remove {
+  color: var(--accent-text);
+}
+
+.step-tool:disabled {
+  opacity: 0.4;
+}
+
+.leg-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  white-space: nowrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.leg-edit-toggle {
+  margin-left: auto;
+}
+
+.leg-footer-break {
+  display: none;
+}
+
+/* Phone: the link and "Edit route" on the first line, the edit actions on the second. */
+@media (max-width: 480px) {
+  .leg-footer-maps {
+    order: 1;
+  }
+
+  .leg-edit-toggle {
+    order: 2;
+  }
+
+  .leg-footer-break {
+    display: block;
+    order: 3;
+    flex-basis: 100%;
+    height: 0;
+  }
+
+  .leg-footer-add {
+    order: 4;
+  }
+
+  .leg-footer-clear {
+    order: 5;
+  }
+}
+
+/* Discreet: small text links; Add step / Clear route muted, red on hover. */
+.leg-footer a,
+.leg-footer button.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+/* The two main ones (open the route in Google Maps, edit it) in the app's red. */
+.leg-footer a:hover,
+.leg-footer button.link:hover,
+.leg-footer a.leg-footer-maps,
+.leg-footer button.link.leg-edit-toggle {
+  color: var(--accent-text);
+}
+
+/* Suggest buttons a bit apart from the "Arrive by / Leave at" time they use. */
+.leg-suggest {
+  margin-top: 6px;
+  align-items: center;
+}
+
+.leg-suggest,
+.leg-timing {
+  gap: 6px;
+}
+
+@media (max-width: 480px) {
+  .leg-suggest-label {
+    flex-basis: 100%;
+  }
+}
+
+/* InfoTip: an "i" whose text floats on hover with a mouse, or opens under its row on a phone. */
+.info-tip {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-tip-button {
+  min-height: 0;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+
+.info-tip-button:hover,
+.info-tip-button:focus-visible,
+.info-tip.open .info-tip-button {
+  color: var(--accent-text);
+}
+
+.info-tip-text {
+  display: none;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 400;
+}
+
+@media (hover: hover) {
+  .info-tip-text {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 20;
+    width: max-content;
+    max-width: 280px;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  }
+
+  /* Hover only (and keyboard focus); a click does nothing. */
+  .info-tip:hover .info-tip-text,
+  .info-tip:has(:focus-visible) .info-tip-text {
+    display: block;
+  }
+}
+
+@media (hover: none) {
+  /* The button and the text become items of the row, so the text takes a line of its own. */
+  .info-tip {
+    display: contents;
+  }
+
+  .info-tip.open .info-tip-text {
+    display: block;
+    flex-basis: 100%;
+  }
+}
+
+/* The leg's controls are compact everywhere (big ones wrapped and filled the
+   phone screen); on a touch screen they keep 32px of height for the finger.
+   Segment forms keep the normal size. */
+.leg-editor {
+  gap: 8px;
+}
+
+.leg-editor > .row > button:not(.link),
+.leg-timing select,
+.leg-timing input {
+  min-height: 0;
+  padding: 3px 9px;
+  font-size: 0.82rem;
+}
+
+.leg-timing select {
+  padding-right: 26px;
+  background-position: right 9px center;
+  background-size: 10px;
+}
+
+.leg-editor > .row button.link,
+.alternatives summary,
+.alternatives li {
+  font-size: 0.82rem;
+}
+
+.step-tools {
+  gap: 3px;
+}
+
+.step-tool {
+  min-height: 0;
+  padding: 2px 6px;
+}
+
+@media (pointer: coarse) {
+  .leg-editor > .row > button:not(.link),
+  .leg-timing select,
+  .leg-timing input,
+  .step-tool {
+    min-height: 32px;
+  }
+
+  .step-tool {
+    min-width: 36px;
+  }
 }
 
 .segment-form,

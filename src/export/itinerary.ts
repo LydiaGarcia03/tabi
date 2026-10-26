@@ -8,7 +8,7 @@ import { legKey } from '../db/legs'
 import type { Day, Place, Segment } from '../db/model'
 import type { TripData } from '../db/tripData'
 import { orderPlaces } from '../db/trips'
-import { MODE_COLOR, MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime } from '../format'
+import { MODE_COLOR, MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime, rideFacts } from '../format'
 import { translateExit } from '../i18n/japaneseNames'
 import { describeWindow, weekdayOf, windowFor } from '../planning/hours'
 import { BOOK_AHEAD_LABEL, BOOKED_LABEL } from '../planning/optionKinds'
@@ -116,7 +116,7 @@ export function segmentText(segment: Segment): string {
 
   const stops =
     segment.fromName || segment.toName
-      ? `${stopText(segment.fromName, original?.from, segment.fromExit)} → ${stopText(segment.toName, original?.to, segment.toExit)}`
+      ? `${stopText(segment.fromName, original?.from, segment.fromExit, segment.fromCode)} → ${stopText(segment.toName, original?.to, segment.toExit, segment.toCode)}`
       : ''
   const facts = [
     segment.departureTime ? `${formatTime(segment.departureTime)}–${formatTime(segment.arrivalTime)}` : '',
@@ -125,14 +125,15 @@ export function segmentText(segment: Segment): string {
     segment.fare ? formatMoney(segment.fare) : '',
   ].filter(Boolean)
 
-  return [head + (stops ? `: ${stops}` : ''), facts.join(' · '), segment.notes?.trim() ?? '']
+  return [head + (stops ? `: ${stops}` : ''), rideFacts(segment).join(' · '), facts.join(' · '), segment.notes?.trim() ?? '']
     .filter(Boolean)
     .join('\n')
 }
 
-function stopText(name: string | undefined, original: string | undefined, exit: string | undefined): string {
+function stopText(name: string | undefined, original: string | undefined, exit: string | undefined, code?: string): string {
   let text = name ?? '?'
   if (original && original !== name) text += ` ${original}`
+  if (code) text += ` ${code}`
   if (exit) text += ` (${translateExit(exit)})`
   return text
 }

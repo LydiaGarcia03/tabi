@@ -21,7 +21,7 @@ keep notes and costs together, and carry everything in your pocket without inter
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-desktop-dark.png">
-  <img src="docs/screenshots/day-desktop-light.png" alt="A day in Tabi: the itinerary as a timeline of places with how to get between them, next to a Google map with numbered pins and the route drawn by transport mode" width="900">
+  <img src="docs/screenshots/day-desktop-light.png" alt="A day in Tabi: the places of the day with the way between them open as a station timeline (walk, Ginza Line from Asakusa G19 to Ueno G16 with exits, stops and fare), next to a Google map with numbered pins and the route drawn by transport mode" width="900">
 </picture>
 
 </div>
@@ -40,7 +40,7 @@ keep notes and costs together, and carry everything in your pocket without inter
 Each day is an ordered list of places, shown as numbered pins. Drag to reorder, add notes (history, tickets, tips), planned times and costs.
 
 ### 🚇 Exactly how to get there
-Every leg A → B is a chain of segments, each with its own mode: *walk 400 m to the station → Ginza Line to Ueno → walk to exit 7*. Draw it on the map yourself or ask for a suggested route (Google for walking, NAVITIME for public transit in Japan).
+Every leg A → B is a chain of steps, each with its own mode: *walk 7 min to Asakusa → Ginza Line to Ueno → walk to Ueno Park*. Ask for a suggested route (Google for walking, NAVITIME for public transit in Japan) arriving by or leaving at a chosen time, or draw it on the map yourself. Open a leg to read it like a station timeline: times, station numbers (G19), the entrance and exit to use, the train type and where it's bound for, the stops on the way and the best car to ride.
 
 ### 🕘 Opening hours & best order
 Type each place's hours and visit time. Tabi warns about visits that don't fit and suggests the best order for the day — computed on the device.
@@ -67,7 +67,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 <td align="center" valign="top">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-phone-dark.png">
-  <img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places" width="260">
+  <img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places with a short summary of the way between them" width="260">
 </picture>
 <br><sub><b>On the phone</b> — installed as an app</sub>
 </td>
@@ -87,7 +87,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 - 🏙️ **Cities** — split the trip by city (stays, day trips, stopovers), with a base hotel or station for each.
 - ✈️ **Transport between cities** — flights with connections, shinkansen, buses; fares compared side by side, plus a flight planner and an airline baggage guide.
 - ✅ **Checklist** — reminders, plus tickets and reservations to arrange before going.
-- 🌏 **Japanese names in English** — station and line names translated from Wikidata, with the original Japanese next to them to match the signs.
+- 🌏 **Japanese names in English** — station and line names translated from Wikidata, with the Japanese as written on the signs right under them.
 - 🔗 **Open in Google Maps** — quick links for any place or leg when you're online.
 - 🌗 **Light & dark mode**, share or print a day, JSON backup to move a trip between PC and phone.
 
@@ -181,7 +181,7 @@ Tabi is designed to run at **zero cost**:
 
 - [x] **Transit spike** — compare Google and NAVITIME transit routes in Tokyo (NAVITIME wins)
 - [x] **Core planner** — trips, days, place search, pins, notes
-- [x] **Legs** — segment editor, suggested routes and hand-drawn segments on the map
+- [x] **Legs** — step editor, suggested routes and hand-drawn steps on the map, read as a station timeline
 - [x] **Budget** — costs and totals in two currencies
 - [x] **Offline & export** — PWA, KML/GPX for Organic Maps, JSON backup
 - [x] **Polish** — redesign, mobile UX, dark mode, share and print a day

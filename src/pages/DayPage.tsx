@@ -363,18 +363,19 @@ function BaseStopRow({
   arrive?: string
   leave?: string
 }) {
-  const times = [arrive && `Arrive ${formatTime(arrive)}`, leave && `Leave ${formatTime(leave)}`].filter(Boolean).join(' · ')
+  const times = [arrive && `Arrive at ${formatTime(arrive)}`, leave && `Leave at ${formatTime(leave)}`].filter(Boolean).join(' · ')
   return (
     <li className="base-stop">
       <span className="base-stop-icon" aria-hidden="true">
         <Icon name={baseIcon(stop.base)} size={20} />
       </span>
       <span className="base-stop-text">
+        {/* "From base Meander · Leave at 05:35"; on phones the name goes on a line of its own below. */}
         <span className="base-stop-label">
-          {label}
+          {label} <span className="base-stop-name">{stop.base.name}</span>
           {times && <span className="base-stop-time"> · {times}</span>}
         </span>
-        <span className="muted small">{stop.base.name}</span>
+        <span className="base-stop-name-below muted small">{stop.base.name}</span>
       </span>
       {bases.length > 1 && (
         // On a travel day: this morning's hotel or tonight's.

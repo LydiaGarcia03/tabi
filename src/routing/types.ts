@@ -31,6 +31,23 @@ export interface RouteSegment {
   /** Station exit/entrance used at each end, as the provider wrote it (e.g. "B4口"). */
   fromExit?: string
   toExit?: string
+  /** Where the stops are (the path may start at an exit, or be missing). */
+  fromCoord?: LatLng
+  toCoord?: LatLng
+  /** Station numbers on the signs, e.g. "Y15". */
+  fromCode?: string
+  toCode?: string
+  /** Platform/track at each end, when the provider knows it (timetable data only). */
+  fromPlatform?: string
+  toPlatform?: string
+  /** Kind of train, e.g. "Local", "Special Rapid", "Nozomi 123". */
+  service?: string
+  /** Where the train/bus is bound for, as on the signs ("for Nishi-Umeda"). */
+  headsign?: string
+  /** Stops between the two ends, in order. */
+  intermediateStops?: { name: string; original?: string; time?: string; coord?: LatLng }[]
+  /** Best car(s) to ride to get off near the stairs/transfer, e.g. "Cars 1–3", "Front". */
+  carHint?: string
   /** ISO 8601 timestamps. */
   departureTime?: string
   arrivalTime?: string
@@ -41,7 +58,7 @@ export interface RouteSegment {
   color?: string
   path: LatLng[]
   /** Names as the provider returned them (e.g. Japanese), set when they were translated. */
-  originalNames?: { line?: string; operator?: string; from?: string; to?: string }
+  originalNames?: { line?: string; operator?: string; from?: string; to?: string; service?: string; headsign?: string; carHint?: string }
 }
 
 export interface RouteOption {

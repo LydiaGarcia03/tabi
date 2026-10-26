@@ -1,18 +1,20 @@
-import { useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { formatDay } from '../dates'
-import { chooseAlternative, deleteLeg, legTimes, saveLeg, toSegments } from '../db/legs'
+import { chooseAlternative, deleteLeg, retranslateLeg, saveLeg, toSegments } from '../db/legs'
 import type { Leg, Place, Segment } from '../db/model'
 import type { Drawing } from '../drawing'
-import { MODE_ICON, formatDuration, formatMoney, formatTime } from '../format'
+import { MODE_ICON, MODE_LABEL, formatDuration, formatMoney, formatTime, segmentColor } from '../format'
 import { formatMinutes, toMinutes, visitMinutes } from '../planning/hours'
 import { directionsUrl } from '../googleMapsLinks'
+import type { IconName } from '../iconPaths'
 import { translateRouteResult } from '../i18n/japaneseNames'
 import { computeWalkingRoute } from '../routing/googleProvider'
 import { navitimeProvider, suggestionDate } from '../routing/providers'
 import { RouteProviderError, type Money, type RouteOption } from '../routing/types'
 import { Icon } from './Icon'
+import { InfoTip } from './InfoTip'
 import { SegmentForm } from './SegmentForm'
-import { SegmentView } from './SegmentView'
+import { RouteTimeline, textOn } from './RouteTimeline'
 
 interface Props {
   tripId: string
@@ -32,18 +34,34 @@ interface Props {
   onAddBaseStop?: () => void
 }
 
-/** "How to get there" between two consecutive places. */
+/**
+ * The way between two consecutive places. Header (User's mix of two mocks,
+ * 2026-10-25): "GETTING THERE · 1 h 7 min · ¥1,080", the line chain under it
+ * while closed, a chevron; "+ Add the way there" when there's no route yet.
+ */
 export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw, onAddBaseStop }: Props) {
   const segments = leg?.segments ?? []
   return (
     <li className={`leg-item${open ? ' open' : ''}${segments.length ? '' : ' empty'}`}>
-      <button type="button" className="leg-summary" onClick={onToggle} aria-expanded={open}>
-        <span className="leg-arrow">↓</span>
-        <span className="leg-label">
-          <span className="small">{segments.length ? 'How to get there' : '+ How to get there'}</span>
-          {segments.length > 0 && <LegSummary segments={segments} />}
-        </span>
-      </button>
+      {segments.length === 0 && !open ? (
+        <button type="button" className="leg-add" onClick={onToggle} aria-expanded={false}>
+          <Icon name="plus" size={15} /> Add the way there
+        </button>
+      ) : (
+        <button type="button" className="leg-summary" onClick={onToggle} aria-expanded={open}>
+          <span className="leg-label">
+            <span className="leg-title">
+              Getting there
+              <LegTotals segments={segments} />
+            </span>
+            {/* Open, the timeline below says it all: the chain would repeat it. */}
+            {segments.length > 0 && !open && <LegChain segments={segments} />}
+          </span>
+          <span className="leg-chevron">
+            <Icon name={open ? 'up' : 'down'} size={16} />
+          </span>
+        </button>
+      )}
       {open && (
         <LegEditor
           tripId={tripId}
@@ -61,29 +79,41 @@ export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, o
   )
 }
 
-function LegSummary({ segments }: { segments: Segment[] }) {
+/** " · 1 h 7 min · ¥1,080" after the title. */
+function LegTotals({ segments }: { segments: Segment[] }) {
   const minutes = segments.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
   const fares = totalFares(segments)
-  const { depart, arrive } = legTimes(segments)
+  const parts = [minutes > 0 && formatDuration(minutes), fares.length > 0 && fares.map(formatMoney).join(' + ')].filter(Boolean)
+  return parts.length > 0 ? <span className="leg-totals"> · {parts.join(' · ')}</span> : null
+}
+
+/** "🚶4′ › Yotsubashi › 🚶6′ › JR Kyoto › …": walks as a small walker, rides as short colored badges. */
+function LegChain({ segments }: { segments: Segment[] }) {
   return (
-    <span className="leg-chips">
-      {depart && arrive && (
-        <span className="small leg-times">
-          {formatTime(depart)}–{formatTime(arrive)}
-        </span>
-      )}
-      {segments.map((s) => (
-        <span key={s.id} className="chip">
-          <Icon name={MODE_ICON[s.mode]} size={15} /> {s.mode !== 'walk' && s.lineName ? `${s.lineName} ` : ''}
-          {s.durationMinutes != null && <span className="muted">{s.durationMinutes}′</span>}
-        </span>
+    <span className="leg-chain">
+      {segments.map((s, i) => (
+        <Fragment key={s.id}>
+          {i > 0 && <span className="leg-chain-sep">›</span>}
+          {s.mode === 'walk' ? (
+            <span className="leg-chain-walk">
+              <Icon name="walk" size={14} />
+              {s.durationMinutes != null && `${s.durationMinutes}′`}
+            </span>
+          ) : (
+            <span className="leg-chain-ride" style={{ background: segmentColor(s), color: textOn(segmentColor(s)) }}>
+              <Icon name={MODE_ICON[s.mode]} size={13} />
+              {shortLineName(s.lineName) || MODE_LABEL[s.mode]}
+            </span>
+          )}
+        </Fragment>
       ))}
-      <span className="muted small">
-        {minutes > 0 && formatDuration(minutes)}
-        {fares.length > 0 && ` · ${fares.map(formatMoney).join(' + ')}`}
-      </span>
     </span>
   )
+}
+
+/** "Yotsubashi Line" → "Yotsubashi", "JR Kyoto Line" → "JR Kyoto" (keeps the chain on one line). */
+function shortLineName(name: string | undefined): string | undefined {
+  return name?.replace(/\s+(Main\s+)?Line$/i, '')
 }
 
 type Editing = { kind: 'new' } | { kind: 'edit'; id: string } | null
@@ -92,23 +122,18 @@ type Editing = { kind: 'new' } | { kind: 'edit'; id: string } | null
 interface Timing {
   kind: 'depart' | 'arrive'
   time: string
-  /** Where the time comes from, e.g. "planned time at Senso-ji". */
-  hint?: string
 }
 
 /**
  * Be at the next place at its planned time; else leave the previous one after
  * its visit; else 09:00. Base stops have no time: leaving the hotel at 05:30
- * comes from arriving at the first place at 07:00.
+ * comes from arriving at the first place at 07:00. Where the time comes from
+ * isn't shown (User: it's obvious).
  */
 function defaultTiming(from: Place, to: Place): Timing {
-  if (to.plannedTime) return { kind: 'arrive', time: to.plannedTime, hint: `planned time at ${to.name}` }
+  if (to.plannedTime) return { kind: 'arrive', time: to.plannedTime }
   if (from.plannedTime) {
-    return {
-      kind: 'depart',
-      time: formatMinutes(toMinutes(from.plannedTime) + visitMinutes(from)),
-      hint: `after the visit to ${from.name}`,
-    }
+    return { kind: 'depart', time: formatMinutes(toMinutes(from.plannedTime) + visitMinutes(from)) }
   }
   return { kind: 'depart', time: '09:00' }
 }
@@ -118,7 +143,17 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
   const [timing, setTiming] = useState(() => defaultTiming(from, to))
+  /** Edit buttons under each step are shown only in this mode (reading stays clean). */
+  const [editMode, setEditMode] = useState(false)
   const segments = leg?.segments ?? []
+
+  // Names saved before the dictionary/rules improved get translated when the leg is opened.
+  const legId = leg?.id
+  useEffect(() => {
+    if (leg) void retranslateLeg(leg)
+    // Once per opened leg: retranslating changes the leg itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [legId])
 
   const save = (next: Segment[]) => saveLeg(tripId, from.id, to.id, { segments: next })
 
@@ -193,23 +228,20 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
 
   return (
     <div className="leg-editor">
-      <div className="row between wrap">
-        <p className="small muted">
-          {from.name} → {to.name}
-        </p>
-        {onAddBaseStop && (
+      {onAddBaseStop && (
+        <div className="row wrap">
           <button type="button" className="link small" onClick={onAddBaseStop} title="Go back to the hotel between these two places">
             <Icon name="plus" size={14} /> <Icon name="home" size={15} /> Back to base here
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="row wrap leg-timing">
         <select
           className="compact small"
           value={timing.kind}
           aria-label="Suggested transit time"
-          onChange={(e) => setTiming({ ...timing, kind: e.target.value as Timing['kind'], hint: undefined })}
+          onChange={(e) => setTiming({ ...timing, kind: e.target.value as Timing['kind'] })}
         >
           <option value="arrive">Arrive by</option>
           <option value="depart">Leave at</option>
@@ -219,17 +251,18 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
           className="compact small"
           value={timing.time}
           aria-label={timing.kind === 'arrive' ? 'Arrive by' : 'Leave at'}
-          onChange={(e) => e.target.value && setTiming({ ...timing, time: e.target.value, hint: undefined })}
+          onChange={(e) => e.target.value && setTiming({ ...timing, time: e.target.value })}
         />
-        {timing.hint && <span className="muted small">({timing.hint})</span>}
       </div>
-      <div className="row wrap">
+      <div className="row wrap leg-suggest">
+        {/* Says what the two buttons do; on phones it takes the line above them. */}
+        <span className="leg-suggest-label small muted">Get a suggested route:</span>
         <button type="button" onClick={suggestTransit} disabled={busy != null}>
           {busy === 'transit' ? (
             'Asking NAVITIME…'
           ) : (
             <>
-              <Icon name="bus" size={16} /> Suggest transit
+              <Icon name="bus" size={16} /> Transit
             </>
           )}
         </button>
@@ -239,31 +272,31 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
               'Asking Google…'
             ) : (
               <>
-                <Icon name="walk" size={16} /> Walking route
+                <Icon name="walk" size={16} /> Walking
               </>
             )}
           </button>
         )}
-        <button type="button" onClick={() => setEditing({ kind: 'new' })} disabled={editing != null}>
-          + Add segment
-        </button>
+        <InfoTip label="About suggestions">
+          Transit uses 1 of the 500 free NAVITIME requests per month.
+          {segments.length > 0 && ' A suggestion replaces the current steps.'}
+        </InfoTip>
       </div>
-      <p className="muted small">
-        Transit uses 1 of the 500 free NAVITIME requests per month.
-        {segments.length > 0 && ' A suggestion replaces the current segments.'}
-      </p>
       {error && <p className="error">{error}</p>}
 
       {leg?.alternatives && leg.alternatives.length > 1 && (
         <Alternatives leg={leg} options={leg.alternatives} from={from} to={to} date={date} />
       )}
 
-      <ol className="segment-list">
-        {segments.map((segment, i) =>
-          editing?.kind === 'edit' && editing.id === segment.id ? (
-            <li key={segment.id}>
+      {segments.length > 0 && (
+        <RouteTimeline
+          segments={segments}
+          start={{ name: from.name, icon: endIcon(from) }}
+          end={{ name: to.name, icon: endIcon(to) }}
+          stepForm={(i) =>
+            editing?.kind === 'edit' && editing.id === segments[i].id ? (
               <SegmentForm
-                segment={segment}
+                segment={segments[i]}
                 currency={currency}
                 onSave={(updated) => {
                   void save(segments.map((s) => (s.id === updated.id ? updated : s)))
@@ -281,33 +314,54 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
                 }
                 onCancel={() => setEditing(null)}
               />
-            </li>
-          ) : (
-            <li key={segment.id}>
-              <SegmentView segment={segment} notes={segment.notes} />
-              <div className="row wrap segment-actions">
-                <button type="button" className="link" onClick={() => setEditing({ kind: 'edit', id: segment.id })}>
-                  Edit
-                </button>
-                {hasGoogleKey && (
-                  <button type="button" className="link" onClick={() => startDrawing(segments, i)}>
-                    {segment.path.length > 1 ? 'Redraw on map' : 'Draw on map'}
-                  </button>
-                )}
-                <button type="button" className="link" disabled={i === 0} onClick={() => move(i, -1)}>
-                  Up
-                </button>
-                <button type="button" className="link" disabled={i === segments.length - 1} onClick={() => move(i, 1)}>
-                  Down
-                </button>
-                <button type="button" className="link" onClick={() => save(segments.filter((s) => s.id !== segment.id))}>
-                  Remove
-                </button>
-              </div>
-            </li>
-          ),
-        )}
-      </ol>
+            ) : null
+          }
+          stepTools={
+            editMode
+              ? (i) => (
+                  <div className="step-tools">
+                    <button type="button" className="step-tool" title="Edit" aria-label="Edit" onClick={() => setEditing({ kind: 'edit', id: segments[i].id })}>
+                      <Icon name="edit" size={15} />
+                    </button>
+                    {hasGoogleKey && (
+                      <button
+                        type="button"
+                        className="step-tool"
+                        title={segments[i].path.length > 1 ? 'Redraw on map' : 'Draw on map'}
+                        aria-label={segments[i].path.length > 1 ? 'Redraw on map' : 'Draw on map'}
+                        onClick={() => startDrawing(segments, i)}
+                      >
+                        <Icon name="drawMap" size={15} />
+                      </button>
+                    )}
+                    <button type="button" className="step-tool" title="Move up" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
+                      <Icon name="up" size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="step-tool"
+                      title="Move down"
+                      aria-label="Move down"
+                      disabled={i === segments.length - 1}
+                      onClick={() => move(i, 1)}
+                    >
+                      <Icon name="down" size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="step-tool remove"
+                      title="Remove"
+                      aria-label="Remove"
+                      onClick={() => save(segments.filter((s) => s.id !== segments[i].id))}
+                    >
+                      <Icon name="close" size={15} />
+                    </button>
+                  </div>
+                )
+              : undefined
+          }
+        />
+      )}
 
       {editing?.kind === 'new' && (
         <SegmentForm
@@ -334,13 +388,31 @@ function LegEditor({ tripId, leg, from, to, date, currency, hasGoogleKey, onDraw
         />
       )}
 
-      <div className="row wrap">
-        <a href={directionsUrl(from, to, segments)} target="_blank" rel="noreferrer">
-          Open in Google Maps
+      {/* PC: one line. Phone: "Open in Google Maps … Edit route" above "Add step · Clear route". */}
+      <div className="leg-footer">
+        <a href={directionsUrl(from, to, segments)} target="_blank" rel="noreferrer" className="leg-footer-maps">
+          <Icon name="external" size={14} /> Open in Google Maps
         </a>
+        <span className="leg-footer-break" aria-hidden="true" />
+        <button type="button" className="link leg-footer-add" onClick={() => setEditing({ kind: 'new' })} disabled={editing != null}>
+          <Icon name="plus" size={14} /> Add step
+        </button>
         {leg && (
-          <button type="button" className="link" onClick={() => deleteLeg(leg.id)}>
-            Clear this leg
+          <button type="button" className="link leg-footer-clear" onClick={() => deleteLeg(leg.id)}>
+            <Icon name="close" size={14} /> Clear route
+          </button>
+        )}
+        {segments.length > 0 && (
+          <button type="button" className="link leg-edit-toggle" onClick={() => setEditMode(!editMode)} aria-pressed={editMode}>
+            {editMode ? (
+              <>
+                <Icon name="check" size={14} /> Done
+              </>
+            ) : (
+              <>
+                <Icon name="edit" size={14} /> Edit route
+              </>
+            )}
           </button>
         )}
       </div>
@@ -376,6 +448,11 @@ function Alternatives({ leg, options, from, to, date }: { leg: Leg; options: Rou
       </ul>
     </details>
   )
+}
+
+/** House for a base stop (the hotel), pin for a place. */
+function endIcon(stop: Place): IconName {
+  return 'baseStop' in stop && stop.baseStop ? 'home' : 'pin'
 }
 
 /** Sum of the segment fares, one value per currency. */

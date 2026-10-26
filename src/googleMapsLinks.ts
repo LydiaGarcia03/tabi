@@ -3,8 +3,13 @@
 
 import type { Place, Segment } from './db/model'
 
+// Google ignores a place ID sent with coordinates and opens the business
+// nearest to them instead (Kyoto National Garden became a café next to it), so
+// a place with an ID is sent by name + ID; one without (custom pin, base) by
+// coordinates.
+
 export function placeUrl(place: Place): string {
-  const params = new URLSearchParams({ api: '1', query: `${place.lat},${place.lng}` })
+  const params = new URLSearchParams({ api: '1', query: place.googlePlaceId ? place.name : coords(place) })
   if (place.googlePlaceId) params.set('query_place_id', place.googlePlaceId)
   return `https://www.google.com/maps/search/?${params}`
 }
@@ -13,13 +18,17 @@ export function placeUrl(place: Place): string {
 export function directionsUrl(from: Place, to: Place, segments: Segment[]): string {
   const params = new URLSearchParams({
     api: '1',
-    origin: `${from.lat},${from.lng}`,
-    destination: `${to.lat},${to.lng}`,
+    origin: from.googlePlaceId ? from.name : coords(from),
+    destination: to.googlePlaceId ? to.name : coords(to),
     travelmode: travelMode(segments),
   })
   if (from.googlePlaceId) params.set('origin_place_id', from.googlePlaceId)
   if (to.googlePlaceId) params.set('destination_place_id', to.googlePlaceId)
   return `https://www.google.com/maps/dir/?${params}`
+}
+
+function coords(place: Place): string {
+  return `${place.lat},${place.lng}`
 }
 
 function travelMode(segments: Segment[]): 'transit' | 'walking' | 'driving' {

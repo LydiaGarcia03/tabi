@@ -1,3 +1,4 @@
+import { retranslateSegments } from '../i18n/japaneseNames'
 import type { RouteOption, RouteSegment } from '../routing/types'
 import { db } from './db'
 import type { Leg, Place, Segment } from './model'
@@ -65,6 +66,19 @@ export function toSegments(routeSegments: RouteSegment[], from: Place, to: Place
 /** Uses one of the stored suggestions as the leg's segments (no request). */
 export async function chooseAlternative(leg: Leg, option: RouteOption, from: Place, to: Place): Promise<void> {
   await db.legs.update(leg.id, { segments: toSegments(option.segments, from, to), source: 'navitime' })
+}
+
+/** Translates names saved in Japanese with the current dictionary and rules (no request). */
+export async function retranslateLeg(leg: Leg): Promise<void> {
+  const segments = await retranslateSegments(leg.segments)
+  const alternatives = leg.alternatives && (await Promise.all(leg.alternatives.map((o) => retranslateSegments(o.segments))))
+  if (!segments && !alternatives?.some(Boolean)) return
+  await db.legs.update(leg.id, {
+    ...(segments && { segments }),
+    ...(alternatives?.some(Boolean) && {
+      alternatives: leg.alternatives!.map((option, i) => (alternatives[i] ? { ...option, segments: alternatives[i] } : option)),
+    }),
+  })
 }
 
 function isPlaceholder(name: string | undefined): boolean {

@@ -1,5 +1,5 @@
 import type { IconName } from './iconPaths'
-import type { Money, SegmentMode } from './routing/types'
+import type { Money, RouteSegment, SegmentMode } from './routing/types'
 
 const tokyoTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' })
 
@@ -7,6 +7,28 @@ export function formatTime(iso: string | undefined): string {
   if (!iso) return '—'
   const date = new Date(iso)
   return Number.isNaN(date.getTime()) ? iso : tokyoTime.format(date)
+}
+
+/** "Special Rapid · for Kyoto · 4 stops · Ride: Cars 1–3 · Platform 2" (what the signs and the train say). */
+export function rideFacts(segment: RouteSegment): string[] {
+  const stops = stopsMade(segment)
+  return [
+    segment.service,
+    segment.headsign && `for ${segment.headsign}`,
+    stops && `${stops.length + 1} stop${stops.length === 0 ? '' : 's'}`,
+    segment.carHint && `Ride: ${segment.carHint}`,
+    segment.fromPlatform && `Platform ${segment.fromPlatform}`,
+    segment.toPlatform && `arrives on platform ${segment.toPlatform}`,
+  ].filter((fact): fact is string => !!fact)
+}
+
+/**
+ * The stations on the way where the train stops. NAVITIME gives a time only
+ * where it stops: a Special Rapid lists every station but times only a few.
+ */
+export function stopsMade(segment: RouteSegment): RouteSegment['intermediateStops'] {
+  const stops = segment.intermediateStops
+  return stops?.some((stop) => stop.time) ? stops.filter((stop) => stop.time) : stops
 }
 
 export function formatDuration(minutes: number | undefined): string {
