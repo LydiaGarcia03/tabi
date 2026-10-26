@@ -37,10 +37,10 @@ keep notes and costs together, and carry everything in your pocket without inter
 <td width="50%" valign="top">
 
 ### 🗺️ Days on a map
-Each day is an ordered list of places, shown as numbered pins. Drag to reorder, add notes (history, tickets, tips), planned times and costs.
+Each day is an ordered list of places, shown as numbered pins. Drag to reorder, add notes (history, tickets, tips), planned times and costs, and see how far you'll walk that day.
 
 ### 🚇 Exactly how to get there
-Every leg A → B is a chain of steps, each with its own mode: *walk 7 min to Asakusa → Ginza Line to Ueno → walk to Ueno Park*. Ask for a suggested route (Google for walking, NAVITIME for public transit in Japan) arriving by or leaving at a chosen time, or draw it on the map yourself. Open a leg to read it like a station timeline: times, station numbers (G19), the entrance and exit to use, the train type and where it's bound for, the stops on the way and the best car to ride.
+Every leg A → B is a chain of steps, each with its own mode: *walk 7 min to Asakusa → Ginza Line to Ueno → walk to Ueno Park*. Ask for a suggested route (Google for walking, NAVITIME for public transit in Japan) arriving by or leaving at a chosen time, or draw it on the map yourself. Open a leg to see only its route on the map and read it like a station timeline: times, station numbers (G19), the entrance and exit to use, the train type and where it's bound for, the stops on the way and the best car to ride.
 
 ### 🕘 Opening hours & best order
 Type each place's hours and visit time. Tabi warns about visits that don't fit and suggests the best order for the day — computed on the device.
@@ -49,7 +49,7 @@ Type each place's hours and visit time. Tabi warns about visits that don't fit a
 <td width="50%" valign="top">
 
 ### 🏨 Options & comparison
-Collect the hotels, restaurants, places and flights you're considering. Rate them, add photos and prices, and compare them per city by price, distance and rating.
+Collect the hotels, restaurants, places, shops and transport you're considering. Rate them, add prices and photos (browse them in a carousel), and compare them per city by price, distance and rating. Then pick one straight into a day, from a list that shows each option's photo.
 
 ### 💴 Budget
 Costs for places, transport, lodging and extras, with totals per day and per trip, estimates vs. booked, and two currencies side by side.
@@ -79,6 +79,15 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 <br><sub><b>Trip overview</b> — days, cities, budget and checklist</sub>
 </td>
 </tr>
+<tr>
+<td align="center" valign="top" colspan="2">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/options-desktop-dark.png">
+  <img src="docs/screenshots/options-desktop-light.png" alt="The options board: hotels in Tokyo with their first photo, price per night, stay total, distance from the city's base, rating and a score, with badges such as Closest, Cheapest and Best match" width="820">
+</picture>
+<br><sub><b>Options board</b> — photos, prices, distances and a score to compare them</sub>
+</td>
+</tr>
 </table>
 </div>
 
@@ -89,6 +98,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 - ✅ **Checklist** — reminders, plus tickets and reservations to arrange before going.
 - 🌏 **Japanese names in English** — station and line names translated from Wikidata, with the Japanese as written on the signs right under them.
 - 🔗 **Open in Google Maps** — quick links for any place or leg when you're online.
+- 🔄 **Sync between devices** — optional, through your own Google Drive (trips, photos and settings).
 - 🌗 **Light & dark mode**, share or print a day, JSON backup to move a trip between PC and phone.
 
 ## 🧭 How it works
@@ -99,7 +109,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 | Transit suggestions | NAVITIME | Google's Routes API returns no public-transit routes in Japan; NAVITIME is a Japanese routing provider |
 | During the trip (offline) | Tabi (PWA) + OpenStreetMap / Organic Maps | Google Maps can't show custom transit/walking routes offline |
 
-**All trip data lives on your device.** There is no backend server and no account.
+**All trip data lives on your device.** There is no backend server and no account to create. Optionally, sign in with Google to keep your devices in sync through a hidden app folder in your own Google Drive.
 
 ## 🛠️ Tech stack
 

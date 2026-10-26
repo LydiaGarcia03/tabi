@@ -193,3 +193,4 @@ Metric only (User's request): cm, kg, km, °C. Data researched in inches or poun
 - Before adding a dependency or calling a new paid-capable API, check it keeps the project at zero cost.
 - Small, incremental commits with clear English messages.
 - Run the dev server (`npm run dev`) and the build (`npm run build`) to verify changes before saying something works.
+- README screenshots (`docs/screenshots/`: day desktop/phone, trip, options; light and dark) show a demo trip "Japan in spring" with public places only, never User's data. They are taken in a throwaway Chromium profile (Playwright's, headless, driven by the DevTools protocol) against the dev server on 5177: the demo is built in the page with the app's own modules (`importBackup`, legs and NAVITIME-style details typed in, no API requests; option photos are drawn flat illustrations on a canvas). Last updated 2026-10-26.
