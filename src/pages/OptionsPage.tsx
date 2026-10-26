@@ -14,6 +14,7 @@ import { CityTag, TripLayout } from '../components/TripLayout'
 import { formatDay } from '../dates'
 import { db } from '../db/db'
 import type { Day, Expense, OptionKind, OptionStatus, Stay, Trip, TripOption } from '../db/model'
+import { deleteExpense } from '../db/expenses'
 import { addOptionToDay, bookOption, updateOption } from '../db/options'
 import { cityLabel, stayNights, stayOfCity } from '../db/stays'
 import { describePriced, optionPriced, pricedTotal, travelersOf } from '../budget'
@@ -335,7 +336,10 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
   const cheapest = cheapestFare(fares)
   const stale = isStale(fare?.seenOn)
   const carriers = journey?.mode === 'flight' ? journeyCarriers(journey) : []
-  const inPlan = (option.placeId && placeIds.has(option.placeId)) || (option.expenseId && expenseIds.has(option.expenseId))
+  const booked = !!option.expenseId && expenseIds.has(option.expenseId)
+  const inPlan = (option.placeId && placeIds.has(option.placeId)) || booked
+  // Booked counts as chosen: un-ticking it removes the booking (after a confirmation).
+  const chosen = option.status === 'chosen' || booked
   const columns = 6 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 1 : 0)
 
   const setStatus = (status: OptionStatus) => updateOption(option.id, { status: option.status === status ? 'idea' : status })
@@ -485,10 +489,10 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
           </button>
           <button
             type="button"
-            className={`icon-toggle${option.status === 'chosen' ? ' on' : ''}`}
-            title={option.status === 'chosen' ? 'Chosen' : 'Choose'}
-            aria-pressed={option.status === 'chosen'}
-            onClick={() => (option.status === 'chosen' ? setStatus('chosen') : setChoosing(!choosing))}
+            className={`icon-toggle${chosen ? ' on' : ''}`}
+            title={booked ? 'Booked' : chosen ? 'Chosen' : 'Choose'}
+            aria-pressed={chosen}
+            onClick={() => (booked ? setChoosing(!choosing) : chosen ? setStatus('chosen') : setChoosing(!choosing))}
           >
             <Icon name="check" />
           </button>
@@ -509,7 +513,11 @@ function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds, photo
       {choosing && (
         <tr className="choose-row">
           <td colSpan={columns}>
-            <ChoosePanel item={item} trip={trip} stays={stays} days={days} onDone={() => setChoosing(false)} />
+            {booked ? (
+              <UnbookPanel expenseId={option.expenseId!} onDone={() => setChoosing(false)} />
+            ) : (
+              <ChoosePanel item={item} trip={trip} stays={stays} days={days} onDone={() => setChoosing(false)} />
+            )}
           </td>
         </tr>
       )}
@@ -738,6 +746,21 @@ function DetailPhotos({ images, name }: { images: Blob[]; name: string }) {
         </button>
       ))}
       {viewing != null && <PhotoViewer images={images} start={viewing} name={name} onClose={() => setViewing(null)} />}
+    </div>
+  )
+}
+
+/** Un-ticking a booked option: the booking leaves the budget once confirmed (it may hold the price actually paid). */
+function UnbookPanel({ expenseId, onDone }: { expenseId: string; onDone: () => void }) {
+  return (
+    <div className="choose-panel row wrap">
+      <span className="small">Remove the booking? It leaves the trip's bookings and budget; the option stays here, not chosen.</span>
+      <button type="button" className="danger" onClick={() => deleteExpense(expenseId).then(onDone)}>
+        Remove booking
+      </button>
+      <button type="button" onClick={onDone}>
+        Keep it booked
+      </button>
     </div>
   )
 }
