@@ -1682,6 +1682,29 @@ button.toggle-link .muted {
   margin-left: auto;
 }
 
+/* LineColorPicker: round swatches. */
+.line-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.line-color {
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.line-color[aria-checked='true'] {
+  box-shadow: 0 0 0 2px var(--text);
+}
+
 .leg-footer-break {
   display: none;
 }

@@ -298,6 +298,8 @@ function OfflineDayMap({
   const shownById = new Map(places.map((p) => [p.id, p]))
   const stops = (route ?? places).map((p) => shownById.get(p.id) ?? p)
   const legsKey = stops.map((p) => `${p.id}:${p.lat},${p.lng}`).join('|')
+  // While a segment is being drawn, only the other segments of its leg are shown.
+  const drawingSegment = drawing?.segmentId
   useEffect(() => {
     const source = map?.getSource<GeoJSONSource>(LEGS_SOURCE)
     if (!source) return
@@ -305,16 +307,17 @@ function OfflineDayMap({
     for (let i = 0; i < stops.length - 1; i++) {
       const from = stops[i]
       const to = stops[i + 1]
-      const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1)
+      if (drawing && (from.id !== drawing.fromPlaceId || to.id !== drawing.toPlaceId)) continue
+      const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1 && s.id !== drawingSegment)
       if (drawn.length === 0) {
-        features.push(line([from, to], { style: 'undefined' }))
+        if (!drawing) features.push(line([from, to], { style: 'undefined' }))
         continue
       }
       for (const s of drawn) features.push(line(s.path, { style: s.mode === 'walk' ? 'walk' : 'solid', color: segmentColor(s) }))
     }
     source.setData({ type: 'FeatureCollection', features })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, legsKey, legs])
+  }, [map, legsKey, legs, drawingSegment])
 
   // The segment being drawn by hand, and its points.
   const draftPath = useMemo(() => (drawing ? (drawing.snapped?.path ?? drawingPoints(drawing)) : []), [drawing])

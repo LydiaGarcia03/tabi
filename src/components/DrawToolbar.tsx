@@ -4,6 +4,7 @@ import { drawingPoints, streetTravelMode, type Drawing } from '../drawing'
 import { MODE_LABEL, formatDistance, formatDuration } from '../format'
 import { MAX_MIDDLE_POINTS, snapToStreets } from '../routing/googleProvider'
 import { RouteProviderError } from '../routing/types'
+import { LineColorPicker } from './LineColorPicker'
 
 interface Props {
   drawing: Drawing
@@ -35,6 +36,7 @@ export function DrawToolbar({ drawing, onChange }: Props) {
     const snapped = drawing.snapped
     await updateSegment(drawing.fromPlaceId, drawing.toPlaceId, drawing.segmentId, (segment) => ({
       path: snapped?.path ?? points,
+      color: drawing.color,
       // Fill in distance/time from Google only where the user left them empty.
       distanceMeters: segment.distanceMeters ?? snapped?.distanceMeters,
       durationMinutes: segment.durationMinutes ?? snapped?.durationMinutes,
@@ -50,6 +52,12 @@ export function DrawToolbar({ drawing, onChange }: Props) {
         Tap the map to add points{drawing.end ? '; it ends at the red dot.' : ', ending where it arrives.'}
         {!travelMode && ' Trains, subways and ferries are drawn as straight lines: tap along the tracks.'}
       </p>
+      {drawing.mode !== 'walk' && (
+        <div className="small">
+          Line color
+          <LineColorPicker mode={drawing.mode} color={drawing.color} onChange={(color) => onChange({ ...drawing, color })} />
+        </div>
+      )}
       <p className="small">
         {points.length} point(s)
         {drawing.snapped && (

@@ -68,7 +68,7 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
             <span className="base-pin" aria-hidden="true" dangerouslySetInnerHTML={{ __html: baseMarkerSvg(base) }} />
           </AdvancedMarker>
         ))}
-        <LegLines places={route ?? places} legs={legs} />
+        <LegLines places={route ?? places} legs={legs} drawing={drawing} />
         {drawing && <DraftLayer drawing={drawing} />}
         <FitToPlaces places={[...places, ...bases]} />
       </Map>
@@ -79,17 +79,26 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
 /**
  * Draws each leg between consecutive places: segments with a path in their
  * mode's style (walking dotted, transit in the line color), otherwise a thin
- * dashed straight line meaning "route not defined yet".
+ * dashed straight line meaning "route not defined yet". While a segment is
+ * being drawn, only the other segments of its leg are shown.
  */
-function LegLines({ places, legs }: { places: Place[]; legs: Map<string, Leg> }) {
+function LegLines({ places, legs, drawing }: { places: Place[]; legs: Map<string, Leg>; drawing?: Drawing | null }) {
   const map = useMap(DAY_MAP_ID)
+  const fromId = drawing?.fromPlaceId
+  const toId = drawing?.toPlaceId
+  const segmentId = drawing?.segmentId
   useEffect(() => {
     if (!map) return
     const lines: google.maps.Polyline[] = []
     for (let i = 0; i < places.length - 1; i++) {
       const from = places[i]
       const to = places[i + 1]
-      const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1)
+      if (segmentId && (from.id !== fromId || to.id !== toId)) continue
+      const drawn = (legs.get(legKey(from.id, to.id))?.segments ?? []).filter((s) => s.path.length > 1 && s.id !== segmentId)
+      if (segmentId) {
+        drawn.forEach((s) => lines.push(s.mode === 'walk' ? walkingLine(map, s.path, segmentColor(s)) : solidLine(map, s.path, segmentColor(s))))
+        continue
+      }
       if (drawn.length === 0) {
         lines.push(undefinedLine(map, [from, to]))
         continue
@@ -104,7 +113,7 @@ function LegLines({ places, legs }: { places: Place[]; legs: Map<string, Leg> })
       }
     }
     return () => lines.forEach((line) => line.setMap(null))
-  }, [map, places, legs])
+  }, [map, places, legs, fromId, toId, segmentId])
   return null
 }
 

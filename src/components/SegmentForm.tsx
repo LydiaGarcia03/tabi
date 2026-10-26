@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { Segment } from '../db/model'
 import { MODE_LABEL } from '../format'
 import type { SegmentMode } from '../routing/types'
+import { LineColorPicker } from './LineColorPicker'
 
 const MODES = Object.keys(MODE_LABEL) as SegmentMode[]
 
@@ -28,6 +29,7 @@ export function SegmentForm({ segment, currency, defaults, onSave, onSaveAndDraw
   const [minutes, setMinutes] = useState(segment?.durationMinutes?.toString() ?? '')
   const [fare, setFare] = useState(segment?.fare?.amount.toString() ?? '')
   const [notes, setNotes] = useState(segment?.notes ?? '')
+  const [color, setColor] = useState(segment?.color)
 
   function submit(e: FormEvent) {
     e.preventDefault()
@@ -48,6 +50,7 @@ export function SegmentForm({ segment, currency, defaults, onSave, onSaveAndDraw
       durationMinutes: toNumber(minutes),
       fare: fareAmount != null ? { amount: fareAmount, currency: fareCurrency } : undefined,
       notes: notes.trim() || undefined,
+      color: mode === 'walk' ? undefined : color,
       // Edited names replace the translated ones; drop originals that no longer apply.
       originalNames:
         segment?.originalNames && trimmedLine === segment.lineName && fromName === segment.fromName && toName === segment.toName
@@ -78,6 +81,12 @@ export function SegmentForm({ segment, currency, defaults, onSave, onSaveAndDraw
             Operator
             <input value={operator} onChange={(e) => setOperator(e.target.value)} placeholder="Tokyo Metro" />
           </label>
+        </div>
+      )}
+      {mode !== 'walk' && (
+        <div className="field-label">
+          Line color
+          <LineColorPicker mode={mode} color={color} onChange={setColor} />
         </div>
       )}
       <div className="row wrap">
