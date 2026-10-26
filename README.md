@@ -19,10 +19,7 @@ keep notes and costs together, and carry everything in your pocket without inter
 
 <br>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-desktop-dark.png">
-  <img src="docs/screenshots/day-desktop-light.png" alt="A day in Tabi: the places of the day with the way between them open as a station timeline (walk, Ginza Line from Asakusa G19 to Ueno G16 with exits, stops and fare), next to a Google map with numbered pins and the route drawn by transport mode" width="900">
-</picture>
+<img src="docs/screenshots/day-desktop-light.png" alt="A day in Tabi: the places of the day with the way between them open as a station timeline (walk, Ginza Line from Asakusa G19 to Ueno G16 with exits, stops and fare), next to a Google map with numbered pins and the route drawn by transport mode" width="900">
 
 </div>
 
@@ -65,26 +62,21 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 <table>
 <tr>
 <td align="center" valign="top">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-phone-dark.png">
-  <img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places with a short summary of the way between them" width="260">
-</picture>
+<img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places with a short summary of the way between them" width="260">
 <br><sub><b>On the phone</b> — installed as an app</sub>
 </td>
 <td align="center" valign="top">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/trip-desktop-dark.png">
-  <img src="docs/screenshots/trip-desktop-light.png" alt="The trip overview: one card per day, the cities route, budget and checklist" width="560">
-</picture>
+<img src="docs/screenshots/trip-desktop-light.png" alt="The trip overview: one card per day, the cities route, budget and checklist" width="560">
 <br><sub><b>Trip overview</b> — days, cities, budget and checklist</sub>
 </td>
 </tr>
 <tr>
-<td align="center" valign="top" colspan="2">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/options-desktop-dark.png">
-  <img src="docs/screenshots/options-desktop-light.png" alt="The options board: hotels in Tokyo with their first photo, price per night, stay total, distance from the city's base, rating and a score, with badges such as Closest, Cheapest and Best match" width="820">
-</picture>
+<td align="center" valign="top">
+<img src="docs/screenshots/option-details-phone-light.png" alt="An option's details on a phone: two photos of a Tokyo hotel, its badges, price per night, stay total, distance from Shinjuku Station, rating and location, with Edit and Close buttons" width="260">
+<br><sub><b>Option details</b> — tap a row to read it all</sub>
+</td>
+<td align="center" valign="top">
+<img src="docs/screenshots/options-desktop-light.png" alt="The options board: hotels in Tokyo with their first photo, price per night, stay total, distance from the city's base, rating and a score, with badges such as Closest, Cheapest and Best match" width="560">
 <br><sub><b>Options board</b> — photos, prices, distances and a score to compare them</sub>
 </td>
 </tr>
