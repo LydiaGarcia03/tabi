@@ -6,7 +6,8 @@ import { findAirline } from '../data/airlines'
 import { OptionForm } from '../components/OptionForm'
 import { FlightPlanner } from '../components/FlightPlanner'
 import { BADGE_ICON, BADGE_LABEL, formatKm, ItineraryTags, OptionDetails, type ItineraryState } from '../components/OptionDetails'
-import { OptionsMapView, PickCityForMap, WIDE, type OptionsMapProvider } from '../components/OptionsMap'
+import { PHONE, WIDE } from '../breakpoints'
+import { OptionsMapView, PickCityForMap, type OptionsMapProvider } from '../components/OptionsMap'
 import { LeadPhoto } from '../components/Photos'
 import { Sheet } from '../components/Sheet'
 import { JourneyItinerary, journeyChips, RouteChain } from '../components/JourneyLegs'
@@ -35,8 +36,6 @@ import { NotFound } from './TripPage'
 const WEIGHTS_KEY = 'tabi.compareWeights'
 /** "Show map" on the Options page, remembered on this device. */
 const MAP_KEY = 'tabi.optionsMap'
-/** Phones get their own toolbar (city, map, add; then the kinds as tabs). */
-const PHONE = '(max-width: 599px)'
 
 /** Everything being considered, grouped by kind and city, to compare and pick. */
 export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogleKey: boolean }) {

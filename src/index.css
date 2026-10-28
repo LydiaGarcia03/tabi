@@ -2,6 +2,14 @@
    Tabi — washi paper, sumi ink and torii red.
    Colors are tokens; dark mode swaps them via <html data-theme="dark">
    (set by src/theme.ts, following the device unless chosen in Settings).
+
+   Screen sizes (the only widths @media rules use; src/breakpoints.ts has the
+   same numbers for the JavaScript side):
+     small phones   max-width: 480px
+     phones         max-width: 599px    (min-width: 600px from tablets up)
+     tablets        600px – 899px
+     wide screens   min-width: 900px    (max-width: 899px below)
+     trip sidebar   min-width: 1100px   (max-width: 1099px below)
    ========================================================================== */
 
 :root {
@@ -706,7 +714,7 @@ button.toggle-link .muted {
 }
 
 /* Phone: fare and bags on one line, price and seen on below. */
-@media (max-width: 560px) {
+@media (max-width: 599px) {
   .fares-head {
     display: none;
   }
@@ -741,7 +749,7 @@ button.toggle-link .muted {
   gap: 16px;
 }
 
-@media (min-width: 800px) {
+@media (min-width: 900px) {
   .columns {
     grid-template-columns: 1fr 1fr;
     align-items: start;
@@ -1243,7 +1251,7 @@ button.option-select-button {
 }
 
 /* Phones: the map goes edge to edge, like a native maps app. */
-@media (max-width: 959px) {
+@media (max-width: 899px) {
   .day-map {
     margin: 0 -16px;
     height: 40vh;
@@ -1258,7 +1266,7 @@ button.option-select-button {
   }
 }
 
-@media (min-width: 960px) {
+@media (min-width: 900px) {
   .day-layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     align-items: start;
@@ -3566,7 +3574,7 @@ button.options-map-toggle.on {
   font-weight: 700;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 900px) {
   /* List left, map right following the scroll (like the day page). */
   .options-map-layout {
     display: grid;
@@ -3944,7 +3952,7 @@ button.options-map-toggle.on {
 
 /* Short values (prices, —, 3.7 km, stars, score) sit centered under their heading, so the
    headings are evenly spaced. Only in the table: phones show cards. */
-@media (min-width: 761px) {
+@media (min-width: 900px) {
   .options-table :is(th, td):is(.col-price, .col-distance, .col-rating, .col-score) {
     text-align: center;
   }
@@ -4704,7 +4712,7 @@ button.estimate-chip.add {
   gap: 16px;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .estimate-sheet-cols {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -5621,7 +5629,7 @@ button.lead-photo {
   line-height: 1.4;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 899px) {
   button.lead-photo {
     width: 64px;
     height: 64px;
@@ -5991,7 +5999,7 @@ button.photo-viewer-arrow:hover {
 }
 
 /* Phones: full screen, swiping is the main way to move. */
-@media (max-width: 760px) {
+@media (max-width: 899px) {
   dialog.photo-viewer {
     width: 100vw;
     height: 100dvh;
@@ -6005,7 +6013,7 @@ button.photo-viewer-arrow:hover {
 }
 
 /* On phones the comparison table becomes one card per option. */
-@media (max-width: 760px) {
+@media (max-width: 899px) {
   .options-table,
   .options-table tbody,
   .options-table tr,
@@ -6071,7 +6079,7 @@ button.photo-viewer-arrow:hover {
 }
 
 /* Transport rows: price, time and baggage centered in their columns (headers too); phone cards stay left-aligned. */
-@media (min-width: 761px) {
+@media (min-width: 900px) {
   .transport-table :is(th, td):is(:nth-child(2), :nth-child(3)),
   .transport-table .baggage-head {
     text-align: center;
@@ -6088,7 +6096,7 @@ button.photo-viewer-arrow:hover {
 }
 
 /* In the phone cards (see options-table above) the column is narrower. */
-@media (max-width: 760px) {
+@media (max-width: 899px) {
   .options-table td[data-label] .small,
   .baggage-cell .bag-box {
     min-width: 0;
@@ -6489,7 +6497,7 @@ button.day-toggle.active {
   gap: 10px;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 599px) {
   .conflict-choices li {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;

@@ -1,3 +1,4 @@
+import { WIDE } from '../breakpoints'
 import { AdvancedMarker, AdvancedMarkerAnchorPoint, APILoadingStatus, Map, useApiLoadingStatus, useMap } from '@vis.gl/react-google-maps'
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type PointerEvent, type Ref } from 'react'
 import { createPortal } from 'react-dom'
@@ -19,8 +20,6 @@ import { Stars } from './Stars'
 
 export const OPTIONS_MAP_ID = 'options-map'
 
-/** From this width the list and the map sit side by side; below it the list is a drawer over the map. */
-export const WIDE = '(min-width: 960px)'
 /** Where the drawer can rest, as a share of the map's height from its top: list almost full, half, mostly map. */
 const DRAWER_STOPS = [0.1, 0.5, 0.82]
 

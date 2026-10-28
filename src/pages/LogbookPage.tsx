@@ -13,6 +13,7 @@ import { Icon } from '../components/Icon'
 import { InfoTip } from '../components/InfoTip'
 import { Sheet } from '../components/Sheet'
 import { useMediaQuery } from '../useMediaQuery'
+import { WIDE } from '../breakpoints'
 import { hoursText, segmentText } from '../export/itinerary'
 import { distanceKm } from '../geo'
 import { bearing, compassDirection, formatDistance, useWakeLock, useWatchPosition, type Position } from '../location'
@@ -55,7 +56,7 @@ export function LogbookPage({ tripId }: { tripId: string }) {
   const [tracking, setTracking] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   // Wide screens (User's choice A from a mock, 2026-10-27): the day on the left, one place in focus on the right.
-  const wide = useMediaQuery('(min-width: 900px)')
+  const wide = useMediaQuery(WIDE)
   const [chosenFocus, setChosenFocus] = useState<{ placeId: string; key: string } | null>(null)
   const [settings, setSettingsState] = useState<LogbookSettings>(() => ({ ...DEFAULTS, ...loadJson<LogbookSettings>(SETTINGS_KEY) }))
   const setSettings = (changes: Partial<LogbookSettings>) => {
