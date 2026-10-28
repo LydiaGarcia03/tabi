@@ -36,7 +36,7 @@ export const googleProvider: RouteProvider = {
           ...(request.arrivalTime ? { arrivalTime: request.arrivalTime } : { departureTime: request.departureTime }),
           computeAlternativeRoutes: true,
           language: 'en',
-          region: 'jp',
+          region: request.region ?? 'jp',
           fields: FIELDS,
         }),
         TIMEOUT_MS,
@@ -71,20 +71,32 @@ export const googleProvider: RouteProvider = {
 }
 
 /** Walking route between two points, as a single walk segment. One request. */
-export async function computeWalkingRoute(origin: LatLng, destination: LatLng): Promise<RouteSegment> {
+export function computeWalkingRoute(origin: LatLng, destination: LatLng): Promise<RouteSegment> {
+  return computeStreetRoute(origin, destination, 'WALKING')
+}
+
+/**
+ * Driving route between two points, as a single car segment (User, 2026-10-28: the way she drives). One request,
+ * without live traffic (traffic-aware routing would be the pricier Pro SKU).
+ */
+export function computeDrivingRoute(origin: LatLng, destination: LatLng): Promise<RouteSegment> {
+  return computeStreetRoute(origin, destination, 'DRIVING')
+}
+
+async function computeStreetRoute(origin: LatLng, destination: LatLng, travelMode: 'WALKING' | 'DRIVING'): Promise<RouteSegment> {
   if (typeof google === 'undefined' || !google.maps?.importLibrary) {
     throw new RouteProviderError('not-configured', 'Google Maps is not loaded (is the API key set?).')
   }
   try {
     const { Route } = (await google.maps.importLibrary('routes')) as google.maps.RoutesLibrary
     const { routes } = await withTimeout(
-      Route.computeRoutes({ origin, destination, travelMode: 'WALKING', fields: ['durationMillis', 'distanceMeters', 'path'] }),
+      Route.computeRoutes({ origin, destination, travelMode, fields: ['durationMillis', 'distanceMeters', 'path'] }),
       TIMEOUT_MS,
     )
     const route = routes?.[0]
-    if (!route) throw new RouteProviderError('no-route', 'Google found no walking route.')
+    if (!route) throw new RouteProviderError('no-route', `Google found no ${travelMode === 'WALKING' ? 'walking' : 'driving'} route.`)
     return {
-      mode: 'walk',
+      mode: travelMode === 'WALKING' ? 'walk' : 'car',
       distanceMeters: route.distanceMeters,
       durationMinutes: millisToMinutes(route.durationMillis),
       path: (route.path ?? []).map(toLatLng),
@@ -189,7 +201,8 @@ function toOption(route: google.maps.routes.Route): RouteOption {
     durationMinutes: millisToMinutes(route.durationMillis),
     distanceMeters: route.distanceMeters,
     transfers: Math.max(0, transitSegments.length - 1),
-    fare: fare ? { amount: fare.units + fare.nanos / 1e9, currency: fare.currencyCode } : undefined,
+    // Without a known fare Google sends an empty currency (and 0): no fare then.
+    fare: fare?.currencyCode && fare.units + fare.nanos / 1e9 > 0 ? { amount: fare.units + fare.nanos / 1e9, currency: fare.currencyCode } : undefined,
     segments,
     lines: segments.map((s) => ({ path: s.path, mode: s.mode, color: s.color })),
   }
@@ -204,10 +217,10 @@ function vehicleToMode(type: string | null | undefined): SegmentMode {
     case 'SUBWAY':
     case 'METRO_RAIL':
       return 'subway'
-    case 'RAIL':
-    case 'HEAVY_RAIL':
     case 'HIGH_SPEED_TRAIN':
       return 'shinkansen'
+    case 'RAIL':
+    case 'HEAVY_RAIL':
     case 'COMMUTER_TRAIN':
     case 'LONG_DISTANCE_TRAIN':
     case 'MONORAIL':

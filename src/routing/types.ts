@@ -2,7 +2,7 @@
 // ones) is hidden behind RouteProvider and returns these shapes, so the rest
 // of the app never depends on a specific API.
 
-export type SegmentMode = 'walk' | 'bus' | 'train' | 'shinkansen' | 'subway' | 'taxi' | 'ferry' | 'flight' | 'other'
+export type SegmentMode = 'walk' | 'bus' | 'train' | 'shinkansen' | 'subway' | 'taxi' | 'car' | 'ferry' | 'flight' | 'other'
 
 export interface LatLng {
   lat: number
@@ -15,6 +15,8 @@ export interface RouteRequest {
   departureTime: Date
   /** Ask for routes arriving by this time instead (departureTime is then ignored). */
   arrivalTime?: Date
+  /** Country the route is in ("jp", "us"): biases names and results (Google). */
+  region?: string
 }
 
 export interface Money {

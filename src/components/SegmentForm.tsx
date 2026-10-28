@@ -10,6 +10,8 @@ interface Props {
   segment?: Segment
   /** Trip currency, used for a new cost. */
   currency: string
+  /** The trip's currencies (a choice next to the cost when there are several). */
+  currencies?: string[]
   /** Prefilled stop names for a new segment. */
   defaults?: { fromName?: string; toName?: string }
   onSave: (segment: Segment) => void
@@ -19,8 +21,9 @@ interface Props {
 }
 
 /** Manual entry or editing of one segment. Unknown fields (path, times) are kept. */
-export function SegmentForm({ segment, currency, defaults, onSave, onSaveAndDraw, onCancel }: Props) {
-  const fareCurrency = segment?.fare?.currency ?? currency
+export function SegmentForm({ segment, currency, currencies = [], defaults, onSave, onSaveAndDraw, onCancel }: Props) {
+  const [fareCurrency, setFareCurrency] = useState(segment?.fare?.currency ?? currency)
+  const choices = [...new Set([...currencies, fareCurrency])]
   const [mode, setMode] = useState<SegmentMode>(segment?.mode ?? 'walk')
   const [lineName, setLineName] = useState(segment?.lineName ?? '')
   const [operator, setOperator] = useState(segment?.operator ?? '')
@@ -105,9 +108,21 @@ export function SegmentForm({ segment, currency, defaults, onSave, onSaveAndDraw
           <input type="number" min="0" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
         </label>
         <label>
-          {mode === 'taxi' ? `Cost for the car (${fareCurrency})` : `Cost per person (${fareCurrency})`}
+          {mode === 'taxi' || mode === 'car' ? `Cost for the car (${fareCurrency})` : `Cost per person (${fareCurrency})`}
           <input type="number" min="0" inputMode="decimal" value={fare} onChange={(e) => setFare(e.target.value)} />
         </label>
+        {choices.length > 1 && (
+          <label>
+            Currency
+            <select value={fareCurrency} onChange={(e) => setFareCurrency(e.target.value)}>
+              {choices.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       <label>
         Notes

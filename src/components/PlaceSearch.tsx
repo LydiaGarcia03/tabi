@@ -5,10 +5,12 @@ import { DAY_MAP_ID } from './DayMap'
 
 interface Props {
   onAdd: (place: PlaceResult) => Promise<void>
+  /** The trip's first country ("JP"): results there come first. */
+  region?: string
 }
 
 /** Text search; runs only when the user presses Search (each search = 1 request). */
-export function PlaceSearch({ onAdd }: Props) {
+export function PlaceSearch({ onAdd, region }: Props) {
   const map = useMap(DAY_MAP_ID)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<PlaceResult[] | null>(null)
@@ -21,7 +23,7 @@ export function PlaceSearch({ onAdd }: Props) {
     setStatus('searching')
     try {
       // Results near what the map shows come first.
-      setResults(await searchPlaces(query.trim(), map?.getBounds()))
+      setResults(await searchPlaces(query.trim(), map?.getBounds(), region))
       setStatus('idle')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

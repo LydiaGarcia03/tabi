@@ -1,5 +1,5 @@
 import { Fragment, type CSSProperties, type ReactNode } from 'react'
-import { MODE_ICON, MODE_LABEL, formatDistance, formatDuration, formatMoney, formatTime, segmentColor, stopsMade } from '../format'
+import { MODE_ICON, MODE_LABEL, fareUnknown, formatDistance, formatDuration, formatMoney, formatTime, segmentColor, stopsMade } from '../format'
 import { lineSignName, signName, translateExit } from '../i18n/japaneseNames'
 import type { IconName } from '../iconPaths'
 import type { RouteSegment } from '../routing/types'
@@ -189,7 +189,7 @@ function RideText({ segment, color }: { segment: RouteSegment; color: string }) 
     stops && `${stops.length + 1} stop${stops.length === 0 ? '' : 's'}`,
     segment.durationMinutes != null && formatDuration(segment.durationMinutes),
     segment.distanceMeters && !stops ? formatDistance(segment.distanceMeters) : undefined,
-    segment.fare && formatMoney(segment.fare),
+    segment.fare ? formatMoney(segment.fare) : fareUnknown(segment) && 'fare unknown (edit the step to add it)',
     segment.booking &&
       (segment.booking.kind === 'booking'
         ? `In the itinerary${segment.booking.price ? ` · ${formatMoney(segment.booking.price)} in the trip's transport` : ''}`

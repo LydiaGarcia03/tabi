@@ -33,6 +33,7 @@ import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { useDraft } from '../useDraft'
 import { useOnline } from '../useOnline'
+import { currencyChoices } from '../money/currencies'
 import { useReorder } from '../useReorder'
 import { NotFound } from './TripPage'
 
@@ -294,6 +295,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                       count={places.length}
                       days={days}
                       currency={trip.baseCurrency}
+                      currencies={currencyChoices(trip)}
                       travelers={travelers}
                       date={day.date}
                       selected={stop.id === selectedId}
@@ -311,6 +313,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                       to={next}
                       date={day.date}
                       currency={trip.baseCurrency}
+                      currencies={currencyChoices(trip)}
+                      countries={trip.countries}
                       hasGoogleKey={hasGoogleKey}
                       flights={unusedFlights}
                       allFlights={dayFlights}
@@ -350,7 +354,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             <h2 id="add-place-title" className="section-title">
               Add to this day
             </h2>
-            {online && hasGoogleKey && <PlaceSearch onAdd={add} />}
+            {online && hasGoogleKey && <PlaceSearch onAdd={add} region={trip.countries?.[0]} />}
             <OptionPicker
               tripId={tripId}
               dayId={day.id}

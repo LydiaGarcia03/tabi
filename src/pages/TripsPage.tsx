@@ -6,6 +6,7 @@ import { dateRange, daysBetween, formatDate, today } from '../dates'
 import { db } from '../db/db'
 import type { Trip } from '../db/model'
 import { createTrip } from '../db/trips'
+import { CountryPicker } from '../components/CountriesMoney'
 import { href, navigate } from '../router'
 
 export function TripsPage() {
@@ -77,6 +78,7 @@ function NewTripForm({ onCancel }: { onCancel: () => void }) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [travelers, setTravelers] = useState('1')
+  const [countries, setCountries] = useState<string[]>([])
   const invalidDates = !!startDate && !!endDate && endDate < startDate
 
   async function submit(e: FormEvent) {
@@ -88,6 +90,7 @@ function NewTripForm({ onCancel }: { onCancel: () => void }) {
       startDate,
       endDate,
       travelers: Number.isInteger(count) && count >= 1 ? count : undefined,
+      countries,
     })
     navigate({ page: 'trip', tripId })
   }
@@ -114,6 +117,15 @@ function NewTripForm({ onCancel }: { onCancel: () => void }) {
         </label>
       </div>
       {invalidDates && <p className="error">The end date must be on or after the start date.</p>}
+      <div>
+        <p className="field-label">Countries</p>
+        <CountryPicker
+          selected={countries}
+          onAdd={(code) => setCountries([...countries, code])}
+          onRemove={(code) => setCountries(countries.filter((c) => c !== code))}
+        />
+        <p className="muted small">Their currencies are added with today's rates; change them later in Trip settings.</p>
+      </div>
       <div className="row">
         <button type="submit" className="primary">
           Create trip

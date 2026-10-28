@@ -3,7 +3,7 @@ import { formatDay } from '../dates'
 import { chooseAlternative, deleteLeg, retranslateLeg, saveLeg, toSegments } from '../db/legs'
 import type { Leg, Place, Segment } from '../db/model'
 import type { Drawing } from '../drawing'
-import { MODE_ICON, MODE_LABEL, formatDuration, formatMoney, formatTime, segmentColor } from '../format'
+import { MODE_ICON, MODE_LABEL, fareUnknown, formatDuration, formatMoney, formatTime, segmentColor } from '../format'
 import { formatMinutes, toMinutes, visitMinutes } from '../planning/hours'
 import { directionsUrl } from '../googleMapsLinks'
 import { distanceKm } from '../geo'
@@ -11,7 +11,8 @@ import type { IconName } from '../iconPaths'
 import { translateRouteResult } from '../i18n/japaneseNames'
 import { flightRoute, flightSegments, refreshFlightSteps, type FlightSource } from '../planning/flightSteps'
 import { journeyCarriers } from '../planning/journeys'
-import { computeWalkingRoute } from '../routing/googleProvider'
+import { inJapan, utcOffsetAt } from '../data/countries'
+import { computeDrivingRoute, computeWalkingRoute, googleProvider } from '../routing/googleProvider'
 import { navitimeProvider, suggestionDate } from '../routing/providers'
 import { RouteProviderError, type Money, type RouteOption } from '../routing/types'
 import { Icon } from './Icon'
@@ -28,6 +29,10 @@ interface Props {
   date: string
   /** Trip currency, used for new segment costs. */
   currency: string
+  /** The trip's currencies (a choice next to a step's cost when there are several). */
+  currencies?: string[]
+  /** The trip's countries: route times are asked in their time zone. */
+  countries?: string[]
   hasGoogleKey: boolean
   open: boolean
   onToggle: () => void
@@ -46,7 +51,23 @@ interface Props {
  * 2026-10-25): "GETTING THERE · 1 h 7 min · ¥1,080", the line chain under it
  * while closed, a chevron; "+ Add the way there" when there's no route yet.
  */
-export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, open, onToggle, onDraw, onAddBaseStop, flights = [], allFlights = [] }: Props) {
+export function LegItem({
+  tripId,
+  leg,
+  from,
+  to,
+  date,
+  currency,
+  currencies,
+  countries,
+  hasGoogleKey,
+  open,
+  onToggle,
+  onDraw,
+  onAddBaseStop,
+  flights = [],
+  allFlights = [],
+}: Props) {
   const segments = leg?.segments ?? []
   return (
     <li className={`leg-item${open ? ' open' : ''}${segments.length ? '' : ' empty'}`}>
@@ -80,6 +101,8 @@ export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, o
           to={to}
           date={date}
           currency={currency}
+          currencies={currencies}
+          countries={countries}
           hasGoogleKey={hasGoogleKey}
           onDraw={onDraw}
           onAddBaseStop={onAddBaseStop}
@@ -136,7 +159,12 @@ function UseFlight({ flights, onUse }: { flights: FlightSource[]; onUse: (flight
 function LegTotals({ segments }: { segments: Segment[] }) {
   const minutes = segments.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
   const fares = totalFares(segments)
-  const parts = [minutes > 0 && formatDuration(minutes), fares.length > 0 && fares.map(formatMoney).join(' + ')].filter(Boolean)
+  // A ride without a known price: "fare unknown" (or "+ fare unknown" after the known ones), never read as free.
+  const unknown = segments.some(fareUnknown)
+  const money = [fares.length > 0 && fares.map(formatMoney).join(' + '), unknown && (fares.length > 0 ? '+ fare unknown' : 'fare unknown')]
+    .filter(Boolean)
+    .join(' ')
+  const parts = [minutes > 0 && formatDuration(minutes), money].filter(Boolean)
   return parts.length > 0 ? <span className="leg-totals"> · {parts.join(' · ')}</span> : null
 }
 
@@ -199,13 +227,15 @@ function LegEditor({
   to,
   date,
   currency,
+  currencies,
+  countries = [],
   hasGoogleKey,
   onDraw,
   onAddBaseStop,
   flights = [],
   allFlights = [],
 }: Omit<Props, 'open' | 'onToggle'>) {
-  const [busy, setBusy] = useState<'transit' | 'walk' | null>(null)
+  const [busy, setBusy] = useState<'transit' | 'walk' | 'car' | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
   const [timing, setTiming] = useState(() => defaultTiming(from, to))
@@ -237,6 +267,7 @@ function LegEditor({
   const newStepForm = (atStart: boolean) => (
     <SegmentForm
       currency={currency}
+      currencies={currencies}
       defaults={
         atStart
           ? { fromName: from.name, toName: first?.fromName }
@@ -260,24 +291,26 @@ function LegEditor({
     />
   )
 
+  // Japan: NAVITIME (Google has no transit there). Elsewhere: Google (User's decision, 2026-10-28).
+  const transitBy = inJapan(from) ? 'navitime' : 'google'
+  const transitName = transitBy === 'navitime' ? 'NAVITIME' : 'Google'
+
   async function suggestTransit() {
     setBusy('transit')
     setError('')
     try {
       const askDate = suggestionDate(date)
-      const at = new Date(`${askDate}T${timing.time}:00+09:00`)
-      const result = await translateRouteResult(
-        await navitimeProvider.computeTransit({
-          origin: from,
-          destination: to,
-          departureTime: at,
-          arrivalTime: timing.kind === 'arrive' ? at : undefined,
-        }),
-      )
-      if (result.options.length === 0) throw new RouteProviderError('no-route', 'NAVITIME found no route.')
+      // "Leave at 09:00" is 09:00 where the place is.
+      const at = new Date(`${askDate}T${timing.time}:00${utcOffsetAt(from, askDate, countries)}`)
+      const request = { origin: from, destination: to, departureTime: at, arrivalTime: timing.kind === 'arrive' ? at : undefined }
+      const result =
+        transitBy === 'navitime'
+          ? await translateRouteResult(await navitimeProvider.computeTransit(request))
+          : await googleProvider.computeTransit({ ...request, region: countries[0]?.toLowerCase() })
+      if (result.options.length === 0) throw new RouteProviderError('no-route', `${transitName} found no route.`)
       await saveLeg(tripId, from.id, to.id, {
         segments: toSegments(result.options[0].segments, from, to),
-        source: 'navitime',
+        source: transitBy,
         fetchedAt: result.fetchedAt,
         alternatives: result.options,
         alternativesDate: askDate,
@@ -289,11 +322,11 @@ function LegEditor({
     }
   }
 
-  async function suggestWalk() {
-    setBusy('walk')
+  async function suggestStreet(mode: 'walk' | 'car') {
+    setBusy(mode)
     setError('')
     try {
-      const segment = await computeWalkingRoute(from, to)
+      const segment = await (mode === 'walk' ? computeWalkingRoute : computeDrivingRoute)(from, to)
       await saveLeg(tripId, from.id, to.id, {
         segments: toSegments([segment], from, to),
         source: 'google',
@@ -371,19 +404,31 @@ function LegEditor({
         />
       </div>
       <div className="row wrap leg-suggest">
-        {/* Says what the two buttons do; on phones it takes the line above them. */}
+        {/* Says what the buttons do; on phones it takes the line above them. Car / public transport / walking
+            (User, 2026-10-28); in Japan the transit one says it's NAVITIME. */}
         <span className="leg-suggest-label small muted">Get a suggested route:</span>
+        {hasGoogleKey && (
+          <button type="button" onClick={() => suggestStreet('car')} disabled={busy != null}>
+            {busy === 'car' ? (
+              'Asking Google…'
+            ) : (
+              <>
+                <Icon name="car" size={16} /> Car
+              </>
+            )}
+          </button>
+        )}
         <button type="button" onClick={suggestTransit} disabled={busy != null}>
           {busy === 'transit' ? (
-            'Asking NAVITIME…'
+            `Asking ${transitName}…`
           ) : (
             <>
-              <Icon name="bus" size={16} /> Transit
+              <Icon name="bus" size={16} /> {transitBy === 'navitime' ? 'Route by NAVITIME' : 'Public transport'}
             </>
           )}
         </button>
         {hasGoogleKey && (
-          <button type="button" onClick={suggestWalk} disabled={busy != null}>
+          <button type="button" onClick={() => suggestStreet('walk')} disabled={busy != null}>
             {busy === 'walk' ? (
               'Asking Google…'
             ) : (
@@ -394,7 +439,9 @@ function LegEditor({
           </button>
         )}
         <InfoTip label="About suggestions">
-          Transit uses 1 of the 500 free NAVITIME requests per month.
+          {transitBy === 'navitime'
+            ? 'Public transport in Japan comes from NAVITIME: 1 of its 500 free requests per month. Car and walking: 1 Google request each.'
+            : 'Each suggestion is 1 Google request (Google has no public transport routes in Japan; NAVITIME does them there).'}
           {segments.length > 0 && ' A suggestion replaces the current steps.'}
         </InfoTip>
         <UseFlight flights={flights} onUse={(f) => save([...segments, ...flightSegments(f)])} />
@@ -426,6 +473,7 @@ function LegEditor({
               <SegmentForm
                 segment={segments[i]}
                 currency={currency}
+                currencies={currencies}
                 onSave={(updated) => {
                   void save(segments.map((s) => (s.id === updated.id ? updated : s)))
                   setEditing(null)

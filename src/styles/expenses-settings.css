@@ -180,3 +180,182 @@ details pre {
   border: 1px solid var(--border);
 }
 
+
+/* Trip settings → Countries & money (User's choice D from a mock, 2026-10-28). */
+.countries-money {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.countries-money h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.countries-money > .segmented {
+  display: flex;
+}
+
+.countries-money > .segmented button {
+  flex: 1;
+}
+
+.countries-money-ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.countries-money p.muted {
+  margin: 4px 0 0;
+}
+
+.countries-money-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+}
+
+.currency-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.currency-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.currency-card-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.currency-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+label.currency-rate {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.currency-rate input {
+  width: 110px;
+}
+
+.currency-source,
+.currency-check {
+  margin: 0;
+}
+
+.currency-check {
+  justify-self: start;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The trip's countries (Trip settings and New trip). */
+.country-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.country-picker .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.country-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 2px 6px 2px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.country-chip button {
+  all: unset;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+button.country-chip.add {
+  padding: 2px 12px;
+  border-style: dashed;
+  color: var(--accent-text);
+  min-height: 32px;
+}
+
+.country-search {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.country-search input {
+  width: 100%;
+}
+
+.country-results {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.country-results button {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.country-results li + li button {
+  border-top: 1px solid var(--border);
+}
+
+.country-results button:hover,
+.country-results button:focus-visible {
+  background: var(--surface-2);
+}

@@ -18,6 +18,7 @@ import {
 import { BaggageBreakdown } from './AirlineGuide'
 import { Icon } from './Icon'
 import { ExtraInfo, JourneyLegsEditor, legsHaveDetails } from './JourneyLegs'
+import { currencyChoices } from '../money/currencies'
 
 /** "+ Connections" with what it does on a second line ("choose the airlines on the way"). */
 function ToggleLink({ sign, label, hint, onClick }: { sign: '+' | '−'; label: string; hint: string; onClick: () => void }) {
@@ -421,7 +422,7 @@ export function JourneyFields({
 }
 
 function CurrencySelect({ trip, value, onChange }: { trip: Trip; value: string; onChange: (currency: string) => void }) {
-  const currencies = [...new Set([trip.baseCurrency, trip.displayCurrency, value])]
+  const currencies = currencyChoices(trip, value)
   return (
     <label>
       Currency

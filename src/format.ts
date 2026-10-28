@@ -61,7 +61,20 @@ export function metric(text: string): string {
 
 export function formatMoney(money: Money | undefined): string {
   if (!money) return '—'
-  return new Intl.NumberFormat('en', { style: 'currency', currency: money.currency }).format(money.amount)
+  try {
+    return new Intl.NumberFormat('en', { style: 'currency', currency: money.currency }).format(money.amount)
+  } catch {
+    // Not a currency code (a route saved with an empty one): the number alone, never a crash.
+    return new Intl.NumberFormat('en').format(money.amount)
+  }
+}
+
+/**
+ * A paid ride whose price nobody knows yet (a provider sent none, or it was typed without one): said so, so it
+ * isn't read as free. Walks and your own car cost nothing here; a flight from the itinerary is paid there.
+ */
+export function fareUnknown(segment: RouteSegment): boolean {
+  return segment.mode !== 'walk' && segment.mode !== 'car' && !segment.fare && !segment.booking
 }
 
 /** Line icon of each mode (see iconPaths.ts). */
@@ -72,6 +85,7 @@ export const MODE_ICON: Record<SegmentMode, IconName> = {
   shinkansen: 'shinkansen',
   subway: 'subway',
   taxi: 'taxi',
+  car: 'car',
   ferry: 'ferry',
   flight: 'plane',
   other: 'arrow',
@@ -85,6 +99,7 @@ export const MODE_LABEL: Record<SegmentMode, string> = {
   shinkansen: 'Shinkansen',
   subway: 'Subway',
   taxi: 'Taxi',
+  car: 'Car',
   ferry: 'Ferry',
   flight: 'Flight',
   other: 'Other',
@@ -98,6 +113,7 @@ export const MODE_COLOR: Record<SegmentMode, string> = {
   shinkansen: '#0d9488',
   subway: '#9333ea',
   taxi: '#eab308',
+  car: '#db2777',
   ferry: '#0891b2',
   flight: '#475569',
   other: '#f97316',

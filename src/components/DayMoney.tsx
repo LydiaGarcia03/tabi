@@ -3,6 +3,7 @@ import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, displayAmount, expensesBudge
 import { addExpense, deleteExpense, updateExpense } from '../db/expenses'
 import type { Expense, ExpenseCategory, Trip } from '../db/model'
 import { formatMoney } from '../format'
+import { currencyChoices } from '../money/currencies'
 import { Icon } from './Icon'
 
 const LAST_CATEGORY = 'tabi.spentCategory'
@@ -104,8 +105,15 @@ function SpentToday({ trip, dayId, expenses, total }: { trip: Trip; dayId: strin
   const [open, setOpen] = useState(false)
   const value = Number(amount.replace(',', '.'))
   const valid = amount.trim() !== '' && Number.isFinite(value) && value > 0
-  // Amounts typed on the trip are in its currency (yen); one being edited keeps its own.
-  const currency = editing?.amount.currency ?? trip.baseCurrency
+  // Amounts typed on the trip start in its main currency (yen); a tap on the code switches (yen, dollars…).
+  const [chosenCurrency, setChosenCurrency] = useState(trip.baseCurrency)
+  const currency = editing?.amount.currency ?? chosenCurrency
+  const currencies = currencyChoices(trip, currency)
+  const switchCurrency = () => {
+    const next = currencies[(currencies.indexOf(currency) + 1) % currencies.length]
+    if (editing) setEditing({ ...editing, amount: { ...editing.amount, currency: next } })
+    else setChosenCurrency(next)
+  }
 
   const pick = (next: ExpenseCategory) => {
     setCategory(next)
@@ -154,7 +162,13 @@ function SpentToday({ trip, dayId, expenses, total }: { trip: Trip; dayId: strin
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
-          <span className="estimate-currency">{currency}</span>
+          {currencies.length > 1 ? (
+            <button type="button" className="estimate-currency" title="Change the currency" onClick={switchCurrency}>
+              {currency}
+            </button>
+          ) : (
+            <span className="estimate-currency">{currency}</span>
+          )}
         </span>
         <span className="spent-what">
           <button

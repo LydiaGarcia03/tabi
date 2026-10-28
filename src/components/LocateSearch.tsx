@@ -9,10 +9,12 @@ interface Props {
   placeholder?: string
   /** A city added to the search when the text doesn't name it (a hotel name alone can be anywhere). */
   near?: string
+  /** The trip's first country ("JP"): results there come first. */
+  region?: string
 }
 
 /** Finds a place on Google to get its location (1 request per search, only on "Search"). */
-export function LocateSearch({ initialQuery = '', onPick, placeholder = 'Search on the map…', near }: Props) {
+export function LocateSearch({ initialQuery = '', onPick, placeholder = 'Search on the map…', near, region }: Props) {
   const online = useOnline()
   const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<PlaceResult[] | null>(null)
@@ -28,7 +30,7 @@ export function LocateSearch({ initialQuery = '', onPick, placeholder = 'Search 
     try {
       const text = query.trim()
       const city = near?.trim()
-      setResults(await searchPlaces(city && !text.toLowerCase().includes(city.toLowerCase()) ? `${text} ${city}` : text))
+      setResults(await searchPlaces(city && !text.toLowerCase().includes(city.toLowerCase()) ? `${text} ${city}` : text, null, region))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

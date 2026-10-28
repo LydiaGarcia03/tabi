@@ -26,6 +26,7 @@ import { LocateSearch } from './LocateSearch'
 import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { PhotoPicker } from './Photos'
 import { Stars } from './Stars'
+import { currencyChoices } from '../money/currencies'
 
 interface Props {
   trip: Trip
@@ -132,7 +133,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   const bookAheadKind = BOOK_AHEAD_FOR[kind]
   const cleaned = cleanJourney(journey)
   const valid = isTransport ? cleaned.from !== '' && cleaned.to !== '' : name.trim() !== ''
-  const currencies = [...new Set([trip.displayCurrency, trip.baseCurrency, currency])]
+  const currencies = [...new Set([trip.displayCurrency, ...currencyChoices(trip, currency)])]
   // Fare names of the main airline, from the airline guide.
   const fareSuggestions =
     journey.mode === 'flight' ? (findAirline(withLegSummary(journey).carrier)?.checked.map((r) => r.fare) ?? []) : []
@@ -340,6 +341,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
             <LocateSearch
               initialQuery={name}
               near={city || undefined}
+              region={trip.countries?.[0]}
               onPick={(p) =>
                 setLocation({ lat: p.lat, lng: p.lng, address: p.address, googlePlaceId: p.googlePlaceId, googleFetchedAt: new Date().toISOString() })
               }

@@ -9,6 +9,7 @@ import { travelersOf } from '../../budget'
 import { formatMoney } from '../../format'
 import { type Scored } from '../../planning/compare'
 import { href } from '../../router'
+import { currencyChoices } from '../../money/currencies'
 
 /**
  * Un-ticking an option in the itinerary (User's choice 5A from a mock, 2026-10-27): it leaves the itinerary once
@@ -57,7 +58,7 @@ function typedAmount(text: string): number | null {
 export function CurrencyPicker({ trip, value, onChange }: { trip: Trip; value: string; onChange: (currency: string) => void }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Currency">
-      {[...new Set([trip.baseCurrency, trip.displayCurrency, value])].map((c) => (
+      {currencyChoices(trip, value).map((c) => (
         <option key={c}>{c}</option>
       ))}
     </select>

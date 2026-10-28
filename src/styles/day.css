@@ -1039,10 +1039,10 @@ button.option-select-button {
   gap: 6px;
 }
 
-@media (max-width: 480px) {
-  .leg-suggest-label {
-    flex-basis: 100%;
-  }
+/* Its own line on every screen: with three buttons (Car, Public transport / Route by NAVITIME, Walking) the
+   row no longer fits beside it, and the "i" was left alone on a line. */
+.leg-suggest-label {
+  flex-basis: 100%;
 }
 
 /* InfoTip: an "i" whose text floats on hover with a mouse, or opens under its row on a phone. */

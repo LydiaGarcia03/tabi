@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { dayMoney, expensesBudget, itemsBudget, travelersOf, tripStarted } from '../budget'
 import { MoneyTotals } from '../components/BudgetView'
 import { Checklist, type PlaceToBook } from '../components/Checklist'
+import { CountriesMoney } from '../components/CountriesMoney'
 import { DayCard } from '../components/DayCard'
 import { ExportCard } from '../components/ExportCard'
 import { Icon, type IconName } from '../components/Icon'
@@ -216,12 +217,6 @@ function TripNotes({ trip }: { trip: Trip }) {
 }
 
 function TripSettings({ trip }: { trip: Trip }) {
-  const [rate, setRate] = useDraft(trip.exchangeRate > 0 ? String(trip.exchangeRate) : '', (value) => {
-    const number = Number(value.replace(',', '.'))
-    if (Number.isFinite(number) && number >= 0) void updateTrip(trip.id, { exchangeRate: number })
-  })
-  const [base, setBase] = useDraft(trip.baseCurrency, (value) => saveCurrency(trip.id, 'baseCurrency', value))
-  const [display, setDisplay] = useDraft(trip.displayCurrency, (value) => saveCurrency(trip.id, 'displayCurrency', value))
   const [travelers, setTravelers] = useDraft(trip.travelers != null ? String(trip.travelers) : '', (value) => {
     const number = Number(value)
     if (value.trim() === '') void updateTrip(trip.id, { travelers: undefined })
@@ -268,28 +263,9 @@ function TripSettings({ trip }: { trip: Trip }) {
       <p className="muted small">
         Tickets, meals and fares are per person: the budget counts them for everyone, unless a place says fewer people go.
       </p>
-      <div className="field-row">
-        <label>
-          Trip currency
-          <input value={base} maxLength={3} onChange={(e) => setBase(e.target.value.toUpperCase())} />
-        </label>
-        <label>
-          Show totals in
-          <input value={display} maxLength={3} onChange={(e) => setDisplay(e.target.value.toUpperCase())} />
-        </label>
-        <label>
-          1 {trip.baseCurrency} = ? {trip.displayCurrency}
-          <input inputMode="decimal" placeholder="e.g. 0.037" value={rate} onChange={(e) => setRate(e.target.value)} />
-        </label>
-      </div>
+      <CountriesMoney trip={trip} />
     </div>
   )
-}
-
-/** Saves a currency code once it looks valid (three letters, e.g. "JPY"). */
-function saveCurrency(tripId: string, field: 'baseCurrency' | 'displayCurrency', value: string) {
-  const code = value.trim().toUpperCase()
-  if (/^[A-Z]{3}$/.test(code)) void updateTrip(tripId, { [field]: code })
 }
 
 function DeleteTrip({ trip }: { trip: Trip }) {

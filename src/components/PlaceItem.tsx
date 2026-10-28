@@ -1,10 +1,7 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type HTMLAttributes } from 'react'
 import { describePlaceCost, peopleGoing } from '../budget'
 import { formatDay } from '../dates'
-import { db } from '../db/db'
 import type { Day, Place, PlaceKind } from '../db/model'
-import { optionPhotos } from '../db/photos'
 import { deletePlace, movePlaceInDay, movePlaceToDay, updatePlace } from '../db/trips'
 import { formatDuration } from '../format'
 import { placeUrl } from '../googleMapsLinks'
@@ -15,6 +12,7 @@ import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { OptionDetails } from './OptionDetails'
 import { Sheet } from './Sheet'
 import { useDraft } from '../useDraft'
+import { useFromOption } from '../places/useFromOption'
 
 interface Props {
   place: Place
@@ -23,6 +21,8 @@ interface Props {
   days: Day[]
   /** Trip currency, used for a new cost. */
   currency: string
+  /** The trip's currencies (a choice next to the cost when there are several, e.g. yen and dollars). */
+  currencies?: string[]
   /** People on the trip (the default number going to the place). */
   travelers: number
   /** Date of the day, "YYYY-MM-DD" (for that weekday's opening hours). */
@@ -34,7 +34,7 @@ interface Props {
   dragging?: boolean
 }
 
-export function PlaceItem({ place, index, count, days, currency, travelers, date, selected, onSelect, handle, dragging }: Props) {
+export function PlaceItem({ place, index, count, days, currency, currencies, travelers, date, selected, onSelect, handle, dragging }: Props) {
   const hours = describeWindow(windowFor(place.openingHours, weekdayOf(date)))
   const conflict = timeConflict(place, date)
   return (
@@ -109,6 +109,7 @@ export function PlaceItem({ place, index, count, days, currency, travelers, date
           count={count}
           days={days}
           currency={currency}
+          currencies={currencies}
           travelers={travelers}
           date={date}
         />
@@ -122,12 +123,7 @@ export function PlaceItem({ place, index, count, days, currency, travelers, date
  * Photos are only added on the Options page.
  */
 function FromOption({ place }: { place: Place }) {
-  const found = useLiveQuery(async () => {
-    const option = await db.options.where('tripId').equals(place.tripId).filter((o) => o.placeId === place.id).first()
-    const trip = option && (await db.trips.get(place.tripId))
-    if (!option || !trip) return null
-    return { option, trip, images: (await optionPhotos(option.id)).map((p) => p.image) }
-  }, [place.tripId, place.id])
+  const found = useFromOption(place)
   const [open, setOpen] = useState(false)
   if (!found) return null
   const { option, trip, images } = found
@@ -146,10 +142,15 @@ function FromOption({ place }: { place: Place }) {
   )
 }
 
-function PlaceEditor({ place, index, count, days, currency, travelers }: Omit<Props, 'selected' | 'onSelect'>) {
+function PlaceEditor({ place, index, count, days, currency, currencies = [], travelers }: Omit<Props, 'selected' | 'onSelect'>) {
   const [name, setName] = useDraft(place.name, (value) => updatePlace(place.id, { name: value.trim() || place.name }))
   const [notes, setNotes] = useDraft(place.notes, (value) => updatePlace(place.id, { notes: value }))
-  const costCurrency = place.cost?.currency ?? currency
+  const [chosenCurrency, setChosenCurrency] = useState(currency)
+  const costCurrency = place.cost?.currency ?? chosenCurrency
+  const changeCurrency = (code: string) => {
+    setChosenCurrency(code)
+    if (place.cost) void updatePlace(place.id, { cost: { ...place.cost, currency: code } })
+  }
   const [cost, setCost] = useDraft(place.cost ? String(place.cost.amount) : '', (value) => {
     const amount = Number(value)
     if (value.trim() === '') void updatePlace(place.id, { cost: undefined })
@@ -229,6 +230,18 @@ function PlaceEditor({ place, index, count, days, currency, travelers }: Omit<Pr
             onChange={(e) => setCost(e.target.value)}
           />
         </label>
+        {new Set([...currencies, costCurrency]).size > 1 && (
+          <label>
+            Currency
+            <select value={costCurrency} onChange={(e) => changeCurrency(e.target.value)}>
+              {[...new Set([...currencies, costCurrency])].map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           Price is
           <select

@@ -2,7 +2,9 @@
 // ordered place lists always stay consistent.
 
 import { dateRange } from '../dates'
+import { foreignCurrencies } from '../money/currencies'
 import { deleteTripMap } from '../offlineMap/download'
+import { addCurrencies } from './currencies'
 import { shiftStops } from './baseStops'
 import { db } from './db'
 import type { Day, Place, Trip } from './model'
@@ -10,16 +12,21 @@ import type { Day, Place, Trip } from './model'
 const now = () => new Date().toISOString()
 const newId = () => crypto.randomUUID()
 
-export async function createTrip(input: { name: string; startDate: string; endDate: string; travelers?: number }): Promise<string> {
+export async function createTrip(input: { name: string; startDate: string; endDate: string; travelers?: number; countries?: string[] }): Promise<string> {
+  // "My money" as on the last trip made (BRL at first); the countries' currencies come with today's rates.
+  const last = (await db.trips.toArray()).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).at(-1)
+  const display = last?.displayCurrency ?? 'BRL'
   const trip: Trip = {
     id: newId(),
     name: input.name,
     startDate: input.startDate,
     endDate: input.endDate,
     travelers: input.travelers,
-    baseCurrency: 'JPY',
-    displayCurrency: 'BRL',
+    baseCurrency: display,
+    displayCurrency: display,
     exchangeRate: 0,
+    countries: input.countries?.length ? input.countries : undefined,
+    currencies: [],
     createdAt: now(),
     updatedAt: now(),
   }
@@ -27,6 +34,9 @@ export async function createTrip(input: { name: string; startDate: string; endDa
     await db.trips.add(trip)
     await syncDays(trip)
   })
+  const foreign = foreignCurrencies(input.countries ?? [], display)
+  // Rates are fetched after the trip exists: offline or slow, the trip opens anyway (rates typed later).
+  if (foreign.length) void addCurrencies(trip.id, foreign)
   return trip.id
 }
 

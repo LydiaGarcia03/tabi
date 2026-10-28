@@ -34,7 +34,7 @@ function coords(place: Pick<Place, 'lat' | 'lng'>): string {
 function travelMode(segments: Segment[]): 'transit' | 'walking' | 'driving' {
   const modes = new Set(segments.map((s) => s.mode))
   if (['bus', 'train', 'shinkansen', 'subway', 'ferry'].some((m) => modes.has(m as Segment['mode']))) return 'transit'
-  if (modes.has('taxi')) return 'driving'
+  if (modes.has('taxi') || modes.has('car')) return 'driving'
   if (modes.has('walk')) return 'walking'
   return 'transit'
 }

@@ -387,11 +387,14 @@ function BasePicker({
   city,
   base,
   hotels,
+  region,
   onChange,
 }: {
   city: string
   base?: StayBase
   hotels: TripOption[]
+  /** The trip's first country: searches find places there first. */
+  region?: string
   onChange: (base: StayBase | undefined) => void
 }) {
   const [kind, setKind] = useState<BaseKind>(base?.kind ?? (hotels.length > 0 ? 'hotel' : 'station'))
@@ -472,6 +475,7 @@ function BasePicker({
             <div className="base-source-body">
               <LocateSearch
                 near={city || undefined}
+                region={region}
                 placeholder="Hotel name (e.g. Super Hotel Namba)"
                 onPick={(p) => onChange({ name: p.name, lat: p.lat, lng: p.lng, kind: 'hotel' })}
               />
@@ -489,6 +493,7 @@ function BasePicker({
           key={kind}
           initialQuery={kind === 'station' && city ? `${city} station` : ''}
           near={city || undefined}
+          region={region}
           placeholder={kind === 'station' ? 'Station name (e.g. Shin-Osaka)' : 'Name of the place'}
           onPick={(p) => onChange({ name: p.name, lat: p.lat, lng: p.lng, kind })}
         />
@@ -566,7 +571,7 @@ function StayForm({
         </label>
       </div>
       {kind === 'stay' && <p className="muted small">A travel day can be the last day of one city and the first of the next.</p>}
-      <BasePicker city={city.trim()} base={base} hotels={hotels} onChange={setBase} />
+      <BasePicker city={city.trim()} base={base} hotels={hotels} region={trip.countries?.[0]} onChange={setBase} />
       <div className="row wrap sheet-actions">
         <button type="submit" className="primary" disabled={!valid}>
           Save city

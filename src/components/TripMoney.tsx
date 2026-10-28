@@ -19,6 +19,7 @@ import { ExpenseList } from './ExpenseList'
 import { CategorySelect } from './CategorySelect'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
+import { currencyChoices } from '../money/currencies'
 
 // The Budget page (User's model and picks from mocks, 2026-10-27): what needs booking is paid before the trip;
 // everything else is an estimate (the itinerary + additional estimates); during the trip, estimated vs spent.
@@ -71,7 +72,7 @@ export function TripMoneyCard({
     return (
       <section className="card trip-money">
         {head}
-        <p className="muted small">Set the exchange rate (Trip settings, on the itinerary page) to add up amounts in {trip.displayCurrency}.</p>
+        <p className="muted small">Set the rate of each currency (Trip settings, on the itinerary page) to add up amounts in {trip.displayCurrency}.</p>
         {editing || !trip.savedMoney ? <SavedEdit trip={trip} onDone={() => setEditing(false)} /> : <p className="money-reserve">{formatMoney(trip.savedMoney)}</p>}
       </section>
     )
@@ -156,7 +157,7 @@ function SavedEdit({ trip, onDone }: { trip: Trip; onDone: () => void }) {
     if (text.trim() === '') void updateTrip(trip.id, { savedMoney: undefined })
     else if (Number.isFinite(value) && value >= 0) void updateTrip(trip.id, { savedMoney: { amount: value, currency } })
   })
-  const currencies = [...new Set([trip.displayCurrency, trip.baseCurrency, currency])]
+  const currencies = [...new Set([trip.displayCurrency, ...currencyChoices(trip, currency)])]
 
   return (
     <div className="saved-edit">
@@ -308,7 +309,7 @@ export function EstimatesCard({ trip, categories, started }: { trip: Trip; categ
         {!started && categories && <strong className="num">{show(total)}</strong>}
       </div>
       {!categories ? (
-        <p className="muted small">Set the exchange rate (Trip settings) to add up amounts in different currencies.</p>
+        <p className="muted small">Set the rate of each currency (Trip settings) to add up amounts in different currencies.</p>
       ) : (
         <>
           {!started && (
@@ -492,7 +493,7 @@ function EstimateSheet({
   )
   const [items, setItems] = useState(() => draftsOf(category))
   const show = useMoney(trip)
-  const currencies = [...new Set([trip.displayCurrency, trip.baseCurrency])]
+  const currencies = [...new Set([trip.displayCurrency, ...currencyChoices(trip)])]
   const current = categories?.find((c) => c.category === category)
   const fromItinerary = current?.items ?? []
 

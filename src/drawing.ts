@@ -44,6 +44,6 @@ export function drawingPoints(drawing: Drawing): LatLng[] {
 /** Google travel mode that follows streets for this segment mode, if any. */
 export function streetTravelMode(mode: SegmentMode): 'WALKING' | 'DRIVING' | null {
   if (mode === 'walk') return 'WALKING'
-  if (mode === 'bus' || mode === 'taxi') return 'DRIVING'
+  if (mode === 'bus' || mode === 'taxi' || mode === 'car') return 'DRIVING'
   return null // Trains, subways and ferries don't follow streets.
 }

@@ -1,6 +1,6 @@
 // Budget totals per day and per trip. Amounts are kept per currency and only
-// converted for display, with the trip's manual exchange rate
-// (1 baseCurrency = exchangeRate displayCurrency).
+// converted for display, each currency with its rate to "my money"
+// (displayCurrency; see money/currencies.ts).
 
 import { today } from './dates'
 import { dayRoute } from './db/baseStops'
@@ -10,6 +10,7 @@ import { orderPlaces } from './db/trips'
 import { formatMoney } from './format'
 import type { IconName } from './iconPaths'
 import { expenseNeedsBooking, JOURNEY_ICON, journeyTitle } from './planning/journeys'
+import { rateOf } from './money/currencies'
 import type { Money } from './routing/types'
 
 /** Amount per currency code, e.g. { JPY: 12300, BRL: 200 }. */
@@ -115,9 +116,9 @@ export function describePlaceCost(place: Place, travelers: number): string {
   return describePriced(placePriced(place), travelers)
 }
 
-/** Segment fares are per person, except taxis (per car). */
+/** Segment fares are per person, except taxis and cars (per car). */
 export function segmentCost(segment: Pick<Segment, 'mode' | 'fare'>, travelers: number): Money | undefined {
-  if (!segment.fare || segment.mode === 'taxi') return segment.fare
+  if (!segment.fare || segment.mode === 'taxi' || segment.mode === 'car') return segment.fare
   return { ...segment.fare, amount: segment.fare.amount * travelers }
 }
 
@@ -271,31 +272,32 @@ export function expensesBudget(expenses: Expense[]): Budget {
 }
 
 /**
- * Total in the display currency: base-currency amounts converted with the
- * trip rate plus amounts already in the display currency. Other currencies
- * can't be converted and are returned apart. `null` when the rate isn't set.
+ * Total in the display currency: each currency converted with its rate.
+ * Currencies without a rate can't be converted and are returned apart.
+ * `null` when nothing at all can be converted (no rate set yet).
  */
 export function inDisplayCurrency(totals: Totals, trip: Trip): { amount: number; unconverted: Money[] } | null {
-  if (!(trip.exchangeRate > 0)) return null
   let amount = 0
+  let converted = false
   const unconverted: Money[] = []
   for (const [currency, value] of Object.entries(totals)) {
-    if (currency === trip.baseCurrency) amount += value * trip.exchangeRate
-    else if (currency === trip.displayCurrency) amount += value
-    else unconverted.push({ amount: value, currency })
+    const rate = rateOf(trip, currency)
+    if (rate == null) unconverted.push({ amount: value, currency })
+    else {
+      amount += value * rate
+      if (currency !== trip.displayCurrency) converted = true
+    }
   }
+  // Only amounts already in the display currency and others without a rate: as if the rate weren't set.
+  if (!converted && unconverted.length > 0) return null
   return { amount, unconverted }
 }
 
 /**
  * One number in the display currency, or null when that can't be done
- * exactly (rate missing, or a currency other than the trip's two).
+ * exactly (a currency without a rate).
  */
 export function displayAmount(totals: Totals, trip: Trip): number | null {
-  const entries = Object.entries(totals)
-  if (entries.every(([currency]) => currency === trip.displayCurrency)) {
-    return entries.reduce((sum, [, value]) => sum + value, 0)
-  }
   const converted = inDisplayCurrency(totals, trip)
   return converted && converted.unconverted.length === 0 ? converted.amount : null
 }

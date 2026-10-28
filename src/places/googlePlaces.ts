@@ -13,7 +13,8 @@ export interface PlaceResult {
   lng: number
 }
 
-export async function searchPlaces(query: string, bias?: google.maps.LatLngBounds | null): Promise<PlaceResult[]> {
+/** `region`: the trip's country ("JP"), so results there come first (and names are given as there). */
+export async function searchPlaces(query: string, bias?: google.maps.LatLngBounds | null, region?: string): Promise<PlaceResult[]> {
   const { Place } = await placesLibrary()
   const { places } = await Place.searchByText({
     textQuery: query,
@@ -21,6 +22,7 @@ export async function searchPlaces(query: string, bias?: google.maps.LatLngBound
     maxResultCount: 8,
     language: 'en',
     locationBias: bias ?? undefined,
+    region: region?.toLowerCase(),
   })
   return places.map(toResult).filter((p) => p != null)
 }

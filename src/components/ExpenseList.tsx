@@ -9,6 +9,7 @@ import { CategorySelect } from './CategorySelect'
 import { Icon, type IconName } from './Icon'
 import { JourneyItinerary } from './JourneyLegs'
 import { HotelForm, JourneyForm, type BookingValues } from './BookingForms'
+import { currencyChoices } from '../money/currencies'
 
 interface Props {
   trip: Trip
@@ -223,7 +224,7 @@ function ExpenseForm({
   const [amount, setAmount] = useState(expense?.amount.amount.toString() ?? '')
   const [currency, setCurrency] = useState(expense?.amount.currency ?? trip.baseCurrency)
   const [notes, setNotes] = useState(expense?.notes ?? '')
-  const currencies = [...new Set([trip.baseCurrency, trip.displayCurrency, currency])]
+  const currencies = currencyChoices(trip, currency)
   const value = Number(amount)
   const valid = description.trim() !== '' && amount.trim() !== '' && Number.isFinite(value) && value >= 0
 
