@@ -214,11 +214,10 @@ export function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds
               ? '—'
               : formatMoney(DAY_KINDS.includes(option.kind) ? pricedTotal(optionPriced(option), travelersOf(trip))! : option.price)}
           </span>
-          {fare && (fare.name || fare.seenOn) && (
-            <span className={`muted small fare-seen${stale ? ' stale-price' : ''}`}>
-              {[fare.name, fare.seenOn && `seen ${formatDay(fare.seenOn)}`].filter(Boolean).join(' · ')}
-            </span>
-          )}
+          {/* The fare and the day it was seen on lines of their own: on one line they widened the column and cut
+              the table (User, 2026-10-28). */}
+          {fare?.name && <span className={`muted small fare-seen${stale ? ' stale-price' : ''}`}>{fare.name}</span>}
+          {fare?.seenOn && <span className={`muted small fare-seen${stale ? ' stale-price' : ''}`}>seen {formatDay(fare.seenOn)}</span>}
         </td>
         {group.kind === 'hotel' && (
           <td className="num col-price" data-label="Stay total">
