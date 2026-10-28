@@ -113,20 +113,23 @@ export function AddHotelPanel({ item, trip, stays, onDone }: { item: Scored; tri
           <input type="date" value={checkOut} min={checkIn || undefined} onChange={(e) => setCheckOut(e.target.value)} />
         </label>
       </div>
-      <div className="add-trip-price">
-        <input type="number" min="0" step="any" inputMode="decimal" aria-label="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
-        <CurrencyPicker trip={trip} value={currency} onChange={setCurrency} />
-        <div className="segmented" role="radiogroup" aria-label="Price is">
-          {(
-            [
-              ['night', '/night'],
-              ['total', 'total'],
-            ] as const
-          ).map(([m, label]) => (
-            <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>
-              {label}
-            </button>
-          ))}
+      <div className="add-trip-price-field">
+        <small>Price</small>
+        <div className="add-trip-price">
+          <input type="number" min="0" step="any" inputMode="decimal" aria-label="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
+          <CurrencyPicker trip={trip} value={currency} onChange={setCurrency} />
+          <div className="segmented" role="radiogroup" aria-label="Price is">
+            {(
+              [
+                ['night', '/night'],
+                ['total', 'total'],
+              ] as const
+            ).map(([m, label]) => (
+              <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <div className="add-trip-footer">
@@ -175,9 +178,12 @@ export function AddJourneyPanel({ option, trip, onDone }: { option: TripOption; 
         <small>{journey.legs?.length ? 'Date of the first departure' : 'Date'}</small>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
-      <div className="add-trip-price">
-        <input type="number" min="0" step="any" inputMode="decimal" aria-label="Price for everyone" value={price} onChange={(e) => setPrice(e.target.value)} />
-        <CurrencyPicker trip={trip} value={currency} onChange={setCurrency} />
+      <div className="add-trip-price-field">
+        <small>Total price</small>
+        <div className="add-trip-price">
+          <input type="number" min="0" step="any" inputMode="decimal" aria-label="Price for everyone" value={price} onChange={(e) => setPrice(e.target.value)} />
+          <CurrencyPicker trip={trip} value={currency} onChange={setCurrency} />
+        </div>
       </div>
       <div className="add-trip-footer">
         <span className="muted small">{tickets ? `${travelers} tickets × ${formatMoney(option.price!)}` : travelers > 1 ? `For ${travelers} people` : ''}</span>

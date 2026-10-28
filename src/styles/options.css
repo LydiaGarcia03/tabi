@@ -1030,7 +1030,14 @@ button.icon-toggle.on {
   font-weight: 500;
 }
 
-.add-to-trip .date-chip small {
+.add-trip-price-field {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.add-to-trip .date-chip small,
+.add-trip-price-field small {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -1092,6 +1099,29 @@ button.icon-toggle.on {
 
 .add-trip-footer .primary {
   min-width: 96px;
+}
+
+/* Wide screens (User, 2026-10-28): the box takes the table's width with everything on one line under its title
+   (date · price · tickets · Add; a hotel's dates · price · total · Add) instead of a narrow stack. */
+@media (min-width: 900px) {
+  .add-to-day.add-to-trip {
+    max-width: none;
+    grid-template-columns: minmax(180px, 220px) minmax(240px, 340px) minmax(0, 1fr);
+    align-items: end;
+    column-gap: 16px;
+  }
+
+  .add-to-day.add-to-trip:has(.add-stay-dates) {
+    grid-template-columns: minmax(340px, 400px) minmax(280px, 380px) minmax(0, 1fr);
+  }
+
+  .add-to-trip > .add-to-day-head {
+    grid-column: 1 / -1;
+  }
+
+  .add-to-trip .add-trip-footer {
+    justify-content: flex-end;
+  }
 }
 
 /* "Booked" next to "In the itinerary": the same pill, in the ok green with a check. */
