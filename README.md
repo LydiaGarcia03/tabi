@@ -19,7 +19,7 @@ keep notes and costs together, and carry everything in your pocket without inter
 
 <br>
 
-<img src="docs/screenshots/tour.webp" alt="Tabi in a loop: a day with the way between two places open as a station timeline (walk, Ginza Line from Asakusa G19 to Ueno G16 with exits, stops and fare) next to a Google map with numbered pins and the route by transport mode, in light and then dark mode; then the options board comparing Tokyo hotels by photo, price, distance, rating and score" width="900">
+<img src="docs/screenshots/tour.webp" alt="Tabi in a loop: a day with the way between two places open as a station timeline (walk, Ginza Line from Asakusa G19 to Ueno G16 with exits, stops and fare) next to a Google map with numbered pins and the route by transport mode, in light and then dark mode; then the options board comparing Tokyo hotels by photo, price, distance, rating and score; then the budget: what was set aside, what is booked, what is still to book and the estimates per category" width="900">
 
 </div>
 
@@ -46,13 +46,13 @@ Type each place's hours and visit time. Tabi warns about visits that don't fit a
 <td width="50%" valign="top">
 
 ### 🏨 Options & comparison
-Collect the hotels, restaurants, places, shops and transport you're considering. Rate them, add prices and photos (browse them in a carousel), and compare them per city by price, distance and rating. Then pick one straight into a day, from a list that shows each option's photo.
+Collect the hotels, restaurants, places, shops and transport you're considering. Rate them, add prices and photos (browse them in a carousel), see them on a map, and compare them per city by price, distance and rating. Tick one and it goes into the itinerary: a place into a day, a hotel or a flight into the trip.
 
 ### 💴 Budget
-Costs for places, transport, lodging and extras, with totals per day and per trip, estimates vs. booked, and two currencies side by side.
+Start from the money you set aside: what is already booked (paid), what still needs booking, and the estimates per category (the itinerary plus your own, like souvenirs), ending in what's left over. During the trip, log what you spend each day and see it against the estimate. Two currencies side by side.
 
 ### 📴 Offline-first
-Install it on your phone. Itineraries, notes, routes and costs stay readable without internet, with an in-app offline map, a GPS logbook and KML/GPX export to Organic Maps.
+Install it on your phone. Itineraries, notes, routes and costs stay readable without internet, with an in-app offline map, a GPS logbook that opens the place you're at, and KML/GPX export to Organic Maps.
 
 </td>
 </tr>
@@ -61,21 +61,25 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 <div align="center">
 <table>
 <tr>
-<td align="center" valign="top" width="33%">
-<img src="docs/screenshots/trip-phone-light.png" alt="The trip page on a phone: one card per day with its city, route of places, travel time, distance on foot and cost, and the bottom navigation bar" width="260">
+<td align="center" valign="top" width="25%">
+<img src="docs/screenshots/trip-phone-light.png" alt="The trip page on a phone: Days, Cities, Checklist and More as a segmented control, then one card per day with its city, route of places, travel time, distance on foot and estimated cost, and the bottom navigation bar" width="200">
 <br><sub><b>The trip</b> — one card per day</sub>
 </td>
-<td align="center" valign="top" width="33%">
-<img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: map on top, then the day's places with a short summary of the way between them" width="260">
+<td align="center" valign="top" width="25%">
+<img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: the day switcher, the map on top with numbered pins and the way between the first two places, then the day's places" width="200">
 <br><sub><b>A day</b> — map and the way between places</sub>
 </td>
-<td align="center" valign="top" width="33%">
-<img src="docs/screenshots/option-details-phone-light.png" alt="An option's details on a phone: two photos of a Tokyo hotel, its badges, price per night, stay total, distance from Shinjuku Station, rating and location, with Edit and Close buttons" width="260">
+<td align="center" valign="top" width="25%">
+<img src="docs/screenshots/option-details-phone-light.png" alt="An option's details on a phone: two photos of a Tokyo hotel, in the itinerary and booked, its price per night, stay total, rating, location and notes, with Edit and Close buttons" width="200">
 <br><sub><b>An option</b> — photos, prices and notes</sub>
+</td>
+<td align="center" valign="top" width="25%">
+<img src="docs/screenshots/budget-phone-light.png" alt="The budget on a phone: money set aside, booked, still to book and estimated, ending in what's left over; what to book before the trip; the estimates per category" width="200">
+<br><sub><b>The budget</b> — from the money set aside</sub>
 </td>
 </tr>
 <tr>
-<td align="center" colspan="3"><sub>On the phone: installed as an app, works without internet. The PC screens are in the animation at the top.</sub></td>
+<td align="center" colspan="4"><sub>On the phone: installed as an app, works without internet. The PC screens are in the animation at the top.</sub></td>
 </tr>
 </table>
 </div>
@@ -84,7 +88,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 
 - 🏙️ **Cities** — split the trip by city (stays, day trips, stopovers), with a base hotel or station for each.
 - ✈️ **Transport between cities** — flights with connections, shinkansen, buses; fares compared side by side, plus a flight planner and an airline baggage guide.
-- ✅ **Checklist** — reminders, plus tickets and reservations to arrange before going.
+- ✅ **Checklist** — what the itinerary still needs booked (hotels, flights, tickets, tables), plus your own reminders.
 - 🌏 **Japanese names in English** — station and line names translated from Wikidata, with the Japanese as written on the signs right under them.
 - 🔗 **Open in Google Maps** — quick links for any place or leg when you're online.
 - 🔄 **Sync between devices** — optional, through your own Google Drive (trips, photos and settings).
@@ -185,7 +189,7 @@ Tabi is designed to run at **zero cost**:
 - [x] **Offline & export** — PWA, KML/GPX for Organic Maps, JSON backup
 - [x] **Polish** — redesign, mobile UX, dark mode, share and print a day
 - [x] **Opening hours & optimized order** — hours and visit time per place, best visiting order for a day
-- [x] **Planning workspace** — wide desktop layout, cities, options board, estimates vs. booked, checklist
+- [x] **Planning workspace** — wide desktop layout, cities, options board with a map, budget by money, checklist
 - [x] **Transport between cities & airline guide** — flights, shinkansen and more; compare airlines by baggage and comfort
 - [ ] **Logbook & offline map** — follow the day by GPS, in-app OpenStreetMap map that works without internet *(testing on the phone offline)*
 
