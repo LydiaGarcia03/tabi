@@ -66,6 +66,12 @@ export function cityLabel(stays: Stay[], date: string): string {
   return on.map((s) => s.city).join(' → ')
 }
 
+/** "Osaka", "Osaka → Okinawa", or a day trip's city alone ("· day trip" takes room for nothing in the day dropdowns). */
+export function dayCity(stays: Stay[], date: string): string {
+  const on = staysOn(stays, date)
+  return on.find(isDayTrip)?.city ?? on.map((s) => s.city).join(' → ')
+}
+
 /** The cities travelled through in order (stays and stops): day trips leave from one of them and come back. */
 export function routeStays(stays: Stay[]): Stay[] {
   return stays.filter((s) => !isDayTrip(s)).sort((a, b) => a.startDate.localeCompare(b.startDate))

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatDay, today } from '../../dates'
 import type { Day, Stay } from '../../db/model'
-import { cityLabel } from '../../db/stays'
+import { dayCity } from '../../db/stays'
 import { Icon } from '../Icon'
+import { useDismiss } from '../../useDismiss'
 
 /**
  * The day, as a short dropdown (User's choice B from a mock, 2026-10-27; the line has little room): closed
@@ -14,15 +15,13 @@ export function DayPicker({ days, stays, value, onChange }: { days: Day[]; stays
   const root = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLUListElement>(null)
   const index = days.findIndex((d) => d.id === value)
-  const city = (date: string) => cityLabel(stays, date).replace(' · day trip', '')
+  const city = (date: string) => dayCity(stays, date)
   const now = today()
 
+  useDismiss(root, open, setOpen)
+  // The chosen day in view when the list opens.
   useEffect(() => {
-    if (!open) return
-    const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
-    document.addEventListener('pointerdown', onDown)
-    list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
-    return () => document.removeEventListener('pointerdown', onDown)
+    if (open) list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [open])
 
   const selected = days[index]

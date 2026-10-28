@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useId, useRef, useState, type ReactNode } from 'react'
 import { Icon } from './Icon'
+import { useDismiss } from '../useDismiss'
 
 /**
  * An "i" that explains something without taking room: with a mouse the text
@@ -13,14 +14,7 @@ export function InfoTip({ label, align = 'start', children }: { label: string; a
   const ref = useRef<HTMLSpanElement>(null)
   const id = useId()
 
-  useEffect(() => {
-    if (!open) return
-    const close = (event: PointerEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', close)
-    return () => document.removeEventListener('pointerdown', close)
-  }, [open])
+  useDismiss(ref, open, setOpen)
 
   return (
     <span ref={ref} className={`info-tip${align === 'end' ? ' end' : ''}${open ? ' open' : ''}`}>

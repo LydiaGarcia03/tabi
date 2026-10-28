@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { Icon } from '../Icon'
 import { CityDot } from '../DaySelect'
 import { useCityHue } from '../../cityColors'
+import { useDismiss } from '../../useDismiss'
 
 /**
  * The city filter, styled like the kinds bar next to it; in the city's color once one is chosen.
@@ -16,12 +17,7 @@ export function CityFilter({ city, cities, onChange }: { city: string; cities: s
   const values = ['', ...cities]
 
   // A tap anywhere else closes the list.
-  useEffect(() => {
-    if (!expanded) return
-    const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setExpanded(false)
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [expanded])
+  useDismiss(root, expanded, setExpanded)
 
   const show = () => {
     setActive(city)

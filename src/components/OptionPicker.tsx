@@ -6,6 +6,7 @@ import { addOptionToDay } from '../db/options'
 import { DAY_KINDS, KIND_ICON, KIND_PLURAL } from '../planning/optionKinds'
 import { Icon } from './Icon'
 import { BlobImage } from './Photos'
+import { useDismiss } from '../useDismiss'
 
 const NO_CITY = 'No city'
 
@@ -147,12 +148,7 @@ function OptionSelect({
   const pickable = groups.flatMap(([, options]) => options).filter(located)
 
   // A tap anywhere else closes the list.
-  useEffect(() => {
-    if (!expanded) return
-    const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setExpanded(false)
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [expanded])
+  useDismiss(root, expanded, setExpanded)
 
   // Keep the highlighted row in view while moving with the keyboard.
   useEffect(() => {

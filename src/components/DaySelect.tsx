@@ -2,16 +2,11 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useCityHue } from '../cityColors'
 import { dateParts, formatDay } from '../dates'
 import type { Day, Stay } from '../db/model'
-import { staysOn } from '../db/stays'
+import { dayCity } from '../db/stays'
 import { Icon } from './Icon'
+import { useDismiss } from '../useDismiss'
 
 const NO_CITY = 'No city'
-
-/** "Osaka", "Osaka → Okinawa", or the city of a day trip (without "· day trip", which takes room for nothing here). */
-function dayCity(stays: Stay[], date: string): string {
-  const on = staysOn(stays, date)
-  return on.find((s) => s.kind === 'day-trip')?.city ?? on.map((s) => s.city).join(' → ')
-}
 
 /** The city's color (the first one on a travel or day-trip day, like `CityTag`). */
 export function CityDot({ city }: { city: string }) {
@@ -62,12 +57,7 @@ export function DaySelect({
   const selected = days[selectedIndex]
 
   // A tap anywhere else closes the list.
-  useEffect(() => {
-    if (!expanded) return
-    const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setExpanded(false)
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [expanded])
+  useDismiss(root, expanded, setExpanded)
 
   // Keep the highlighted row in view (also the chosen one when the list opens).
   useEffect(() => {

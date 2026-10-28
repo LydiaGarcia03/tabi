@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL } from '../budget'
 import type { ExpenseCategory } from '../db/model'
 import { Icon } from './Icon'
+import { useDismiss } from '../useDismiss'
 
 /**
  * A budget category dropdown with each category's icon in its color (a native <select> can only hold text).
@@ -12,12 +13,7 @@ export function CategorySelect({ value, onChange, id }: { value: ExpenseCategory
   const [active, setActive] = useState(value)
   const root = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [open])
+  useDismiss(root, open, setOpen)
 
   const pick = (category: ExpenseCategory) => {
     onChange(category)
