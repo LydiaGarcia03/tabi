@@ -191,6 +191,7 @@ function AirlineRules({ airlines }: { airlines: AirlineInfo[] }) {
 
 const SCOPES: [AirlineInfo['scope'], string][] = [
   ['international', 'Brazil → Japan'],
+  ['americas', 'The Americas'],
   ['brazil', 'Inside Brazil'],
   ['japan-domestic', 'Inside Japan'],
 ]

@@ -2,12 +2,14 @@ import { metric } from '../format'
 
 // Airline guide: baggage (personal item, carry-on, checked by fare), premium
 // economy and legroom, for airlines flying Brazil → Japan (with a connection),
-// inside Brazil (the first flight) and inside Japan. Researched by hand from the airlines' own pages — no API
+// inside Brazil (the first flight), inside Japan, and the biggest of the Americas (the four largest US airlines;
+// Air Canada, Aeroméxico, Copa, Avianca, Aerolíneas Argentinas; added 2026-10-28, a reference only: User always
+// checks the airline herself). Researched by hand from the airlines' own pages — no API
 // exists for this and scraping is not allowed. Rules change: every entry says
 // what still needs confirming, and links its sources. Update by asking Claude.
 // Metric only: sizes in cm and weights in kg (convert inches × 2.54, pounds × 0.4536).
 
-export const AIRLINE_GUIDE_UPDATED = '2026-10-21'
+export const AIRLINE_GUIDE_UPDATED = '2026-10-28'
 
 export interface BagRule {
   /** Length × width × height, cm. */
@@ -32,7 +34,8 @@ export interface AirlineInfo {
   name: string
   /** Other ways people write it (matched case-insensitively). */
   aliases: string[]
-  scope: 'international' | 'japan-domestic' | 'brazil'
+  /** `americas`: the biggest airlines of the US and of other countries of the Americas flown to from Brazil. */
+  scope: 'international' | 'americas' | 'japan-domestic' | 'brazil'
   type: 'full-service' | 'low-cost'
   alliance?: string
   hub?: string
@@ -386,6 +389,194 @@ const RESEARCHED: AirlineInfo[] = [
     notes: ['Azul Fidelidade levels (Topázio and above) add free checked bags.'],
     toConfirm: ['Azul Super allowance', 'Allowance on your exact ticket'],
     sources: ['https://www.voeazul.com.br/br/pt/sua-viagem/planeje/bagagens'],
+  },
+  // The Americas (2026-10-28). US airlines read on their own pages in the browser; where a page only offers a fee
+  // calculator, the allowance is from secondary sources and listed under "to confirm".
+  {
+    code: 'AA',
+    name: 'American Airlines',
+    aliases: ['american', 'american airlines'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'oneworld',
+    hub: 'Miami (MIA), Dallas (DFW)',
+    personalItem: { cm: [45, 35, 20], note: 'under the seat in front' },
+    carryOn: { cm: [56, 36, 23], note: 'no weight limit published' },
+    checked: [
+      { fare: 'Basic Economy', pieces: 0, note: 'to/from Brazil the 1st bag is USD 70' },
+      { fare: 'Main Cabin', pieces: 1, kgEach: 23, note: 'to/from Brazil; inside the US no bag is included' },
+      { fare: 'Main Plus', pieces: 2, kgEach: 23 },
+      { fare: 'Premium Economy', pieces: 2, kgEach: 23 },
+    ],
+    checkedMax: { linearCm: 158, kg: 23 },
+    premiumEconomy: 'some aircraft',
+    legroom: { economy: '~76–79 cm' },
+    notes: [
+      'Inside the US every economy fare pays for bags (USD 45–55 the 1st, paying online).',
+      'Basic Economy keeps the carry-on and the personal item.',
+    ],
+    toConfirm: ['Legroom of your aircraft', 'Premium Economy only on wide-body aircraft'],
+    sources: ['https://www.aa.com/i18n/travel-info/baggage/checked-baggage-policy.jsp', 'https://www.aa.com/i18n/travel-info/baggage/carry-on-baggage.jsp'],
+  },
+  {
+    code: 'DL',
+    name: 'Delta Air Lines',
+    aliases: ['delta'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'SkyTeam',
+    hub: 'Atlanta (ATL)',
+    personalItem: { note: 'no size published: must fit under the seat in front' },
+    carryOn: { cm: [56, 35, 23], linearCm: 114, note: 'no weight limit published' },
+    checked: [
+      { fare: 'Delta Main Basic', pieces: 0, note: 'to/from Brazil the 1st bag is USD 70' },
+      { fare: 'Delta Main Classic', pieces: 1, kgEach: 23, note: 'to/from Brazil (confirm); inside the US none' },
+      { fare: 'Delta Comfort', pieces: 1, kgEach: 23, note: 'confirm' },
+      { fare: 'Delta Premium Select', pieces: 2, kgEach: 23, note: 'confirm' },
+    ],
+    checkedMax: { linearCm: 157, kg: 23 },
+    premiumEconomy: 'some aircraft',
+    legroom: { economy: '~76–79 cm' },
+    notes: ['Inside the US the 1st bag is USD 45 and the 2nd USD 55 (Delta Main and Delta Comfort).', 'Delta Main Basic keeps the carry-on and the personal item.'],
+    toConfirm: ['Free bags to/from Brazil per fare (Delta shows them in its baggage calculator)', 'Premium Select only on wide-body aircraft'],
+    sources: ['https://pt.delta.com/br/pt/baggage/overview', 'https://www.delta.com/us/en/baggage/carry-on-baggage'],
+  },
+  {
+    code: 'UA',
+    name: 'United Airlines',
+    aliases: ['united'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'Star Alliance',
+    hub: 'Houston (IAH), Newark (EWR)',
+    personalItem: { cm: [43, 25, 22] },
+    carryOn: { cm: [56, 35, 23], note: 'Basic Economy: personal item only, except to/from South America, across the Atlantic or the Pacific' },
+    checked: [
+      { fare: 'Basic Economy', pieces: 0, note: 'paid bags' },
+      { fare: 'Economy', pieces: 1, kgEach: 23, note: 'to/from South America (confirm); inside the US none' },
+      { fare: 'Premium Plus', pieces: 2, kgEach: 23, note: 'confirm' },
+    ],
+    checkedMax: { cm: [76, 52, 30], linearCm: 158, kg: 23 },
+    premiumEconomy: 'some aircraft',
+    legroom: { economy: '~76–79 cm' },
+    notes: ['Inside the US bags start at USD 45 prepaid (tickets bought from 3 April 2026).'],
+    toConfirm: ['Free bags to/from Brazil per fare (United shows them in its bag fee calculator)', 'Premium Plus only on wide-body aircraft'],
+    sources: ['https://www.united.com/en/us/fly/baggage/carry-on-bags.html', 'https://www.united.com/en/us/fly/baggage/checked-bags.html'],
+  },
+  {
+    code: 'WN',
+    name: 'Southwest Airlines',
+    aliases: ['southwest'],
+    scope: 'americas',
+    type: 'low-cost',
+    hub: 'Dallas Love Field (DAL), Chicago Midway (MDW)',
+    personalItem: { note: 'no size published: must fit under the seat in front' },
+    carryOn: { cm: [61, 41, 25], note: 'no weight limit published' },
+    checked: [
+      { fare: 'Basic, Choice, Choice Preferred', pieces: 0, note: '1st bag USD 45, 2nd USD 55 (bought from 9 April 2026)' },
+      { fare: 'Choice Extra', pieces: 2, kgEach: 23 },
+    ],
+    checkedMax: { linearCm: 157, kg: 23 },
+    premiumEconomy: 'no',
+    notes: ['Mostly flights inside the US (and to Mexico and the Caribbean).', 'Bags flew free until May 2025.', 'Some loyalty levels and its credit cards add free bags.'],
+    toConfirm: ['Fare names and what each includes (Southwest changed them in 2025)'],
+    sources: ['https://support.southwest.com/helpcenter/article/carryon-baggage-policy', 'https://support.southwest.com/helpcenter/article/checked-baggage-policy'],
+  },
+  {
+    code: 'AC',
+    name: 'Air Canada',
+    aliases: ['air canada'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'Star Alliance',
+    hub: 'Toronto (YYZ), Montreal (YUL)',
+    personalItem: { cm: [43, 33, 16] },
+    carryOn: { cm: [55, 40, 23], note: 'Economy Basic inside Canada, to/from the US, Mexico, Central America and the Caribbean: personal item only' },
+    checked: [{ fare: 'Economy (by fare)', pieces: '0–2', kgEach: 23, note: 'Air Canada shows it in its baggage calculator' }],
+    checkedMax: { linearCm: 158, kg: 23 },
+    premiumEconomy: 'some aircraft',
+    notes: ['On trips through Canada or the US, the airline of the first flight sets the bag rules for the whole trip.'],
+    toConfirm: ['Free bags to/from Brazil per fare (baggage calculator)'],
+    sources: ['https://www.aircanada.com/ca/en/aco/home/plan/baggage/carry-on.html', 'https://www.aircanada.com/ca/en/aco/home/plan/baggage/checked.html'],
+  },
+  {
+    code: 'AM',
+    name: 'Aeroméxico',
+    aliases: ['aeromexico', 'aeroméxico'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'SkyTeam',
+    hub: 'Mexico City (MEX)',
+    personalItem: { note: 'must fit under the seat in front' },
+    carryOn: { cm: [55, 40, 25], kg: 10, note: '10 kg is the total of carry-on and personal item (secondary sources)' },
+    checked: [
+      { fare: 'Basic', pieces: 0 },
+      { fare: 'Classic', pieces: 1, kgEach: 23 },
+      { fare: 'AM Plus', pieces: 1, kgEach: 23 },
+      { fare: 'Premier', pieces: 2 },
+    ],
+    premiumEconomy: 'some aircraft',
+    notes: ['Read from secondary sources (Aeroméxico\'s pages were not readable): a starting point only.'],
+    toConfirm: ['Everything, on aeromexico.com: allowances to/from Brazil may differ from the rest of South America'],
+    sources: ['https://aeromexico.com', 'https://upgradedpoints.com/travel/airlines/aeromexico-baggage-fees/'],
+  },
+  {
+    code: 'CM',
+    name: 'Copa Airlines',
+    aliases: ['copa'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'Star Alliance',
+    hub: 'Panama City (PTY)',
+    personalItem: { cm: [43, 25, 22] },
+    carryOn: { cm: [56, 36, 26], kg: 10 },
+    checked: [
+      { fare: 'Economy Basic', pieces: 0 },
+      { fare: 'Economy Classic', pieces: 1, kgEach: 23 },
+      { fare: 'Economy Full', pieces: 2, kgEach: 23 },
+    ],
+    checkedMax: { kg: 23 },
+    premiumEconomy: 'no',
+    notes: ['Many flights from Brazil connect in Panama to the US, Mexico, Central America and the Caribbean.', "Read from secondary sources (Copa's page didn't load): a starting point only."],
+    toConfirm: ['Everything, on copaair.com (Baggage information)'],
+    sources: ['https://www.copaair.com/en-gs/travel-information/baggage-information/', 'https://upgradedpoints.com/travel/airlines/copa-airlines-baggage-fees/'],
+  },
+  {
+    code: 'AV',
+    name: 'Avianca',
+    aliases: ['avianca'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'Star Alliance',
+    hub: 'Bogotá (BOG)',
+    personalItem: { cm: [45, 35, 20], note: 'one source only' },
+    carryOn: { cm: [55, 35, 25], kg: 10, note: 'Light fares include it on international flights in the Americas (tickets from 27 January 2026)' },
+    checked: [
+      { fare: 'Light (XS / S)', pieces: 0 },
+      { fare: 'Classic (M / L)', pieces: 1, kgEach: 23 },
+      { fare: 'Flex', pieces: 1, kgEach: 23, note: 'confirm' },
+    ],
+    premiumEconomy: 'no',
+    notes: ["The carry-on in Light fares is from Avianca's own news (February 2026); the rest from secondary sources."],
+    toConfirm: ['Checked bags per fare to/from Brazil', 'Personal item size'],
+    sources: ['https://www.avianca.com/en/about-us/corporate-news/2026/february-2', 'https://upgradedpoints.com/travel/airlines/avianca-baggage-fees/'],
+  },
+  {
+    code: 'AR',
+    name: 'Aerolíneas Argentinas',
+    aliases: ['aerolineas', 'aerolíneas', 'aerolineas argentinas'],
+    scope: 'americas',
+    type: 'full-service',
+    alliance: 'SkyTeam',
+    hub: 'Buenos Aires (AEP, EZE)',
+    personalItem: { note: 'size not confirmed' },
+    carryOn: { note: 'size and weight not confirmed; inside Argentina the cheapest fare has only a 3 kg bag (tickets from 4 May 2026)' },
+    checked: [{ fare: 'International (by fare)', pieces: 'varies', kgEach: 23, note: 'an extra bag to Brazil costs USD 40 online' }],
+    checkedMax: { kg: 23 },
+    premiumEconomy: 'some aircraft',
+    notes: ['Bags on international flights up to 23 kg (Colombia 20 kg, Mexico 25 kg).', 'Read from news and secondary sources: a starting point only.'],
+    toConfirm: ['Everything, on aerolineas.com.ar (Equipaje)'],
+    sources: ['https://www.aerolineas.com.ar', 'https://www.infoviajera.com/?p=173069'],
   },
 ]
 
