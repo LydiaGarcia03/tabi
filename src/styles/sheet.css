@@ -91,6 +91,8 @@ dialog.sheet::backdrop {
     gap: 10px;
     padding: 8px 16px 4px;
     border-bottom: none;
+    /* Pulled down by the finger to close (Sheet.tsx), not scrolled. */
+    touch-action: none;
   }
 
   dialog.sheet.bottom .sheet-handle {

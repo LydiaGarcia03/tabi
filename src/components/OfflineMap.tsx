@@ -1,22 +1,20 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import * as maplibregl from 'maplibre-gl'
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Leg, Place, StayBase } from '../db/model'
 import { baseMarkerSvg } from '../db/stays'
 import { drawingPoints, type Drawing, type LegFocus } from '../drawing'
 import { segmentColor } from '../format'
-import { drawWalkDot, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT } from '../mapLines'
-import { areaTiles, isCovered } from '../offlineMap/area'
-import { deleteTripMap, downloadTripMap, type Progress } from '../offlineMap/download'
+import { drawWalkDot, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, YOU_LINE, type YouAreHere } from '../mapLines'
+import { isCovered } from '../offlineMap/area'
+import { deleteTripMap } from '../offlineMap/download'
 import { matchPlaces, type OsmMatch } from '../offlineMap/match'
 import { offlineStyle, registerOfflineProtocol } from '../offlineMap/style'
+import { useTripMapDownload } from '../offlineMap/useTripMapDownload'
 import type { LatLng } from '../routing/types'
 import { useIsDark } from '../theme'
-import { useOnline } from '../useOnline'
 
 type Base = StayBase & { city: string }
 
@@ -34,6 +32,10 @@ interface Props {
   bases?: Base[]
   /** The places with the day's "back to base" stops, for the leg lines (default: the places). */
   route?: Place[]
+  /** The Logbook: your GPS position, with a dashed straight line to where you're going. */
+  you?: YouAreHere
+  /** The Logbook: no OpenStreetMap / download details under the map (only a warning when a place is outside it). */
+  compact?: boolean
 }
 
 /** Where a place is drawn on the offline map, and why. */
@@ -44,16 +46,8 @@ type Shown = Place & { source: 'osm' | 'google' | 'own'; osmName?: string }
  * without internet. Google places are first looked up in that data; those
  * not found keep Google's position (dashed pins).
  */
-export function OfflineMapPanel({ tripId, places, bases = [], ...mapProps }: Props) {
-  const online = useOnline()
-  const area = useLiveQuery(async () => (await db.mapAreas.get(tripId)) ?? null, [tripId])
-  const tripPoints = useLiveQuery(async () => {
-    const [all, stays] = await Promise.all([db.places.where('tripId').equals(tripId).toArray(), db.stays.where('tripId').equals(tripId).toArray()])
-    return [...all, ...stays.flatMap((s) => (s.base ? [s.base] : []))].map((p) => ({ lat: p.lat, lng: p.lng }))
-  }, [tripId])
-  const [progress, setProgress] = useState<Progress | null>(null)
-  const [error, setError] = useState('')
-  const abort = useRef<AbortController | null>(null)
+export function OfflineMapPanel({ tripId, places, bases = [], compact, ...mapProps }: Props) {
+  const { online, area, tripPoints, estimate, progress, error, download, cancel } = useTripMapDownload(tripId)
   const [matches, setMatches] = useState<Map<string, OsmMatch | null> | null>(null)
 
   const placesKey = places.map((p) => `${p.id}:${p.name}:${p.lat},${p.lng}`).join('|')
@@ -68,23 +62,7 @@ export function OfflineMapPanel({ tripId, places, bases = [], ...mapProps }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [area, placesKey])
 
-  async function download() {
-    setError('')
-    abort.current = new AbortController()
-    try {
-      const complete = await downloadTripMap(tripId, tripPoints ?? [], setProgress, abort.current.signal)
-      if (!complete) {
-        setError("The 50 MB limit of one download was reached: the areas farthest from your places were left out (marked if a place is there).")
-      }
-    } catch (err) {
-      if (!abort.current.signal.aborted) setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setProgress(null)
-    }
-  }
-
   if (area === undefined || tripPoints === undefined) return null
-  const estimate = areaTiles(tripPoints)
 
   const downloader = (
     <>
@@ -96,7 +74,7 @@ export function OfflineMapPanel({ tripId, places, bases = [], ...mapProps }: Pro
           <span className="progress">
             <span style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }} />
           </span>
-          <button type="button" onClick={() => abort.current?.abort()}>
+          <button type="button" onClick={cancel}>
             Cancel
           </button>
         </div>
@@ -135,6 +113,17 @@ export function OfflineMapPanel({ tripId, places, bases = [], ...mapProps }: Pro
   })
   const googleCount = shown.filter((p) => p.source !== 'own').length
   const fromGoogle = shown.filter((p) => p.source === 'google')
+
+  if (compact) {
+    return (
+      <>
+        <OfflineDayMap places={shown} bases={bases} {...mapProps} />
+        {outside.length > 0 && (
+          <p className="warning small">Part of the way is outside the downloaded map: update it on a day's page.</p>
+        )}
+      </>
+    )
+  }
 
   return (
     <>
@@ -183,6 +172,7 @@ function formatAge(iso: string): string {
 
 const LEGS_SOURCE = 'tabi-legs'
 const DRAFT_SOURCE = 'tabi-draft'
+const YOU_SOURCE = 'tabi-you'
 
 function OfflineDayMap({
   places,
@@ -194,6 +184,7 @@ function OfflineDayMap({
   focus,
   bases = [],
   route,
+  you,
 }: Omit<Props, 'tripId' | 'places'> & { places: Shown[] }) {
   const dark = useIsDark()
   const container = useRef<HTMLDivElement>(null)
@@ -223,6 +214,11 @@ function OfflineDayMap({
         localIdeographFontFamily: 'sans-serif',
         attributionControl: { compact: true },
       })
+      // The first frame waits for a repaint that nothing asks for once the offline files are read: the map stayed
+      // black until touched (User, 2026-10-28). Ask for one until it has loaded.
+      const kick = setInterval(() => m.triggerRepaint(), 200)
+      m.once('load', () => clearInterval(kick))
+      m.once('remove', () => clearInterval(kick))
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
       // Your position on the map (GPS: works offline).
       m.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true }), 'top-right')
@@ -237,6 +233,13 @@ function OfflineDayMap({
           m.addSource(source, { type: 'geojson', data: emptyCollection() })
           addLegLayers(m, source)
         }
+        m.addSource(YOU_SOURCE, { type: 'geojson', data: emptyCollection() })
+        m.addLayer({
+          id: YOU_SOURCE,
+          type: 'line',
+          source: YOU_SOURCE,
+          paint: { 'line-color': YOU_LINE.color, 'line-opacity': YOU_LINE.opacity, 'line-width': YOU_LINE.width, 'line-dasharray': [YOU_LINE.dash / YOU_LINE.width, YOU_LINE.gap / YOU_LINE.width] },
+        })
         setMap(m)
       })
       m.on('click', (e) => {
@@ -343,6 +346,23 @@ function OfflineDayMap({
     return () => markers.forEach((m) => m.remove())
   }, [map, drawing, draftPath])
 
+  // You (the GPS dot) and the straight line to where you're going, moved as the position changes.
+  const youKey = you && `${you.position.lat},${you.position.lng}>${you.target.lat},${you.target.lng}`
+  useEffect(() => {
+    const source = map?.getSource<GeoJSONSource>(YOU_SOURCE)
+    if (!source || !map || !you) return
+    source.setData({ type: 'FeatureCollection', features: [line([you.position, you.target], {})] })
+    const el = document.createElement('span')
+    el.className = 'you-dot'
+    el.title = 'You'
+    const marker = new maplibregl.Marker({ element: el }).setLngLat([you.position.lng, you.position.lat]).addTo(map)
+    return () => {
+      marker.remove()
+      source.setData(emptyCollection())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, youKey])
+
   // Fit the places (and bases), or the focused leg: when their set changes or a
   // leg is opened/closed, not on every edit.
   const fitKey = focusKey ?? [...places.map((p) => `${p.id}:${p.lat},${p.lng}`), ...bases.map((b) => `${b.lat},${b.lng}`)].sort().join('|')
@@ -361,7 +381,16 @@ function OfflineDayMap({
   }, [map, fitKey])
 
   if (missing) return <p className="error">The offline map files are missing: update the offline map.</p>
-  return <div ref={container} className="day-map offline-day-map" />
+  return (
+    <div className="offline-map-frame">
+      <div ref={container} className="day-map offline-day-map" />
+      {!map && (
+        <div className="offline-map-loading" role="status">
+          <span className="spinner" aria-hidden="true" /> Loading the map…
+        </div>
+      )}
+    </div>
+  )
 }
 
 const DOT_PREFIX = 'tabi-dot-'

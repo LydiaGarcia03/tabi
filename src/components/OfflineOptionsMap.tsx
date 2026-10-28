@@ -61,6 +61,10 @@ export function OfflineOptionsMap({
         localIdeographFontFamily: 'sans-serif',
         attributionControl: { compact: true },
       })
+      // Same as the day's offline map: the first frame needs a repaint nobody asks for (black until touched).
+      const kick = setInterval(() => m.triggerRepaint(), 200)
+      m.once('load', () => clearInterval(kick))
+      m.once('remove', () => clearInterval(kick))
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
       m.on('load', () => setMap(m))
       m.on('click', () => latest.current.onMapClick())

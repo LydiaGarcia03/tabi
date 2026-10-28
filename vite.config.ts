@@ -21,7 +21,8 @@ export default defineConfig({
         start_url: '/tabi/',
         scope: '/tabi/',
         display: 'standalone',
-        theme_color: '#b5332e',
+        // Android paints its navigation bar with this (the meta theme-color, which follows dark mode, only covers the top).
+        theme_color: '#f6f1e9',
         background_color: '#f7f5f2',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },

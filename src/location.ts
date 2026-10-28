@@ -2,7 +2,8 @@
 // on while it is followed. Only while the app is open: a web app can't follow
 // the position in the background.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { FAKE_GPS_AVAILABLE, getFakeGps, subscribeFakeGps, type FakeGps } from './fakeGps'
 import type { LatLng } from './routing/types'
 
 export interface Position extends LatLng {
@@ -18,13 +19,21 @@ const ERROR_TEXT: Record<number, string> = {
   3: 'Getting your position is taking too long. Still trying…',
 }
 
+/** The fake GPS of `npm run dev` when it is on (see fakeGps.ts), else null. */
+function useFakeGps(): FakeGps | null {
+  const fake = useSyncExternalStore(subscribeFakeGps, getFakeGps)
+  return FAKE_GPS_AVAILABLE && fake?.on ? fake : null
+}
+
 /** Follows the device position while `enabled`. */
 export function useWatchPosition(enabled: boolean): { position: Position | null; error: string } {
   const [position, setPosition] = useState<Position | null>(null)
   const [error, setError] = useState('')
+  const fake = useFakeGps()
+  const faking = !!fake
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || faking) return
     if (!('geolocation' in navigator)) {
       queueMicrotask(() => setError('This browser has no location access.'))
       return
@@ -38,8 +47,9 @@ export function useWatchPosition(enabled: boolean): { position: Position | null;
       { enableHighAccuracy: true, maximumAge: 5_000, timeout: 30_000 },
     )
     return () => navigator.geolocation.clearWatch(id)
-  }, [enabled])
+  }, [enabled, faking])
 
+  if (enabled && fake) return { position: { lat: fake.lat, lng: fake.lng, accuracy: fake.accuracy, time: fake.time }, error: '' }
   return { position: enabled ? position : null, error: enabled ? error : '' }
 }
 
@@ -68,6 +78,35 @@ export function useWakeLock(enabled: boolean): void {
       void lock?.release()
     }
   }, [enabled])
+}
+
+/**
+ * Where the top of the screen points, in degrees clockwise from north, from the
+ * phone's compass (works offline). Null when the device has none (PCs) or
+ * hasn't answered yet. Chrome on Android sends `deviceorientationabsolute`.
+ */
+export function useHeading(enabled: boolean): number | null {
+  const [heading, setHeading] = useState<number | null>(null)
+  const fake = useFakeGps()
+
+  useEffect(() => {
+    if (!enabled) return
+    let last: number | null = null
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      if (e.alpha == null) return
+      // alpha turns counterclockwise; a rotated screen (landscape) adds its angle.
+      const next = (360 - e.alpha + (screen.orientation?.angle ?? 0)) % 360
+      // Ignore jitter under 2° so the page doesn't re-render dozens of times a second.
+      if (last != null && Math.abs(((next - last + 540) % 360) - 180) < 2) return
+      last = next
+      setHeading(next)
+    }
+    window.addEventListener('deviceorientationabsolute', onOrientation as EventListener)
+    return () => window.removeEventListener('deviceorientationabsolute', onOrientation as EventListener)
+  }, [enabled])
+
+  if (enabled && fake) return fake.heading
+  return enabled ? heading : null
 }
 
 /** Bearing from a to b in degrees clockwise from north (0–360). */

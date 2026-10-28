@@ -8,12 +8,19 @@ export interface Trip {
   name: string
   startDate: string
   endDate: string
-  /** Currency prices are entered in (e.g. JPY). */
+  /** The main currency: new prices start in it (e.g. JPY; the same as displayCurrency on a trip at home). */
   baseCurrency: string
-  /** Currency totals are also shown in (e.g. BRL). */
+  /** "My money": the currency totals are shown in (e.g. BRL). */
   displayCurrency: string
-  /** 1 baseCurrency = exchangeRate displayCurrency. Entered manually. */
+  /** 1 baseCurrency = exchangeRate displayCurrency (kept equal to its rate in `currencies`, for older data). */
   exchangeRate: number
+  /** Countries visited (ISO 3166 codes, "JP"): suggest the currencies, steer place search and route times. */
+  countries?: string[]
+  /**
+   * Currencies paid in other than displayCurrency, each with its rate to it. Absent on trips made before
+   * (then baseCurrency with exchangeRate). Empty = a trip at home, no conversion.
+   */
+  currencies?: TripCurrency[]
   createdAt: string
   updatedAt: string
   /** Free notes for the whole trip (tips, flight time simulations…). */
@@ -26,6 +33,14 @@ export interface Trip {
   savedMoney?: Money
   /** How many people are going (default 1): per-person prices are multiplied by it. */
   travelers?: number
+}
+
+export interface TripCurrency {
+  code: string
+  /** 1 code = rate displayCurrency; 0 = not set yet. */
+  rate: number
+  /** Date of the European Central Bank rate filled in ("YYYY-MM-DD"); absent = typed by hand. */
+  rateDate?: string
 }
 
 export interface Estimate {
@@ -231,6 +246,8 @@ export interface Place {
   bookAhead?: BookAhead
   /** The reservation is made / the ticket bought (ticked in the checklist). */
   booked?: boolean
+  /** Ticked in the Logbook during the trip (a row swiped right): skipped when looking for where you are. */
+  visited?: boolean
 }
 
 /** A place of a day: a sight, a restaurant, a shop (like the options it can come from) or anything else. */

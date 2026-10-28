@@ -5,7 +5,7 @@ import { baseMarkerSvg } from '../db/stays'
 import type { Leg, Place, Stay } from '../db/model'
 import { drawingPoints, type Drawing, type LegFocus } from '../drawing'
 import { segmentColor } from '../format'
-import { placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, WALK_DOT_OUTER } from '../mapLines'
+import { placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, WALK_DOT_OUTER, YOU_LINE, type YouAreHere } from '../mapLines'
 import type { LatLng } from '../routing/types'
 import { useIsDark } from '../theme'
 
@@ -30,11 +30,13 @@ interface Props {
   bases?: Base[]
   /** The places with the day's "back to base" stops, for the leg lines (default: the places). */
   route?: Place[]
+  /** The Logbook: your GPS position, with a dashed straight line to where you're going. */
+  you?: YouAreHere
 }
 
 type Base = NonNullable<Stay['base']> & { city: string }
 
-export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, focus, bases = [], route }: Props) {
+export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, focus, bases = [], route, you }: Props) {
   const dark = useIsDark()
   return (
     <div className="day-map">
@@ -72,6 +74,7 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
         ))}
         <LegLines places={route ?? places} legs={legs} focus={focus} hiddenSegmentId={drawing?.segmentId} />
         {drawing && <DraftLayer drawing={drawing} />}
+        {you && <YouLayer you={you} />}
         <FitToPlaces places={focus ? focus.points : [...places, ...bases]} focusKey={focus && `${focus.fromId}>${focus.toId}`} />
       </Map>
     </div>
@@ -159,6 +162,38 @@ function DraftLayer({ drawing }: { drawing: Drawing }) {
         </AdvancedMarker>
       )}
     </>
+  )
+}
+
+/** You (the GPS dot) and a dashed straight line to where you're going. */
+function YouLayer({ you }: { you: YouAreHere }) {
+  const map = useMap(DAY_MAP_ID)
+  const { position, target } = you
+  useEffect(() => {
+    if (!map) return
+    const { color, opacity, width, dash, gap } = YOU_LINE
+    const line = new google.maps.Polyline({
+      map,
+      path: [
+        { lat: position.lat, lng: position.lng },
+        { lat: target.lat, lng: target.lng },
+      ],
+      clickable: false,
+      strokeOpacity: 0,
+      icons: [
+        {
+          icon: { path: `M 0,0 0,${dash / width}`, strokeOpacity: opacity, strokeColor: color, strokeWeight: width, scale: width },
+          offset: '0',
+          repeat: `${dash + gap}px`,
+        },
+      ],
+    })
+    return () => line.setMap(null)
+  }, [map, position.lat, position.lng, target.lat, target.lng])
+  return (
+    <AdvancedMarker position={{ lat: position.lat, lng: position.lng }} title="You" zIndex={3000}>
+      <span className="you-dot" />
+    </AdvancedMarker>
   )
 }
 

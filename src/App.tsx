@@ -151,7 +151,7 @@ function Page({ route }: { route: Route }) {
     case 'budget':
       return <BudgetPage tripId={route.tripId} />
     case 'logbook':
-      return <LogbookPage tripId={route.tripId} />
+      return <LogbookPage tripId={route.tripId} hasGoogleKey={!!googleKey} />
     case 'settings':
       return <SettingsPage />
     case 'transit-spike':

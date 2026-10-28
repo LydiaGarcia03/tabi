@@ -1,6 +1,7 @@
 // How legs and place pins look on both maps (Google and offline), so they match exactly.
 
 import { MODE_COLOR } from './format'
+import type { LatLng } from './routing/types'
 
 /**
  * Walking: round dots in the segment color with a white rim and a soft dark
@@ -26,6 +27,15 @@ export const SOLID_LINE = { width: 5, opacity: 0.9 }
 
 /** A leg with no route yet: short dashes, half transparent. */
 export const UNDEFINED_LINE = { color: '#7f1d1d', opacity: 0.5, width: 2.5, dash: 5, gap: 5 }
+
+/** The Logbook: you (a blue GPS dot, `.you-dot`) and where you're going, joined by this thin straight dashed line. */
+export interface YouAreHere {
+  position: LatLng
+  target: LatLng
+}
+
+/** From you to where you're going, as the crow flies: longer red dashes, unlike a leg with no route. */
+export const YOU_LINE = { color: '#b5332e', opacity: 0.75, width: 2, dash: 7, gap: 6 }
 
 /**
  * A numbered place pin (teardrop, like Google's) as SVG markup, the same on
