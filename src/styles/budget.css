@@ -910,6 +910,7 @@ button.estimate-currency {
 
 .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   margin: 10px 0 4px;
 }

@@ -138,7 +138,7 @@ Run by hand when needed, never by the build or the deploy; their output is commi
 - `npm run icons` (`scripts/generate-icons.mjs`): generates the app's PNG icons (the torii on the app red) into `public/`. Only needed when the icon changes.
 - The README screenshot scripts (demo trip builder + Chromium driver, see Working agreements) are not in the repo: they were throwaway files in a session scratchpad.
 
-No page zoom (`user-scalable=no` in `index.html`, User 2026-10-28: pinching cut components); the maps zoom with their own gestures.
+No page zoom (`user-scalable=no` in `index.html`, User 2026-10-28: pinching cut components); the maps zoom with their own gestures. Without zoom nothing may be wider than the screen, also with Android's bigger font sizes (User's Galaxy S20 FE cut the day page): every `display: grid` column holding page content is `minmax(0, 1fr)` (an `auto` column grows to its widest unbreakable line), inputs in flex rows get `min-width: 0`, rows of controls wrap. Checked on 2026-10-28 by a throwaway audit (headless Chromium, the demo trip, 17 pages and opened states — leg, place editor, trip tabs, option form, sheets — at 360/375/393/412 px with the normal and a 1.3× font): no element past the right edge.
 
 Platform support: latest Chrome on desktop and Android only (User's phone is Android; don't make changes for iOS/Safari). Mobile-first layout.
 

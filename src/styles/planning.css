@@ -206,6 +206,9 @@ button.day-toggle.active {
 
 .hours-range {
   display: inline-flex;
+  /* "All day" drops under the two times on narrow phones (they ran off a 360–393 px screen). */
+  flex-wrap: wrap;
+  max-width: 100%;
   align-items: center;
   gap: 6px;
 }

@@ -390,6 +390,8 @@ h2 > .city-tag {
 
 .overview-side {
   display: grid;
+  /* Never wider than the screen (with a bigger Android font the checklist card ran off it). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-content: start;
 }

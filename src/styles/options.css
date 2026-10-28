@@ -1171,3 +1171,13 @@ button.icon-toggle.on {
   margin: 2px 0 4px;
 }
 
+
+/* "Location on map" (options, city bases): the search field shrinks beside its button on narrow phones. */
+.locate-search .row {
+  flex-wrap: nowrap;
+}
+
+.locate-search .row input {
+  flex: 1;
+  min-width: 0;
+}

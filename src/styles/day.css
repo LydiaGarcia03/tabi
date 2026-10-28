@@ -8,6 +8,9 @@
 .day-map-column,
 .day-list-column {
   display: grid;
+  /* Never wider than the screen: an auto column grew to its widest unbreakable line (a bigger Android font cut the
+     whole day page, 2026-10-28). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-content: start;
   min-width: 0;
@@ -70,6 +73,7 @@
 /* Its own dashed box under the timeline: adding, not one of the day's places. */
 .add-place {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   margin-top: 8px;
   padding: 12px;
@@ -98,6 +102,7 @@
 
 .option-picker {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
