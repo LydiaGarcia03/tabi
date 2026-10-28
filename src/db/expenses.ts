@@ -10,8 +10,8 @@ export async function updateExpense(id: string, changes: Partial<Omit<Expense, '
 }
 
 /**
- * Removes an expense. A booking made from an option goes back to being just
- * an option (not chosen), and flight steps that used the booking in the days
+ * Removes an expense. A stay or journey made from an option goes back to being just
+ * an option (not chosen), and flight steps that used it in the days
  * ("Use my flight") then point at that option, else at nothing.
  */
 export async function deleteExpense(id: string): Promise<void> {

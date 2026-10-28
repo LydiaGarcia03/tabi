@@ -234,7 +234,7 @@ function sameCity(a: string, b: string): boolean {
 }
 
 /**
- * Booked journeys (or transport options) on a route. A missing end matches
+ * Journeys in the itinerary (or transport options) on a route. A missing end matches
  * anything that isn't one of the trip's cities (e.g. arriving from home).
  */
 export function journeysOnRoute<T extends { journey?: Journey }>(items: T[], stays: Stay[], from?: string, to?: string): T[] {
@@ -243,7 +243,17 @@ export function journeysOnRoute<T extends { journey?: Journey }>(items: T[], sta
   return items.filter((e) => e.journey && matches(e.journey.from, from) && matches(e.journey.to, to))
 }
 
-/** Booked journeys leaving on a given date. */
+/** Flights always have to be booked ahead; other journeys when "Booking needed" is ticked (by default only shinkansen). */
+export function needsBooking(journey: Pick<Journey, 'mode' | 'bookingNeeded'>): boolean {
+  return journey.mode === 'flight' || (journey.bookingNeeded ?? journey.mode === 'shinkansen')
+}
+
+/** Hotels always have to be booked; journeys see `needsBooking`; other expenses never. */
+export function expenseNeedsBooking(expense: Expense): boolean {
+  return !!expense.hotel || (!!expense.journey && needsBooking(expense.journey))
+}
+
+/** Journeys in the itinerary leaving on a given date. */
 export function journeysOn(expenses: Expense[], date: string): Expense[] {
   return expenses.filter((e) => e.journey?.date === date)
 }

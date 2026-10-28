@@ -1,5 +1,5 @@
-// "Use my flight": a flight booked in the trip (or kept as a transport
-// option) becomes steps of a day's leg, e.g. hotel → Itami → ✈ → Naha.
+// "Use my flight": a flight in the trip's itinerary (`kind: 'booking'`, a trip-wide
+// expense, booked or not) becomes steps of a day's leg, e.g. hotel → Itami → ✈ → Naha.
 
 import { addDays } from '../dates'
 import { airport } from '../data/flightNetwork'
@@ -15,9 +15,9 @@ export interface FlightSource {
 }
 
 /**
- * Flights that can be used on a day: the booked ones leaving that date. Options
- * not booked are left out (User's choice, 2026-10-26: a flight shows in the
- * itinerary only once it's booked, like in Cities and on the day cards).
+ * Flights that can be used on a day: the ones in the itinerary (ticked ✓ in the options, or added on the
+ * Budget page) leaving that date, booked or not. Options not ticked are left out, like in Cities and on
+ * the day cards.
  */
 export function flightSources(expenses: Expense[], date: string): FlightSource[] {
   return expenses

@@ -35,9 +35,9 @@ interface Props {
   onDraw: (drawing: Drawing) => void
   /** Adds a "back to base" stop between the two places (hidden when not given). */
   onAddBaseStop?: () => void
-  /** Flights of the day (booked or in the options) not used in its route yet: "Use my flight". */
+  /** Flights of the day in the itinerary not used in its route yet: "Use my flight". */
   flights?: FlightSource[]
-  /** Every flight of the day, used or not: keeps the flight steps up to date with their booking. */
+  /** Every flight of the day, used or not: keeps the flight steps up to date with their source. */
   allFlights?: FlightSource[]
 }
 
@@ -93,7 +93,7 @@ export function LegItem({ tripId, leg, from, to, date, currency, hasGoogleKey, o
 
 /**
  * "✈ Use my flight ITM → OKA" (design chosen by User from a mock,
- * 2026-10-26); with several flights, a short list (booked ones first).
+ * 2026-10-26); with several flights, a short list.
  */
 function UseFlight({ flights, onUse }: { flights: FlightSource[]; onUse: (flight: FlightSource) => void }) {
   const [choosing, setChoosing] = useState(false)

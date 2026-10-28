@@ -3,7 +3,7 @@ import type { IconName } from '../iconPaths'
 
 export const OPTION_KINDS: OptionKind[] = ['hotel', 'restaurant', 'place', 'shop', 'transport']
 
-/** Kinds of options that become places of a day, priced per person (hotels and transport are booked instead). */
+/** Kinds of options that become places of a day, priced per person (hotels and transport go into the trip instead). */
 export const DAY_KINDS: OptionKind[] = ['restaurant', 'place', 'shop']
 
 export const PLACE_KINDS: PlaceKind[] = ['place', 'restaurant', 'shop', 'other']
@@ -71,17 +71,11 @@ export const BOOK_AHEAD_LABEL: Record<BookAhead, string> = {
   either: 'Ticket/Reservation needed',
 }
 
+/** One word for tables, tickets, hotels and flights alike (User's rule, 2026-10-27). */
 export const BOOKED_LABEL: Record<BookAhead, string> = {
-  reservation: 'Reserved',
-  ticket: 'Ticket bought',
+  reservation: 'Booked',
+  ticket: 'Booked',
   either: 'Booked',
-}
-
-/** The checklist reminder: "Book a table" / "Buy tickets". */
-export const BOOK_AHEAD_TODO: Record<BookAhead, string> = {
-  reservation: 'Book a table',
-  ticket: 'Buy tickets',
-  either: 'Book / buy tickets',
 }
 
 export const STATUS_LABEL: Record<OptionStatus, string> = {

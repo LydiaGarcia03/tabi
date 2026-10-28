@@ -192,8 +192,8 @@ function RideText({ segment, color }: { segment: RouteSegment; color: string }) 
     segment.fare && formatMoney(segment.fare),
     segment.booking &&
       (segment.booking.kind === 'booking'
-        ? `Booked${segment.booking.price ? ` · ${formatMoney(segment.booking.price)} in the trip's bookings` : ''}`
-        : `From your options${segment.booking.price ? ` · ${formatMoney(segment.booking.price)}, not booked yet` : ' · not booked yet'}`),
+        ? `In the itinerary${segment.booking.price ? ` · ${formatMoney(segment.booking.price)} in the trip's transport` : ''}`
+        : `From your options${segment.booking.price ? ` · ${formatMoney(segment.booking.price)}, not in the itinerary yet` : ' · not in the itinerary yet'}`),
     segment.carHint && `Best car: ${segment.carHint.replace(/^Cars? /, '').replace(/ of the train$/, '').toLowerCase()}`,
   ].filter(Boolean)
   return (

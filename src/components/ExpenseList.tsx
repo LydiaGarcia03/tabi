@@ -117,6 +117,8 @@ function ExpenseGroup({ title, aside, children }: { title?: string; aside?: Reac
 
 function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void }) {
   const { hotel, journey } = expense
+  // Removing something ticked "Booked" asks twice: the real booking may need cancelling too.
+  const [confirming, setConfirming] = useState(false)
   let icon: IconName = CATEGORY_ICON[expense.category]
   let title = expense.description
   const details: string[] = []
@@ -139,30 +141,42 @@ function ExpenseRow({ expense, onEdit }: { expense: Expense; onEdit: () => void 
       <span className="expense-main">
         <span>
           <Icon name={icon} size={16} /> {title}
+          {expense.booked && (
+            <span className="tag in-plan booked">
+              <Icon name="check" size={12} weight={2.6} /> Booked
+            </span>
+          )}
         </span>
         {details.length > 0 && <span className="muted small">{details.join(' · ')}</span>}
         {journey && <JourneyItinerary journey={journey} />}
+        {confirming && <span className="small warning">It's marked as booked: remember to cancel the real booking if you need to.</span>}
       </span>
       <span className="row">
         <strong>{formatMoney(expense.amount)}</strong>
         <button type="button" className="link" onClick={onEdit}>
           Edit
         </button>
-        <button type="button" className="link" onClick={() => deleteExpense(expense.id)}>
-          Remove
+        <button
+          type="button"
+          className="link"
+          onClick={() => (expense.booked && !confirming ? setConfirming(true) : deleteExpense(expense.id))}
+          onBlur={() => setConfirming(false)}
+        >
+          {confirming ? 'Tap again to remove' : 'Remove'}
         </button>
       </span>
     </div>
   )
 }
 
-/** "12 of 14 nights booked": trip nights covered by the hotels' dates. */
+/** "12 of 14 nights in the itinerary · 4 booked": trip nights covered by the hotels' dates. */
 function NightsCoverage({ trip, hotels }: { trip: Trip; hotels: Expense[] }) {
   const tripNights = daysBetween(trip.startDate, trip.endDate)
   if (tripNights <= 0) return null
+  const covered = new Set<string>()
   const booked = new Set<string>()
   let undated = 0
-  for (const { hotel } of hotels) {
+  for (const { hotel, booked: isBooked } of hotels) {
     if (!hotel) continue
     if (!hotel.checkIn || !hotel.checkOut) {
       undated += hotel.nights
@@ -170,13 +184,15 @@ function NightsCoverage({ trip, hotels }: { trip: Trip; hotels: Expense[] }) {
     }
     // Each night is named by its date; only nights inside the trip count.
     for (let night = hotel.checkIn; night < hotel.checkOut; night = addDays(night, 1)) {
-      if (night >= trip.startDate && night < trip.endDate) booked.add(night)
+      if (night < trip.startDate || night >= trip.endDate) continue
+      covered.add(night)
+      if (isBooked) booked.add(night)
     }
   }
-  const complete = booked.size >= tripNights
+  const complete = covered.size >= tripNights
   return (
     <span className={`small ${complete ? 'muted' : 'warning'}`}>
-      {booked.size} of {tripNights} nights booked
+      {covered.size} of {tripNights} nights in the itinerary · {booked.size} booked
       {undated > 0 && ` (+${undated} without dates)`}
     </span>
   )

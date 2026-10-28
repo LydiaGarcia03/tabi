@@ -147,7 +147,7 @@ function Page({ route }: { route: Route }) {
     case 'day':
       return <DayPage tripId={route.tripId} dayId={route.dayId} hasGoogleKey={!!googleKey} />
     case 'options':
-      return <OptionsPage tripId={route.tripId} />
+      return <OptionsPage tripId={route.tripId} hasGoogleKey={!!googleKey} />
     case 'budget':
       return <BudgetPage tripId={route.tripId} />
     case 'logbook':

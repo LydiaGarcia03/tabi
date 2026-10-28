@@ -129,6 +129,7 @@ export function TripPage({ tripId }: { tripId: string }) {
                 .places.filter((place): place is PlaceToBook['place'] => place.bookAhead != null)
                 .map((place) => ({ place, day })),
             )}
+            expenses={expenses?.filter((e) => !e.dayId) ?? []}
           />
           <TripNotes key={trip.id} trip={trip} />
           <ExportCard tripId={trip.id} />

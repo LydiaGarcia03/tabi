@@ -11,6 +11,7 @@ import {
   JOURNEY_MODES,
   journeyCarriers,
   mergeLegs,
+  needsBooking,
   splitIntoLegs,
   withLegSummary,
 } from '../planning/journeys'
@@ -42,7 +43,17 @@ function withoutDetails(journey: Journey): Journey {
 
 /** What a booking form saves (the trip and day are added by the caller). */
 export type BookingValues = Pick<Expense, 'category' | 'description' | 'amount' | 'notes'> &
-  Partial<Pick<Expense, 'hotel' | 'journey'>>
+  Partial<Pick<Expense, 'hotel' | 'journey' | 'booked'>>
+
+/** "Booked": reserved in real life (being in the trip's expenses only means it's in the itinerary). */
+function BookedCheck({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="check">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      Booked
+    </label>
+  )
+}
 
 interface FormProps {
   trip: Trip
@@ -64,6 +75,7 @@ export function HotelForm({ trip, expense, onSave, onCancel }: FormProps) {
   )
   const [currency, setCurrency] = useState(expense?.amount.currency ?? trip.baseCurrency)
   const [notes, setNotes] = useState(expense?.notes ?? '')
+  const [booked, setBooked] = useState(expense?.booked ?? false)
 
   const datesSet = !!checkIn && !!checkOut
   const nights = datesSet ? daysBetween(checkIn, checkOut) : Number(typedNights)
@@ -85,6 +97,7 @@ export function HotelForm({ trip, expense, onSave, onCancel }: FormProps) {
       description: name.trim(),
       amount: { amount: total, currency },
       notes: notes.trim() || undefined,
+      booked: booked || undefined,
       hotel: {
         name: name.trim(),
         checkIn: datesSet ? checkIn : undefined,
@@ -165,12 +178,13 @@ export function HotelForm({ trip, expense, onSave, onCancel }: FormProps) {
         Notes
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Booking number, breakfast included…" />
       </label>
+      <BookedCheck checked={booked} onChange={setBooked} />
       <FormButtons valid={valid} label="Save hotel" onCancel={onCancel} />
     </form>
   )
 }
 
-/** A trip between cities (flight, shinkansen…) booked as a trip-wide expense. */
+/** A trip between cities (flight, shinkansen…) in the itinerary, as a trip-wide expense. */
 export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
   const [journey, setJourney] = useState<Journey>(
     expense?.journey ?? { mode: 'flight', from: '', to: '', date: trip.startDate },
@@ -178,6 +192,7 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
   const [price, setPrice] = useState(expense ? String(expense.amount.amount) : '')
   const [currency, setCurrency] = useState(expense?.amount.currency ?? trip.displayCurrency)
   const [notes, setNotes] = useState(expense?.notes ?? '')
+  const [booked, setBooked] = useState(expense?.booked ?? false)
   const priceValue = Number(price)
   const cleaned = cleanJourney(journey)
   const valid = cleaned.from !== '' && cleaned.to !== '' && price.trim() !== '' && Number.isFinite(priceValue) && priceValue >= 0
@@ -190,6 +205,8 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
       description: `${cleaned.from} → ${cleaned.to}`,
       amount: { amount: priceValue, currency },
       notes: notes.trim() || undefined,
+      // Only something that needs booking can be booked (unticking "Booking needed" forgets it).
+      booked: (booked && needsBooking(cleaned)) || undefined,
       journey: cleaned,
     })
   }
@@ -211,6 +228,7 @@ export function JourneyForm({ trip, expense, onSave, onCancel }: FormProps) {
         Notes
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Booking code, seats, per person…" />
       </label>
+      {needsBooking(journey) && <BookedCheck checked={booked} onChange={setBooked} />}
       <FormButtons valid={valid} label="Save" onCancel={onCancel} />
     </form>
   )
@@ -391,6 +409,13 @@ export function JourneyFields({
         )}
       </div>
       {isFlight && <BaggageBreakdown carriers={hasLegs ? journeyCarriers(journey) : [journey.carrier ?? '']} main={airline?.name} fare={journey.fare} />}
+      {/* Flights always need booking (they go to the checklist); other modes when ticked, shinkansen by default. */}
+      {!isFlight && (
+        <label className="check">
+          <input type="checkbox" checked={needsBooking(journey)} onChange={(e) => set({ bookingNeeded: e.target.checked })} />
+          Booking needed
+        </label>
+      )}
     </>
   )
 }

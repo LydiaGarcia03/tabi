@@ -1,4 +1,6 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState, type FormEvent } from 'react'
+import { db } from '../db/db'
 import type { Journey, OptionKind, Trip, TripOption } from '../db/model'
 import { addOption, deleteOption, updateOption } from '../db/options'
 import { optionPhotos, setOptionPhotos } from '../db/photos'
@@ -106,6 +108,13 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   const [fares, setFares] = useState(() => faresOf(option))
   const [fareIndex, setFareIndex] = useState(option?.fareIndex ?? 0)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // Deleting the option keeps what it put in the itinerary: said before the second tap, with a warning when booked.
+  const itinerary = useLiveQuery(async () => {
+    const place = option?.placeId ? await db.places.get(option.placeId) : undefined
+    const expense = option?.expenseId ? await db.expenses.get(option.expenseId) : undefined
+    if (!place && !expense) return null
+    return { booked: !!(place?.bookAhead && place.booked) || !!expense?.booked }
+  }, [option?.placeId, option?.expenseId])
   // Saved only when changed, so saving before they finish loading never drops them.
   const [photos, setPhotos] = useState<Blob[] | null>(null)
   const [savedPhotos, setSavedPhotos] = useState<Blob[] | null>(option ? null : [])
@@ -346,6 +355,14 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       </label>
 
       <div className="row wrap sheet-actions">
+        {/* Above the buttons (they stay pinned at the bottom of the sheet). */}
+        {confirmDelete && itinerary && (
+          <p className={`small sheet-actions-note${itinerary.booked ? ' warning' : ' muted'}`}>
+            {itinerary.booked
+              ? "It's in the itinerary and marked as booked. Deleting the option keeps it in the itinerary: to drop it, untick ✓ first, and remember to cancel the real booking if you need to."
+              : "It's in the itinerary: deleting the option keeps it there. To drop it too, untick ✓ first."}
+          </p>
+        )}
         <button type="submit" className="primary" disabled={!valid}>
           {option ? 'Save' : 'Add option'}
         </button>

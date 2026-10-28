@@ -131,7 +131,7 @@ export interface TripOption {
    */
   fares?: OptionFare[]
   fareIndex?: number
-  /** What was created from this option (a place in a day, a booking). */
+  /** What was created from this option: a place in a day, or a hotel stay / journey in the trip (an expense). */
   placeId?: string
   expenseId?: string
   createdAt: string
@@ -275,6 +275,11 @@ export interface Expense {
   hotel?: HotelStay
   /** Set for a trip between cities: flight, shinkansen… (category "transport"). */
   journey?: Journey
+  /**
+   * Hotels and journeys: reserved in real life (ticked by the user, like a
+   * place's `booked`). Being here only means it is in the itinerary.
+   */
+  booked?: boolean
 }
 
 export interface HotelStay {
@@ -310,6 +315,8 @@ export interface Journey {
   durationHours?: number
   /** Connections, e.g. "via Dubai". */
   stops?: string
+  /** Has to be booked ahead (flights always; absent = only shinkansen, see `needsBooking`). */
+  bookingNeeded?: boolean
   /**
    * Each flight (or train) of a trip with connections, in order. When set,
    * from/to/time/number/stops/durationHours are derived from them (see

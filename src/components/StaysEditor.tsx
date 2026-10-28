@@ -247,7 +247,7 @@ function DayTripItem({
           {booked.length > 0 ? (
             <>
               {' · '}
-              <span className="cr-strong">{journeyDetails(booked[0].journey!).join(' · ') || 'Transport booked'}</span>
+              <span className="cr-strong">{journeyDetails(booked[0].journey!).join(' · ') || 'Transport in the itinerary'}</span>
             </>
           ) : planned ? (
             // Planned in the day itself (e.g. trains from the hotel): the day has the details.
@@ -270,7 +270,7 @@ function DayTripItem({
   )
 }
 
-/** Between two cities (or arriving / going home): what is booked, or one link to add it. */
+/** Between two cities (or arriving / going home): what is in the itinerary (with "Booked" once booked), or one link to add it. */
 function RouteLeg({
   trip,
   stays,
@@ -312,6 +312,11 @@ function RouteLeg({
             <span className="cr-strong">{JOURNEY_LABEL[e.journey!.mode]}</span>
             {' · '}
             {[e.journey!.date && formatDay(e.journey!.date), e.journey!.time, ...journeyDetails(e.journey!)].filter(Boolean).join(' · ')}
+            {e.booked && (
+              <span className="tag in-plan booked">
+                <Icon name="check" size={12} weight={2.6} /> Booked
+              </span>
+            )}
           </span>
         ))}
       </div>
@@ -325,7 +330,7 @@ function RouteLeg({
   )
 }
 
-/** Booking the way to get somewhere, prefilled with the route and the day. */
+/** Adding the way to get somewhere to the itinerary, prefilled with the route and the day. */
 function NewJourney({ trip, from, to, roundTrip, onDone }: { trip: Trip; from?: Stay; to?: Stay; roundTrip: boolean; onDone: () => void }) {
   const initial = {
     id: '',

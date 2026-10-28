@@ -1,6 +1,7 @@
 import { db } from './db'
 import type { Expense, TripOption } from './model'
-import { addPlace } from './trips'
+import { deleteExpense } from './expenses'
+import { addPlace, deletePlace } from './trips'
 
 export async function addOption(input: Omit<TripOption, 'id' | 'createdAt'>): Promise<string> {
   const id = crypto.randomUUID()
@@ -40,8 +41,23 @@ export async function addOptionToDay(option: TripOption, dayId: string): Promise
   return placeId
 }
 
-/** Books a hotel or transport option as a trip-wide expense and marks it chosen. */
-export async function bookOption(option: TripOption, expense: Omit<Expense, 'id'>): Promise<void> {
+/**
+ * Takes an option out of the itinerary: its place leaves the day (with the ways to and from it), or its
+ * stay / journey leaves the trip (and the budget). The option stays, no longer chosen.
+ */
+export async function removeOptionFromItinerary(option: TripOption): Promise<void> {
+  if (option.expenseId) await deleteExpense(option.expenseId)
+  if (option.placeId) {
+    await deletePlace(option.placeId)
+    await updateOption(option.id, { placeId: undefined, status: option.status === 'chosen' ? 'idea' : option.status })
+  }
+}
+
+/**
+ * Puts a hotel or transport option into the itinerary as a trip-wide expense (a stay or journey,
+ * counted in the budget) and marks it chosen. Not booked: that is a check the user ticks later.
+ */
+export async function addOptionToTrip(option: TripOption, expense: Omit<Expense, 'id'>): Promise<void> {
   const expenseId = crypto.randomUUID()
   await db.transaction('rw', db.expenses, db.options, async () => {
     await db.expenses.add({ ...expense, id: expenseId })
