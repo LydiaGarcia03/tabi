@@ -109,7 +109,8 @@ export function StopCard({
   const m = position ? distanceKm(position, stop.place) * 1000 : null
   // With the phone's compass the dial turns so N is real north and the arrow points at the place in front of you;
   // without one (PCs) it stays a map-like dial, north up.
-  const heading = useHeading(!here && m != null) ?? 0
+  // Always, also where you are (User, 2026-10-28): inside a 150 m arrival distance the entrance can still be anywhere.
+  const heading = useHeading(m != null) ?? 0
   return (
     <section className={`card logbook-stop${here ? ' here' : ''}`}>
       <div className="logbook-stop-head">
@@ -130,7 +131,7 @@ export function StopCard({
           )}
         </span>
       </div>
-      {here || m == null ? (
+      {m == null ? (
         <StopTitle stop={stop} />
       ) : (
         <div className="logbook-nearest">
@@ -145,7 +146,8 @@ export function StopCard({
           <span className="logbook-nearest-text">
             <StopTitle stop={stop} />
             <span className="small muted">
-              {formatDistance(m)} {compassDirection(position!, stop.place)} · about {Math.max(1, Math.round((m / 1000 / 4.5) * 60))} min on foot
+              {formatDistance(m)} {compassDirection(position!, stop.place)}
+              {here ? ' · within your arrival distance' : ` · about ${Math.max(1, Math.round((m / 1000 / 4.5) * 60))} min on foot`}
             </span>
           </span>
         </div>
