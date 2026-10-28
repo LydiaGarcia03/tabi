@@ -104,7 +104,9 @@ export function hoursText(place: Place, date: string): string {
   const window = describeWindow(windowFor(place.openingHours, weekdayOf(date)))
   if (!window) return ''
   const note = place.openingHours?.note ? ` (${place.openingHours.note})` : ''
-  return window === 'Closed' ? `Closed this day${note}` : `Open ${window}${note}`
+  if (window === 'Closed') return `Closed this day${note}`
+  // "Open 24 hours" already says it (it read "Open Open 24 hours").
+  return window.startsWith('Open') ? `${window}${note}` : `Open ${window}${note}`
 }
 
 /** One segment in one or two lines, e.g. "Subway · Ginza Line: Kanda (Exit 2) → Asakusa · 10:02–10:15 · 13 min · ¥178". */

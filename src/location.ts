@@ -70,13 +70,17 @@ export function useWakeLock(enabled: boolean): void {
   }, [enabled])
 }
 
-/** Compass direction from a to b: "N", "NE"… */
-export function compassDirection(a: LatLng, b: LatLng): string {
+/** Bearing from a to b in degrees clockwise from north (0–360). */
+export function bearing(a: LatLng, b: LatLng): number {
   const rad = Math.PI / 180
   const y = Math.sin((b.lng - a.lng) * rad) * Math.cos(b.lat * rad)
   const x = Math.cos(a.lat * rad) * Math.sin(b.lat * rad) - Math.sin(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos((b.lng - a.lng) * rad)
-  const degrees = (Math.atan2(y, x) / rad + 360) % 360
-  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(degrees / 45) % 8]
+  return (Math.atan2(y, x) / rad + 360) % 360
+}
+
+/** Compass direction from a to b: "N", "NE"… */
+export function compassDirection(a: LatLng, b: LatLng): string {
+  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(bearing(a, b) / 45) % 8]
 }
 
 /** "80 m", "1.2 km" */
