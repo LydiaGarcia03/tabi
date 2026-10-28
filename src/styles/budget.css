@@ -1,0 +1,925 @@
+/* --- Budget page (TripMoney.tsx; User's model and picks from mocks, 2026-10-27) --------------------------
+   Trip money (1A), Book before the trip (2B), Estimates (3C) / Estimated vs spent (5A), the category sheet (4A).
+   Phones: one column (during the trip the estimates come right after Trip money); wide screens: the money on the
+   left (sticky), the estimates on the right. */
+
+@media (max-width: 599px) {
+  .budget-hero {
+    display: none;
+  }
+}
+
+/* The budget column's sections are grids too: without this, something wide widened the whole page on phones. */
+.budget-grid > .section {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .budget-grid {
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  }
+
+  .budget-money {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+/* Phones: Trip money, Book before the trip, Estimates, then the trip costs link; during the trip, estimated vs
+   spent comes right after Trip money. */
+@media (max-width: 899px) {
+  .budget-grid {
+    display: flex;
+    flex-direction: column;
+    /* Every card full width (the shared grid rule aligns them to the start, which shrank Trip money). */
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .budget-grid > .section {
+    display: contents;
+  }
+
+  .budget-grid .trip-money {
+    order: 1;
+  }
+
+  .budget-grid .book-ahead {
+    order: 2;
+  }
+
+  .budget-grid .estimates-card {
+    order: 3;
+  }
+
+  .budget-grid.started .estimates-card {
+    order: 2;
+  }
+
+  .budget-grid.started .book-ahead {
+    order: 3;
+  }
+
+  .budget-grid .trip-costs-link {
+    order: 4;
+  }
+}
+
+.money-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.money-head .link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.trip-money-kicker {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.money-reserve-label {
+  margin: 6px 0 0;
+}
+
+.money-reserve {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--saved);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Paid (green), still to book (gray), spent (purple), estimated (striped), left over (blue), missing (striped amber). */
+.money-bar {
+  display: flex;
+  height: 12px;
+  margin: 10px 0 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.money-bar > span {
+  height: 100%;
+}
+
+.money-bar .paid,
+.money-swatch.paid {
+  background: var(--ok);
+}
+
+.money-bar .unbooked,
+.money-swatch.unbooked {
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
+.money-bar .spent,
+.money-swatch.spent {
+  background: var(--spent);
+}
+
+.money-bar .estimated,
+.money-swatch.estimated {
+  background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--muted) 60%, transparent) 3px 5px);
+}
+
+.money-swatch.estimated {
+  outline: 1px dashed var(--muted);
+  outline-offset: -1px;
+}
+
+.money-bar .free {
+  background: color-mix(in srgb, var(--saved) 35%, transparent);
+}
+
+.money-bar .missing {
+  background: repeating-linear-gradient(135deg, transparent 0 3px, var(--alert) 3px 6px);
+}
+
+.money-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.money-lines {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.money-lines > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.money-lines > li:first-child {
+  border-top: none;
+}
+
+.money-lines > li > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.money-lines > li.money-result {
+  border-top: 2px solid var(--text);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.money-result > span {
+  font-weight: 650;
+}
+
+.money-alert {
+  color: var(--alert);
+  font-weight: 650;
+}
+
+.saved-edit {
+  display: grid;
+  /* Without it the column grew to the number field's natural width and pushed "Done" past the card (PC). */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 8px 0;
+}
+
+/* An amount and a narrow currency select on one line. */
+.savings-input {
+  display: flex;
+  gap: 8px;
+}
+
+.savings-input input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+}
+
+.savings-input select {
+  width: auto;
+  flex: none;
+}
+
+/* Book before the trip */
+.book-ahead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.book-ahead-count {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.money-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.money-items > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border-top: 1px solid var(--border);
+}
+
+.money-items > li.paid .money-item-name {
+  color: var(--muted);
+}
+
+.money-items > li > .num {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.money-item-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.money-item-name > span:not(.muted) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.money-item-name > .muted {
+  flex: none;
+}
+
+/* A quiet text button ("Show the 3 paid"). */
+.link-quiet {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.link-quiet:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.trip-costs-link {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.trip-costs-link > .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.trip-costs-link:hover {
+  border-color: var(--muted);
+}
+
+.trip-costs-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.trip-costs-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.trip-costs-sheet {
+  display: grid;
+  gap: 10px;
+  padding: 12px 0 16px;
+}
+/* Estimates / Estimated vs spent: one row per category, in its color (--cat). */
+.estimates-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.estimate-cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.estimate-cat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.estimate-cat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.estimate-cat-name {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.estimate-cat-name > .icon {
+  color: var(--cat);
+}
+
+.estimate-cat-name:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .estimate-cat-name:hover {
+    color: var(--accent-text);
+  }
+}
+
+.estimate-cat-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.estimate-chevron {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  color: var(--muted);
+}
+
+.estimate-chevron.open {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.estimate-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.estimate-bar > span {
+  height: 100%;
+}
+
+.estimate-bar .fill {
+  background: var(--cat);
+}
+
+/* Additional estimates: the same color, striped. */
+.estimate-bar .extra {
+  background: repeating-linear-gradient(135deg, var(--cat) 0 3px, color-mix(in srgb, var(--cat) 45%, transparent) 3px 5px);
+}
+
+.estimate-bar .over {
+  background: var(--alert);
+}
+
+.estimate-cat-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.estimate-cat-status > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.estimate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.estimate-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.estimate-chip.additional {
+  background: none;
+  border: 1px dashed var(--muted);
+}
+
+button.estimate-chip.add {
+  min-height: 0;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  background: none;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+.estimate-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.estimate-table th {
+  padding: 6px 10px 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+}
+
+.estimate-table td {
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.estimate-table td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.estimate-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.estimate-table tr.additional td:first-child::before {
+  content: '+ ';
+  color: var(--accent-text);
+}
+
+.estimate-add {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A category dropdown with icons (CategorySelect): the icon in the category's color; laid out like a field. */
+.category-field {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 4px;
+  min-width: 170px;
+}
+
+.category-field .field-label {
+  margin: 0;
+}
+
+.category-select {
+  position: relative;
+}
+
+button.category-select-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: left;
+}
+
+.category-select-label {
+  flex: 1;
+}
+
+.category-select-button > .icon:last-child {
+  color: var(--muted);
+}
+
+.category-select-icon {
+  display: grid;
+  place-items: center;
+  color: var(--cat);
+}
+
+.category-select-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+
+.category-select-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.category-select-list li.active {
+  background: var(--surface-2);
+}
+
+.category-select-list li[aria-selected='true'] {
+  font-weight: 650;
+}
+
+.category-select-list li > .icon:last-child {
+  margin-left: auto;
+  color: var(--accent-text);
+}
+/* The category sheet: total, then the itinerary (read-only) and the additional estimates; side by side when wide. */
+.estimate-sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 10px;
+}
+
+.estimate-sheet-total {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.estimate-sheet-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 600px) {
+  .estimate-sheet-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.estimate-additional {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+
+.estimate-items-title {
+  margin: 0 0 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* One additional estimate: name · amount (with its currency, a tap switches it) · remove. */
+.estimate-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.estimate-item input {
+  width: 100%;
+  min-width: 0;
+}
+
+.estimate-amount {
+  position: relative;
+  display: block;
+}
+
+.estimate-amount input {
+  padding-right: 40px;
+  text-align: right;
+}
+
+.estimate-currency {
+  all: unset;
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+button.estimate-currency {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+/* --- The day's money (DayMoney.tsx): 6A before the trip, 6C + the quick entry (7C) during it ------------- */
+.day-money {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.day-money-cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-money-cats > li {
+  display: grid;
+  grid-template-columns: 20px 84px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+}
+
+.day-money-cats .icon {
+  color: var(--cat);
+}
+
+.day-money-cats .name {
+  font-size: 0.85rem;
+}
+
+.day-money-cats .value {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-money-cats .estimate-bar .fill {
+  background: var(--cat);
+}
+
+.day-money-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.day-money-info > .icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* The quick entry: amount · category + what · add. */
+.spent-entry {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.spent-entry input {
+  width: 100%;
+  min-width: 0;
+}
+
+.spent-what {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.spent-what input {
+  padding-left: 40px;
+}
+
+.spent-category {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  color: var(--cat);
+}
+
+.spent-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spent-categories button {
+  min-height: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.spent-categories button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.spent-list .remove {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  color: var(--muted);
+}
+
+.spent-list .money-item-name {
+  color: var(--text);
+  font-size: inherit;
+}
+
+.spent-text {
+  color: var(--spent);
+}
+/* The days dropdown (`DaySelect`): built on the option dropdown's look. In the box, the open list takes its
+   whole width (the select itself shares a line with Add). */
+.add-to-day .day-select {
+  position: static;
+}
+
+.add-to-day .day-select .option-select-list {
+  top: auto;
+  left: 8px;
+  right: 8px;
+  max-height: min(280px, 45vh);
+  margin-top: 4px;
+}
+
+.day-select button.option-select-button {
+  justify-content: flex-start;
+  min-height: 42px;
+  padding-left: 10px;
+}
+
+/* The calendar stays at the start (only the arrow goes to the right end). */
+.day-select .option-select-button > .icon:first-child {
+  margin-left: 0;
+  color: var(--muted);
+}
+
+.day-select-city {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.day-select .option-select-city {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.day-select-badge {
+  display: grid;
+  justify-items: center;
+  flex: none;
+  width: 38px;
+  padding: 3px 0;
+  border-radius: 7px;
+  background: var(--surface-2);
+  line-height: 1.05;
+}
+
+.day-select-badge span {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-select-badge strong {
+  font-size: 1rem;
+}
+
+.day-select-count {
+  flex: none;
+}
+
+.day-select .option-select-item[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+.stars {
+  white-space: nowrap;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.stars .on {
+  color: var(--star);
+}
+
+.stars.editable button {
+  display: inline-grid;
+  place-items: center;
+}
+
+.stars.editable button {
+  border: none;
+  background: none;
+  padding: 0 1px;
+  min-height: 0;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+.stars.editable button.on {
+  color: var(--star);
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 4px;
+}
+
+.field-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.option-form .segmented {
+  margin-bottom: 4px;
+}
+

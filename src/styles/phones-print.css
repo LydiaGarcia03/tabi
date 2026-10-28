@@ -1,0 +1,115 @@
+/* --- Phones: denser, closer to a native app ------------------------------ */
+
+@media (max-width: 599px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .hero-title {
+    font-size: 1.35rem;
+  }
+
+  .page {
+    gap: 14px;
+    padding-top: 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  /* Options on a phone, shorter: the map as an icon toggle, no group explanations. */
+  .options-map-toggle-label,
+  .option-group-hint {
+    display: none;
+  }
+
+  /* The options map from edge to edge, like the day map. */
+  .options-map-pane {
+    left: -16px;
+    right: -16px;
+  }
+
+  .options-map-list.card {
+    left: -16px;
+    right: -16px;
+  }
+
+  /* Not needed on a phone (the maps carry their own attribution). */
+  .app-footer {
+    display: none;
+  }
+}
+
+/* --- Print: a clean itinerary sheet -------------------------------------- */
+
+@media print {
+  :root,
+  :root[data-theme='dark'] {
+    --bg: #fff;
+    --surface: #fff;
+    --surface-2: #f3f3f3;
+    --text: #000;
+    --muted: #555;
+    --border: #ccc;
+    --accent: #b5332e;
+    --accent-soft: #fff;
+    --accent-text: #b5332e;
+    --on-accent: #fff;
+    --shadow: none;
+    color-scheme: light;
+  }
+
+  .app-bar,
+  .app-footer,
+  .offline-banner,
+  .crumbs,
+  .day-strip,
+  .day-map-column,
+  .hero-actions,
+  .day-hero-actions,
+  .bottom-nav,
+  .add-place,
+  .export-card,
+  .expenses > .row,
+  .expense-row button,
+  .spent-entry,
+  .spent-categories,
+  .day-money-info,
+  .place-chevron,
+  .leg-editor,
+  .leg-item.empty,
+  details.disclosure,
+  .empty-state {
+    display: none !important;
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .day-layout {
+    display: block;
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .place-item {
+    break-inside: avoid;
+  }
+
+  .place-notes-preview {
+    white-space: pre-wrap;
+  }
+
+  .place-editor {
+    display: none;
+  }
+
+  .card {
+    break-inside: avoid;
+  }
+}

@@ -1,0 +1,462 @@
+/* --- Logbook (User's choice A from a mock, 2026-10-27) -------------------
+   One line of controls (day · Follow · settings sheet), the card of the place you're at (or the nearest one with a
+   compass arrow), then the day as a compact list. */
+
+@media (max-width: 599px) {
+  .logbook-hero {
+    display: none;
+  }
+}
+
+.logbook-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logbook-bar {
+  position: relative;
+}
+
+/* The day (choice B): a short button; the open list takes the whole line's width. */
+.logbook-day-picker {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+button.logbook-day-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 10px 0 12px;
+  font-weight: 600;
+}
+
+.logbook-day-name {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.logbook-day-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: min(60vh, 360px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+
+.logbook-day-list li {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.logbook-day-list li:hover,
+.logbook-day-list li:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.logbook-day-list li[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+.logbook-day-list li[aria-selected='true'] strong {
+  color: var(--accent-text);
+}
+
+.logbook-day-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.logbook-today {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--saved) 22%, transparent);
+  color: var(--saved);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 16px;
+}
+.logbook-bar button {
+  flex: none;
+}
+
+.logbook-follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Following: blue, not the red of an action still to take. */
+.logbook-follow.on {
+  border-color: color-mix(in srgb, var(--saved) 55%, transparent);
+  background: color-mix(in srgb, var(--saved) 18%, transparent);
+  color: var(--saved);
+}
+
+.logbook-kicker {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.logbook-stop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.logbook-stop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.logbook-stop.here {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.logbook-stop.here .logbook-stop-head .logbook-kicker {
+  color: var(--ok);
+}
+
+.logbook-stop-title {
+  margin: 2px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+}
+
+.logbook-gps {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.logbook-gps-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
+}
+
+.logbook-gps.rough .logbook-gps-dot {
+  background: var(--alert);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--alert) 25%, transparent);
+}
+
+.logbook-nearest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.logbook-compass {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  color: var(--saved);
+}
+
+.logbook-compass > span {
+  display: grid;
+}
+
+.logbook-compass small {
+  position: absolute;
+  top: 1px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.logbook-hint {
+  margin: 0;
+}
+
+.logbook-number {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.logbook-day {
+  padding-bottom: 4px;
+}
+
+.logbook-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.logbook-list li {
+  border-top: 1px solid var(--border);
+}
+
+.logbook-list li:first-child {
+  border-top: none;
+}
+
+.logbook-list summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.logbook-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.logbook-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+}
+
+.logbook-name > span:first-child {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logbook-distance {
+  flex: none;
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.logbook-list li.visited .logbook-name > span:first-child {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.logbook-list li.visited .logbook-number {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.logbook-list li.here .logbook-number {
+  background: var(--ok);
+  color: #1b1917;
+}
+
+.logbook-list .logbook-details {
+  padding: 0 0 10px 32px;
+}
+
+.logbook-details {
+  padding: 4px 0 0;
+}
+
+.logbook-details p {
+  margin: 0 0 6px;
+}
+
+.logbook-notes {
+  white-space: pre-wrap;
+}
+
+.logbook-next {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.logbook-next ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+/* Wide screens: the settings on the bar, the day on the left and the place in focus on the right (sticky). */
+.logbook-inline-settings {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.logbook-inline-settings .segmented button {
+  min-height: 0;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+.logbook-inline-settings label.check {
+  margin: 0;
+  gap: 6px;
+}
+
+.logbook-bar .day-select.detailed {
+  flex: 0 1 380px;
+}
+
+.logbook-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.logbook-focus {
+  position: sticky;
+  top: 12px;
+}
+
+.logbook-rows li > button {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.logbook-rows li > button:hover,
+.logbook-rows li.focus > button {
+  background: var(--surface-2);
+}
+
+.logbook-rows li > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.logbook-stop-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logbook-step {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+}
+
+/* The richer day dropdown (DaySelect detailed): the date as a badge, "date · title · N places" under the day. */
+.day-select.detailed button.option-select-button {
+  min-height: 48px;
+}
+
+.day-select-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  line-height: 1.25;
+}
+.logbook-settings {
+  display: grid;
+  gap: 16px;
+  padding: 12px 0 20px;
+}
+
+.logbook-radius {
+  display: flex;
+}
+
+.logbook-radius button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+.logbook-offline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.logbook-offline > span {
+  flex: 1;
+  display: grid;
+}
+
+.logbook-offline > .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.logbook-about {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.logbook-about .icon {
+  flex: none;
+  margin-top: 2px;
+}

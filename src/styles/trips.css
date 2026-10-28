@@ -1,0 +1,248 @@
+/* --- Trips --------------------------------------------------------------- */
+
+.trip-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.trip-card {
+  display: grid;
+  gap: 4px;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--accent);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.trip-card-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.trip-card-when {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--accent-text);
+}
+
+.import-backup input[type='file'] {
+  width: 100%;
+}
+
+/* --- Hero (trip and day headers) ----------------------------------------- */
+
+.hero {
+  display: grid;
+  gap: 4px;
+}
+
+.hero-kicker {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-text);
+}
+
+.hero-title {
+  width: 100%;
+  font-size: 1.75rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  padding: 2px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+.hero-title:hover {
+  border-bottom-color: var(--border);
+}
+
+.hero-title:focus-visible {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.hero-title::placeholder {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hero-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.hero-actions {
+  margin-top: 4px;
+  margin-left: -10px;
+}
+
+/* --- Day cards (trip overview) ------------------------------------------- */
+
+.day-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.day-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform 0.12s;
+}
+
+.day-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--muted);
+}
+
+.day-card.empty {
+  background: transparent;
+  box-shadow: none;
+  border-style: dashed;
+}
+
+.date-badge {
+  flex: none;
+  width: 58px;
+  display: grid;
+  justify-items: center;
+  padding: 6px 0 7px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  line-height: 1.1;
+}
+
+.day-card.empty .date-badge {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.date-badge-weekday,
+.date-badge-month {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.date-badge-day {
+  font-size: 1.5rem;
+  font-weight: 750;
+}
+
+.day-card-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.day-card-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.day-card-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.day-card-route {
+  font-size: 0.875rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.day-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* --- Day strip (sticky day switcher) ------------------------------------- */
+
+.day-strip {
+  position: sticky;
+  top: var(--bar-height);
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: -8px -16px 0;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.day-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.day-chip {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  padding: 5px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.15;
+}
+
+.day-chip.empty {
+  color: var(--muted);
+  background: transparent;
+}
+
+.day-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.day-chip-number {
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.day-chip-date {
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+

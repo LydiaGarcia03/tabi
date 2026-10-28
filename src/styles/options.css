@@ -1,0 +1,1143 @@
+/* --- Comparison tables --------------------------------------------------- */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.compare-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.compare-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.compare-table tfoot th {
+  font-size: 0.9rem;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+  border-bottom: none;
+}
+
+.compare-table .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-cell {
+  width: 30%;
+}
+
+.progress {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: #2f8f5b;
+}
+
+.progress.over > span {
+  background: var(--error);
+}
+
+/* --- Options board ------------------------------------------------------- */
+
+.options-intro {
+  margin: -8px 0 0;
+}
+
+.options-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.options-toolbar select {
+  width: auto;
+}
+
+.options-toolbar label.check {
+  margin: 0;
+}
+
+.options-filters-start {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.options-toolbar label.options-discarded {
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* A checkbox drawn as a small on/off switch (role="switch"). */
+input[type='checkbox'].toggle {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+input[type='checkbox'].toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s;
+}
+
+input[type='checkbox'].toggle:checked {
+  background: var(--accent);
+}
+
+input[type='checkbox'].toggle:checked::after {
+  transform: translateX(12px);
+  background: #fff;
+}
+
+input[type='checkbox'].toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Kinds, then the city at the right end of the same line. */
+.options-filters {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* City filter: looks like the kinds bar beside it (same background, height and corners), a pin before the name;
+   in the city's tag color once one is chosen. The select stays native (the phone's own picker). */
+.city-filter {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  color: var(--muted);
+}
+
+button.city-filter-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  height: 42px;
+  min-height: 0;
+  padding: 0 10px 0 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-align: left;
+}
+
+.city-filter-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-filter-button > .icon:first-child {
+  color: var(--muted);
+}
+
+.city-filter-button > .icon:last-child {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+/* A city chosen: only its name and the pin take the city's color; background and focus ring stay the bar's. */
+.city-filter.chosen .city-filter-button,
+.city-filter.chosen .city-filter-button > .icon:first-child {
+  color: hsl(var(--hue, 0) 60% 36%);
+}
+
+:root[data-theme='dark'] .city-filter.chosen .city-filter-button,
+:root[data-theme='dark'] .city-filter.chosen .city-filter-button > .icon:first-child {
+  color: hsl(var(--hue, 0) 65% 72%);
+}
+
+.city-filter-button:focus-visible {
+  outline-color: var(--border);
+}
+
+/* The open list: the option dropdown's look, at least as wide as the button. */
+.city-filter-list {
+  left: auto;
+  min-width: max(100%, 180px);
+}
+
+.city-filter-list .option-select-item {
+  gap: 10px;
+  padding: 9px 12px;
+  color: var(--text);
+}
+
+.city-filter-list .option-select-item > .icon:first-child {
+  color: var(--muted);
+}
+
+.city-filter-list .option-select-item > .icon:last-child {
+  margin-left: auto;
+  color: var(--accent-text);
+}
+
+.city-filter-list .option-select-item[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+/* "How the score works · weights": quiet, at the end of the page. */
+.weights-link {
+  text-align: center;
+}
+
+.weights-link button.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.weights-link button.link:hover {
+  color: var(--text);
+}
+
+.weights-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.weights-panel p {
+  margin: 0;
+}
+
+button.options-map-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+button.options-map-toggle.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* Phones (User's choice E from a mock): city, map and add on one line, the kinds as full-width tabs below. */
+.options-phone-bar {
+  display: grid;
+  gap: 6px;
+}
+
+.options-phone-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.options-phone-top .city-filter {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.options-phone-top > button {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  justify-content: center;
+}
+
+.options-phone-top button.options-map-toggle .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.options-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0 -16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.options-tabs button {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 1px;
+  min-height: 0;
+  height: 50px;
+  padding: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.options-tabs button strong {
+  font-size: 0.95rem;
+  line-height: 20px;
+}
+
+.options-tabs button.active {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+
+/* "N discarded hidden · Show" at the end of the list (phones; computers have the checkbox). */
+.discarded-toggle {
+  margin: 0;
+  text-align: center;
+}
+
+.discarded-toggle button.link {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- Options map: the list beside the map (computers) or in a drawer over it (phones) --- */
+
+.options-map-layout {
+  position: relative;
+}
+
+.options-map-pane {
+  position: absolute;
+  inset: 0;
+}
+
+.options-map-pane > div,
+.options-map-pane .map-unavailable {
+  height: 100%;
+}
+
+/* The drawer: dragged by its handle between three stops (OptionsMapView). */
+.options-map-list.card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: var(--drawer-top, 50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -4px 18px rgb(0 0 0 / 0.15);
+  transition: top 0.2s;
+}
+
+.options-map-layout.dragging .options-map-list.card {
+  transition: none;
+}
+
+.options-map-handle {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 14px 6px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.options-map-handle > .small {
+  justify-self: start;
+}
+
+.options-map-grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--border);
+}
+
+.options-map-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 8px;
+}
+
+.options-map-note {
+  margin: 8px 14px 0;
+}
+
+.options-map-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 14px 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.options-map-rows ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.options-map-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.options-map-row.active {
+  background: color-mix(in srgb, var(--star) 16%, var(--surface));
+}
+
+.options-map-row.discarded {
+  opacity: 0.55;
+}
+
+.options-map-thumb {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.options-map-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.options-map-thumb.empty {
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.options-map-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  justify-items: start;
+}
+
+.options-map-name {
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.options-map-side {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: 0.8rem;
+}
+
+.options-map-score {
+  font-weight: 700;
+}
+
+@media (min-width: 900px) {
+  /* List left, map right following the scroll (like the day page). */
+  .options-map-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .options-map-pane {
+    order: 2;
+    position: sticky;
+    top: calc(var(--bar-height) + 16px);
+    inset: auto;
+    margin: 0;
+    height: min(72vh, 720px);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .options-map-list.card {
+    position: static;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .options-map-rows {
+    overflow: visible;
+  }
+
+  .options-map-row:first-child {
+    border-top: none;
+  }
+}
+
+/* Pins: a small dot in the kind's color; bigger with its icon and a card when highlighted.
+   Options not in the itinerary are a little paler. */
+.option-pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.option-pin-dot {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  color: #fff;
+  background: var(--kind-place);
+  transition:
+    width 0.12s,
+    height 0.12s;
+}
+
+.option-pin-dot .icon {
+  display: none;
+}
+
+.option-pin.kind-hotel .option-pin-dot {
+  background: var(--kind-hotel);
+}
+
+.option-pin.kind-restaurant .option-pin-dot {
+  background: var(--kind-restaurant);
+}
+
+.option-pin.kind-shop .option-pin-dot {
+  background: var(--kind-shop);
+}
+
+/* Offline map: an option from Google not found in OpenStreetMap is at Google's position (like the day's dashed pins). */
+.option-pin.approximate .option-pin-dot {
+  border-style: dashed;
+}
+
+.offline-options-map {
+  width: 100%;
+  height: 100%;
+}
+
+.option-pin.faded .option-pin-dot {
+  opacity: 0.8;
+}
+
+.option-pin.discarded .option-pin-dot {
+  opacity: 0.35;
+}
+
+.option-pin.active .option-pin-dot {
+  width: 28px;
+  height: 28px;
+  opacity: 1;
+}
+
+.option-pin.active .option-pin-dot .icon {
+  display: block;
+}
+
+.option-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  translate: -50% 0;
+  width: 210px;
+  display: grid;
+  overflow: hidden;
+  text-align: left;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgb(0 0 0 / 0.22);
+  cursor: pointer;
+}
+
+/* Computers: over the page, outside the map (placed by FloatingTip); the pointer goes through it to the pin. */
+.option-tip.floating {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: auto;
+  translate: none;
+  z-index: 40;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.option-tip-photo {
+  height: 92px;
+}
+
+.option-tip-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.option-tip-text {
+  display: grid;
+  gap: 1px;
+  justify-items: start;
+  padding: 7px 10px 9px;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+/* "Show map" with "All cities": the map waits for a city. */
+.options-map-pick {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.options-map-pick p {
+  margin: 0;
+  color: var(--text);
+}
+
+.options-map-cities {
+  justify-content: center;
+}
+
+.options-map-cities button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+}
+
+.city-dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: hsl(var(--hue, 0) 55% 45%);
+}
+
+.segmented .count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.weights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0 16px;
+}
+
+.weights input[type='range'] {
+  width: 100%;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.option-group-header h2 {
+  margin: 0;
+}
+
+.option-group-header p {
+  margin: 2px 0 8px;
+}
+
+.option-name {
+  min-width: 180px;
+}
+
+.option-title {
+  display: block;
+  font-weight: 650;
+}
+
+.option-with-photo > div > .small {
+  display: block;
+}
+
+/* Transport option: the route as a chain (NVT Gol → GRU Qatar → DOH…), facts as chips. */
+/* Flows like text, breaking only between steps ("Qatar Airways → KIX" stays together). */
+.route-chain-step {
+  white-space: nowrap;
+}
+
+.route-chain-step > * + * {
+  margin-left: 0.3em;
+}
+
+.route-chain .muted {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.options-table .option-name:has(.route-chain) {
+  min-width: 220px;
+}
+
+.option-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+
+.option-chips .chip {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.option-chips .chip.warn {
+  color: var(--error);
+  border-color: currentColor;
+}
+
+/* The chosen fare and when its price was seen, under the price. */
+.fare-seen {
+  display: block;
+  white-space: nowrap;
+}
+
+/* A price seen long ago has probably changed. */
+.stale-price {
+  opacity: 0.6;
+}
+
+.option-row.status-discarded td {
+  opacity: 0.5;
+}
+
+.option-row.status-chosen {
+  background: color-mix(in srgb, #2f8f5b 8%, transparent);
+}
+
+.option-row.status-favorite {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.badge,
+.tag.in-plan {
+  font-size: 0.7rem;
+  font-weight: 650;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.tag.in-plan {
+  display: inline-block;
+  background: color-mix(in srgb, #2f8f5b 18%, transparent);
+  color: var(--text);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.badge-best {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-bar {
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.score-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.option-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Same width in every group's table (they are separate tables), so the columns line up down the page. */
+.options-table .col-price {
+  width: 120px;
+}
+
+.options-table .col-distance {
+  width: 90px;
+}
+
+.options-table .col-rating {
+  width: 130px;
+}
+
+.options-table .col-score {
+  width: 110px;
+}
+
+.options-table .col-actions {
+  width: 170px;
+}
+
+/* Short values (prices, —, 3.7 km, stars, score) sit centered under their heading, so the
+   headings are evenly spaced. Only in the table: phones show cards. */
+@media (min-width: 900px) {
+  .options-table :is(th, td):is(.col-price, .col-distance, .col-rating, .col-score) {
+    text-align: center;
+  }
+}
+
+/* All on one center line (the pencil is a bit taller than the toggles). */
+.option-actions > button {
+  vertical-align: middle;
+}
+
+button.icon-toggle {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 2px 6px;
+  font-size: 1rem;
+  margin-right: 2px;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* Favorite / chosen next to an option's name. */
+.status-mark {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
+.status-mark.favorite {
+  color: var(--star);
+}
+
+.status-mark.chosen {
+  color: var(--ok);
+}
+
+/* Airlines in a route sketch ("NVT Gol → GRU Qatar → …"): a type style instead of a plane icon. */
+.journey-chain .carrier {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.ok-text {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+button.icon-toggle.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* The same pencil as the cities: in the logo's red, bold strokes. */
+.option-actions .option-edit {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--accent);
+}
+
+.choose-row td {
+  background: var(--surface-2);
+}
+
+.choose-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.choose-panel.row {
+  display: flex;
+  align-items: flex-end;
+}
+
+.choose-panel label {
+  margin: 0;
+}
+
+/* "Add to day" (restaurants, places, shops): a box of its own, apart from the next option. */
+.choose-row:has(.add-to-day) td {
+  background: none;
+}
+
+.add-to-day {
+  position: relative;
+  max-width: 460px;
+  margin: 4px 0 10px;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  gap: 10px;
+}
+
+.add-to-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.92rem;
+}
+
+.add-to-day-head .icon-button {
+  margin: -4px -6px -4px 0;
+  color: var(--muted);
+}
+
+.add-to-day .row {
+  align-items: stretch;
+}
+
+.add-to-day-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  font-size: 0.85rem;
+}
+
+.add-to-day-links button.link {
+  font-weight: 600;
+}
+
+/* ✓ on a hotel / transport (User's choice 1B, 2026-10-27): the same box, with the dates and the price editable. */
+.add-to-trip .date-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.add-to-trip .date-chip small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.add-to-trip .date-chip input {
+  width: 100%;
+  min-width: 0;
+}
+
+.add-stay-dates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+
+.add-stay-nights {
+  display: grid;
+  justify-items: center;
+  padding-bottom: 6px;
+  font-size: 0.75rem;
+  line-height: 1.1;
+  color: var(--muted);
+}
+
+.add-stay-nights strong {
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.add-trip-price {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.add-trip-price input {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-trip-price select {
+  width: auto;
+}
+
+.add-trip-price .segmented {
+  flex: none;
+}
+
+.add-trip-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.add-trip-footer .primary {
+  min-width: 96px;
+}
+
+/* "Booked" next to "In the itinerary": the same pill, in the ok green with a check. */
+.tag.in-plan.booked {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  color: var(--ok);
+}
+
+.badges > .tag.in-plan.booked,
+.option-details-kicker .tag.booked {
+  margin-left: 0;
+}
+
+/* The note over a sheet's pinned buttons (e.g. deleting an option that is in the itinerary). */
+.sheet-actions-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* Checklist: what the itinerary still needs booked (User's choice 3A + 3C's fold, 2026-10-27). */
+.to-book {
+  margin-bottom: 12px;
+}
+
+.to-book-head {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.to-book .progress {
+  margin: 6px 0 8px;
+}
+
+.to-book-done summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 2px 0 4px;
+}
+

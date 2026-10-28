@@ -1,0 +1,712 @@
+/* --- Trip layout: sidebar on computers, tabs on phones ------------------- */
+
+.trip-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.trip-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.trip-sidebar {
+  display: none;
+}
+
+/* Android-style navigation bar (Material 3): icon in a pill + label, fixed
+   at the bottom, within thumb reach. Hidden on computers (sidebar). */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 0.06);
+}
+
+.bottom-nav a {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.bottom-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 30px;
+  border-radius: 999px;
+  transition: background 0.15s;
+}
+
+.bottom-nav a.active {
+  color: var(--accent-text);
+}
+
+.bottom-nav a.active .bottom-nav-icon {
+  background: var(--accent-soft);
+}
+
+/* Room for the bar under the last things on the page. */
+.shell.in-trip {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* While typing, the keyboard pushes the bar up: hide it to keep the field visible. */
+/* Only fields that open the keyboard: not a select or a checkbox (the bar vanished when picking a city). */
+.shell:has(:is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color']), textarea):focus) .bottom-nav {
+  display: none;
+}
+
+/* Inside a trip on phones the top bar says where you are (TripBarTitle in App.tsx). */
+.app-bar-trip {
+  display: none;
+}
+
+@media (max-width: 1099px) {
+  .shell.in-trip .app-bar {
+    padding-left: 4px;
+  }
+
+  .shell.in-trip .brand,
+  .trip-kicker {
+    display: none;
+  }
+
+  .app-bar-trip {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .app-bar-trip-name {
+    display: grid;
+    min-width: 0;
+    color: var(--text);
+    text-decoration: none;
+    line-height: 1.2;
+  }
+
+  .app-bar-trip-name > * {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .app-bar-trip-name .muted {
+    font-size: 0.75rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .trip-layout {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+
+  .bottom-nav,
+  .day-strip {
+    display: none;
+  }
+
+  /* No day strip here: previous / next day in the day header. */
+  .day-hero-actions .day-arrow {
+    display: inline-grid;
+  }
+
+  .shell.in-trip {
+    padding-bottom: 0;
+  }
+
+  /* Back link, trip and sections stay put; only the list of days scrolls. */
+  .trip-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: sticky;
+    top: calc(var(--bar-height) + 16px);
+    max-height: calc(100vh - var(--bar-height) - 32px);
+  }
+
+  .trip-sidebar > * {
+    flex: none;
+  }
+
+  .trip-sidebar > .sidebar-days {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  .day-map-column {
+    top: calc(var(--bar-height) + 16px);
+  }
+}
+
+.sidebar-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.sidebar-trip {
+  font-size: 1.1rem;
+  font-weight: 750;
+  color: var(--text);
+  text-decoration: none;
+  margin: 6px 0 8px;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 2px;
+}
+
+.sidebar-nav a,
+.sidebar-days a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.sidebar-nav a:hover,
+.sidebar-days a:hover {
+  background: var(--surface-2);
+}
+
+.sidebar-nav a.active,
+.sidebar-days a.active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.sidebar-heading {
+  margin: 14px 10px 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.sidebar-days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.sidebar-days a {
+  padding: 6px 10px;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.sidebar-day-number {
+  flex: none;
+  width: 30px;
+  font-weight: 750;
+  font-size: 0.8rem;
+}
+
+.sidebar-day-text {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.sidebar-day-city {
+  font-size: 0.75rem;
+  color: hsl(var(--hue, 0) 45% 42%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:root[data-theme='dark'] .sidebar-day-city {
+  color: hsl(var(--hue, 0) 55% 70%);
+}
+
+.sidebar-day-count {
+  flex: none;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.city-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  vertical-align: middle;
+  background: hsl(var(--hue, 0) 70% 92%);
+  color: hsl(var(--hue, 0) 55% 30%);
+}
+
+/* Next to a card title (Options groups, the Logbook's places) the tag is a little bigger, to match the title,
+   and centered on the title's line (icon, text and tag in one centered row). */
+h2:has(> .city-tag) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+h2 > .city-tag {
+  margin-left: 0;
+  font-size: 0.8rem;
+  padding: 2px 10px;
+}
+
+:root[data-theme='dark'] .city-tag {
+  background: hsl(var(--hue, 0) 35% 24%);
+  color: hsl(var(--hue, 0) 70% 82%);
+}
+
+/* --- Trip overview ------------------------------------------------------- */
+
+.overview-grid,
+.budget-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* Phones (User's choice A from a mock, 2026-10-27): Days · Cities · Checklist · More as tabs like Options',
+   instead of one long page; no title (the top bar has the trip's name and dates; it can be renamed in Trip
+   settings) and no "Trip budget" card (Budget is in the bottom bar). Wide screens show it all. */
+.overview-part {
+  display: contents;
+}
+
+@media (max-width: 899px) {
+  .overview-grid:not(.show-days) .overview-days,
+  .overview-grid.show-days .overview-side,
+  .overview-grid:not(.show-cities) .overview-part[data-tab='cities'],
+  .overview-grid:not(.show-checklist) .overview-part[data-tab='checklist'],
+  .overview-grid:not(.show-more) .overview-part[data-tab='more'],
+  .overview-side > .budget-link,
+  .trip-hero {
+    display: none;
+  }
+
+  /* A gray track with the active part raised; no red (that is the bottom bar's, which changes page). */
+  .overview-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 12px;
+    background: var(--surface-2);
+  }
+
+  .overview-tabs button {
+    /* Sized by their labels: the Checklist's has its count too. */
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 0;
+    border: none;
+    border-radius: 9px;
+    background: none;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .overview-tabs button.active {
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 650;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  }
+}
+
+/* The Checklist's count (how many are still to book), in the app's tag style: soft red, beside the label. */
+.overview-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.overview-tab-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .overview-switch {
+    display: none;
+  }
+}
+
+.overview-side {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+@media (min-width: 900px) {
+  .overview-grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr);
+  }
+
+  .budget-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.budget-link {
+  display: grid;
+  gap: 4px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.budget-link:hover {
+  border-color: var(--muted);
+}
+
+/* --- Cities (StaysEditor): a vertical itinerary --------------------------
+   One thin line runs down the left; each city has a small marker in its
+   color, day trips and the ends (from / back home) a hollow one. */
+
+.city-route {
+  list-style: none;
+  margin: 8px 0 14px;
+  padding: 0;
+}
+
+.cr-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  column-gap: 14px;
+  align-items: start;
+}
+
+/* The line, through every item; it starts at the first marker and ends at the last. */
+.cr-item::before {
+  content: '';
+  position: absolute;
+  left: 7.5px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--border);
+}
+
+.cr-item.first::before {
+  top: 9px;
+}
+
+.cr-item.last::before {
+  bottom: calc(100% - 9px);
+}
+
+.cr-rail {
+  display: grid;
+  justify-items: center;
+  padding-top: 4px;
+}
+
+.cr-mark {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: hsl(var(--hue, 0) 40% 48%);
+  box-shadow: 0 0 0 4px var(--surface);
+}
+
+.cr-day-trip .cr-mark,
+.cr-leg .cr-mark {
+  width: 8px;
+  height: 8px;
+  margin-top: 1px;
+  background: var(--surface);
+  border: 1.5px solid hsl(var(--hue, 0) 40% 48%);
+}
+
+.cr-leg .cr-mark {
+  border-color: var(--muted);
+}
+
+.cr-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cr-city .cr-body,
+.cr-day-trip .cr-body {
+  padding-bottom: 14px;
+}
+
+.cr-leg .cr-body {
+  padding: 0 0 14px;
+}
+
+.cr-title {
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.cr-day-trip .cr-title {
+  font-size: 0.95rem;
+}
+
+.cr-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.cr-strong {
+  color: var(--text);
+}
+
+.cr-faint {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Legs between cities and the ends: small caps, like a boarding pass. */
+.cr-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Hotel base: from the options (dropdown) or from a map search. */
+.base-sources {
+  display: grid;
+  gap: 6px;
+}
+
+.base-source {
+  margin: 4px 0 0;
+}
+
+.base-source-body {
+  display: grid;
+  gap: 4px;
+  padding-left: 26px;
+}
+
+.base-source-body p {
+  margin: 0;
+}
+
+.cr-options {
+  color: var(--muted);
+}
+
+/* "+ Transport": a small quiet button at the right of a leg (or inline in a day trip). */
+.cr-add {
+  min-height: 26px;
+  padding: 2px 10px;
+  margin-top: -3px;
+  border-radius: 999px;
+  border-color: var(--border);
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.cr-add.inline {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 0.85rem;
+}
+
+.cr-edit {
+  width: 36px;
+  height: 36px;
+  margin-top: -8px;
+  color: var(--accent);
+}
+
+.stay-base {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+/* The checklist (User's choice A from a mock, 2026-10-27): box · icon · name with "Ticket · Sat 1 Apr" under it ·
+   arrow to the day. Reminders the same, without the icon, with a quiet ✕. */
+.checklist {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  border-top: 1px solid var(--border);
+}
+
+.checklist > .check-row:first-child {
+  border-top: none;
+}
+
+.check-row > input[type='checkbox'] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.check-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.check-body > .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.check-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+/* Phones: the tab above already says "Checklist". */
+@media (max-width: 899px) {
+  .checklist-card > h2 {
+    display: none;
+  }
+}
+
+.check-text {
+  flex: 1 1 auto;
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.check-text > span:first-child {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check-row.done .check-text > span:first-child {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.check-remove {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  color: var(--muted);
+}
+
+.checklist-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.checklist-add > input:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.checklist-add > button {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+}
+
+.checklist-due.set {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* The real date input, only there for its picker (opened by the calendar button). */
+.checklist-due-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checklist-due-chosen {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

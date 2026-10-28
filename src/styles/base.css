@@ -1,0 +1,86 @@
+
+
+:root {
+  --bg: #f6f1e9;
+  --surface: #fffdf9;
+  --surface-2: #f0e9de;
+  --text: #1f1b17;
+  --muted: #6f665c;
+  --border: #e4dacb;
+  --accent: #b5332e;
+  --accent-soft: #f6e2de;
+  --accent-text: #9c2a26;
+  --on-accent: #ffffff;
+  --error: #b42318;
+  /* Ratings and favorites; chosen / done. */
+  --star: #c98a12;
+  --ok: #2e7d4f;
+  /* Budget: money saved but not spent yet, and what is still to save / over an estimate. */
+  --saved: #2f6fb3;
+  --alert: #b7791f;
+  /* Budget categories (bars and icons on the Budget page and the day's money), and money spent on the trip. */
+  --cat-activities: #3f9672;
+  --cat-transport: #3f7cb8;
+  --cat-lodging: #a8841c;
+  --cat-food: #c26a2e;
+  --cat-shopping: #9a5bb0;
+  --cat-other: #7d746a;
+  --spent: #8a5cb0;
+  /* City base tile on the maps (white icon on it): the place pins' red (placePinSvg in mapLines.ts), in both themes. */
+  --base-pin: #b5332e;
+  /* Option dots on the Options map, one color per kind, in both themes. */
+  --kind-hotel: #3d4b6b;
+  --kind-restaurant: #c56a1c;
+  --kind-place: #2f7a5c;
+  --kind-shop: #7a4a8c;
+  --shadow: 0 1px 2px rgb(60 40 20 / 0.06), 0 4px 14px rgb(60 40 20 / 0.06);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --bar-height: 56px;
+
+  color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-theme='dark'] {
+  --bg: #1b1917;
+  --surface: #24211e;
+  --surface-2: #2e2a26;
+  --text: #efe9e1;
+  --muted: #a69d92;
+  --border: #3a3530;
+  --accent: #e2685f;
+  --accent-soft: #3b2522;
+  --accent-text: #f08a82;
+  --on-accent: #1a0d0c;
+  --error: #ff8a80;
+  --star: #e0a93a;
+  --ok: #6cc08b;
+  --saved: #7fb2e8;
+  --alert: #e8a13a;
+  --cat-activities: #74c2a0;
+  --cat-transport: #6fa8dc;
+  --cat-lodging: #d8bb5c;
+  --cat-food: #e39a62;
+  --cat-shopping: #c792d8;
+  --cat-other: #9a9088;
+  --spent: #b98ad6;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  min-height: 100vh;
+}
+

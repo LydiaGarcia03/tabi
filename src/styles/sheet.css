@@ -1,0 +1,144 @@
+/* --- Sheet: a form on its own layer (Sheet.tsx) -------------------------- */
+
+dialog.sheet {
+  width: min(640px, calc(100% - 32px));
+  max-height: calc(100% - 48px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.3);
+  overflow: hidden;
+}
+
+dialog.sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.sheet:focus {
+  outline: none;
+}
+
+dialog.sheet::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+.sheet-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet-bar h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  padding: 4px 16px 0;
+}
+
+/* Inside a sheet, a form needs no frame of its own. */
+.sheet-body .expense-form {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.sheet-body .booking-form > h4 {
+  display: none;
+}
+
+/* Save / Cancel stay visible at the bottom while the form scrolls. */
+.sheet-body .sheet-actions {
+  position: sticky;
+  bottom: 0;
+  margin: 12px -16px 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+/* Phones: full screen, like an Android "new item" screen. */
+@media (max-width: 599px) {
+  dialog.sheet {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* A short panel rising from the bottom (a few settings): a handle and the title, no ✕. */
+  dialog.sheet.bottom {
+    /* fit-content: a modal dialog is pinned top and bottom, so "auto" would stretch it to full height. */
+    height: fit-content;
+    max-height: 85%;
+    margin: auto 0 0;
+    border-top: 1px solid var(--border);
+    border-radius: 18px 18px 0 0;
+  }
+
+  dialog.sheet.bottom .sheet-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 16px 4px;
+    border-bottom: none;
+  }
+
+  dialog.sheet.bottom .sheet-handle {
+    align-self: center;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+
+  dialog.sheet.bottom .sheet-close {
+    display: none;
+  }
+
+  dialog.sheet.bottom .sheet-body {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 600px) {
+  .sheet-handle {
+    display: none;
+  }
+}
+
+/* One-tap choices that wrap (types of hotel, restaurant…). */
+.chip-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-picker button {
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.chip-picker button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.chip-picker + input {
+  margin-top: 8px;
+  width: 100%;
+}
+

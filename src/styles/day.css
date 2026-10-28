@@ -1,0 +1,1219 @@
+/* --- Day page layout ----------------------------------------------------- */
+
+.day-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.day-map-column,
+.day-list-column {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+.day-map {
+  height: 42vh;
+  min-height: 260px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* Above the map: Google / offline switch and hide/show. */
+.map-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-switch {
+  flex-wrap: nowrap;
+}
+
+.map-switch button {
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+}
+
+.map-collapsed .day-map {
+  display: none;
+}
+
+.day-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-hero-top .hero-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.day-hero-actions {
+  gap: 0;
+  margin-right: -8px;
+}
+
+.day-hero-actions .day-arrow {
+  display: none;
+}
+
+/* Its own dashed box under the timeline: adding, not one of the day's places. */
+.add-place {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.add-place .section-title {
+  margin: 0 0 6px;
+}
+
+.add-place p {
+  margin: 0;
+}
+
+.option-picker-open,
+.option-picker .segmented {
+  justify-self: start;
+}
+
+/* Apart from the place search above it. */
+.option-picker-open,
+.option-picker {
+  margin-top: 12px;
+}
+
+.option-picker {
+  display: grid;
+  gap: 8px;
+}
+
+/* "Choose from my options": our own dropdown, so each option shows its photo. */
+.option-select {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+button.option-select-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 10px 4px 6px;
+  text-align: left;
+  font-weight: 400;
+  background: var(--surface);
+}
+
+.option-select-button > .icon {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.option-select-button .option-select-name.muted {
+  padding-left: 4px;
+}
+
+.option-select-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.14);
+}
+
+.option-select-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option-select-city {
+  display: block;
+  padding: 8px 10px 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.option-select-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.option-select-item.active {
+  background: var(--surface-2);
+}
+
+.option-select-item[aria-selected='true'] .option-select-name {
+  color: var(--accent-text);
+}
+
+.option-select-item[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.option-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.option-select-button .option-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+.option-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.option-select-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.option-select-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.option-select-name .status-mark {
+  margin-right: 4px;
+}
+
+.option-select-type {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.option-select-button .option-select-type {
+  align-self: center;
+  margin-top: 0;
+}
+
+/* Phones: the map goes edge to edge, like a native maps app. */
+@media (max-width: 899px) {
+  .day-map {
+    margin: 0 -16px;
+    height: 40vh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .day-map-column {
+    gap: 8px;
+  }
+}
+
+@media (min-width: 900px) {
+  .day-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
+
+  /* Map on the right, following the scroll. */
+  .day-map-column {
+    order: 2;
+    position: sticky;
+    top: calc(var(--bar-height) + 64px);
+  }
+
+  .map-toggle {
+    display: none;
+  }
+
+  .map-collapsed .day-map {
+    display: block;
+  }
+
+  .day-map {
+    height: min(64vh, 680px);
+  }
+}
+
+.map-unavailable p {
+  margin: 0 0 8px;
+}
+
+.pending-add p {
+  margin: 0 0 8px;
+}
+
+.search-results {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.search-results li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+/* --- Timeline: places joined by legs ------------------------------------- */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.place-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.place-item.selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    var(--shadow);
+}
+
+.place-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Drag handle: touch-action none so dragging it never scrolls the page. */
+.place-handle {
+  flex: none;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  padding: 0 8px;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0 var(--radius) 0 0;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.place-handle:active {
+  cursor: grabbing;
+}
+
+.timeline.reordering {
+  gap: 8px;
+}
+
+.place-item.dragging {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 8px 20px rgb(0 0 0 / 0.18);
+  position: relative;
+  z-index: 1;
+}
+
+.place-item.dragging .place-handle {
+  color: var(--accent);
+}
+
+.place-header {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 0;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 12px;
+  font-weight: inherit;
+  font-size: 1rem;
+}
+
+.place-header:hover:not(:disabled) {
+  border-color: transparent;
+}
+
+.place-number {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  background: var(--accent);
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+/* The pin shape is rotated; keep the number upright. */
+.place-number > span {
+  transform: rotate(45deg);
+}
+
+.place-title {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.place-name {
+  font-weight: 700;
+}
+
+.place-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.place-notes-preview {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-chevron {
+  color: var(--muted);
+  transition: transform 0.15s;
+  margin-top: 4px;
+}
+
+.place-item.selected .place-chevron {
+  transform: rotate(180deg);
+}
+
+.place-editor {
+  padding: 0 12px 12px 52px;
+  display: grid;
+  gap: 2px;
+}
+
+.place-editor > p {
+  margin: 0;
+}
+
+/* "See option details" (a place added from an option). */
+.place-option-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.place-option-link .muted {
+  font-weight: 400;
+}
+
+.place-actions {
+  margin-top: 10px;
+}
+
+/* Icon only, at the end of the line, so "Tap again to delete" fits on the same line. */
+.place-maps-link {
+  margin-left: auto;
+}
+
+@media (max-width: 480px) {
+  .place-editor {
+    padding-left: 12px;
+  }
+}
+
+/* The leg is the rail between two place cards. */
+/* "From base" / "Back to base": a quiet stop on the rail, not a place card (no details, only the way there). */
+.base-stop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.base-stop-icon {
+  width: 28px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.base-stop-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+}
+
+.base-stop-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* The base's name after "From base": quieter than the label. */
+.base-stop-name {
+  margin-left: 2px;
+  font-size: 0.85em;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.base-stop-name-below {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .base-stop-name {
+    display: none;
+  }
+
+  .base-stop-name-below {
+    display: block;
+    flex-basis: 100%;
+  }
+}
+
+/* "Leave at 05:30": when to walk out of the hotel, from the suggested route. */
+.base-stop-time {
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.base-stop select {
+  width: auto;
+}
+
+.base-add {
+  margin-left: 25px;
+  padding: 2px 0 2px 22px;
+}
+
+.leg-item {
+  margin-left: 25px;
+  padding: 2px 0 2px 22px;
+  border-left: 2px dashed var(--border);
+}
+
+.leg-item.open {
+  border-left-style: solid;
+  border-left-color: var(--accent);
+}
+
+.leg-summary {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 8px 0;
+  font-weight: inherit;
+}
+
+.leg-label {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+/* "GETTING THERE · 1 h 7 min · ¥1,080" */
+.leg-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.leg-totals {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.leg-chevron {
+  align-self: flex-start;
+  flex-shrink: 0;
+  color: var(--accent-text);
+}
+
+/* Closed leg: "🚶4′ › Yotsubashi › 🚶6′ › JR Kyoto › …" */
+.leg-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 4px;
+  font-size: 0.75rem;
+}
+
+.leg-chain-sep {
+  color: var(--muted);
+}
+
+.leg-chain-walk {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--muted);
+}
+
+.leg-chain-ride {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* A leg without a route yet: a small dashed pill. */
+.leg-add {
+  min-height: 0;
+  margin: 6px 0;
+  padding: 3px 10px;
+  gap: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  font-size: 0.8rem;
+  color: var(--accent-text);
+}
+
+.leg-add:hover {
+  border-color: var(--accent-text);
+}
+
+/* "+ Add the way there" and "Use my flight" side by side. */
+.leg-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: 8px;
+}
+
+.leg-add.use-flight {
+  border-style: solid;
+  border-color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.use-flight-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.use-flight-menu {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.use-flight-menu button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.leg-timing input[type='time'] {
+  width: auto;
+}
+
+.chip {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.leg-editor {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0 14px;
+}
+
+.leg-editor > p {
+  margin: 0;
+}
+
+/* A leg as a timeline (RouteTimeline): time | dot or line bar | text. */
+.route-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.route-station,
+.route-step {
+  display: grid;
+  grid-template-columns: 44px 18px minmax(0, 1fr);
+  column-gap: 8px;
+}
+
+.route-time {
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-top: 1px;
+}
+
+.route-dot {
+  display: flex;
+  justify-content: center;
+}
+
+.route-dot::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 50%;
+  border: 2.5px solid var(--text);
+  background: var(--surface);
+}
+
+.route-station.terminal .route-dot::before {
+  background: var(--text);
+}
+
+.route-station-name {
+  font-weight: 600;
+}
+
+.station-code {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+/* The Japanese name, on its own line or after the English, small: to match the signs. */
+.ja {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.route-bar {
+  display: flex;
+  justify-content: center;
+}
+
+.route-bar::before {
+  content: '';
+  width: 5px;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.route-step.walk .route-bar::before {
+  width: 0;
+  border-radius: 0;
+  border-left: 4px dotted var(--line);
+  background: none;
+}
+
+.route-step-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 0 10px;
+}
+
+/* Quiet pencil and ✕ at the top right of each step (reading mode). */
+.route-step-body.with-actions {
+  position: relative;
+  padding-right: 52px;
+}
+
+.route-step-actions {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  display: flex;
+  gap: 2px;
+}
+
+.step-action {
+  min-height: 0;
+  padding: 3px;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+
+.step-action:hover {
+  color: var(--accent-text);
+}
+
+@media (pointer: coarse) {
+  .step-action {
+    padding: 6px;
+  }
+
+  .route-step-body.with-actions {
+    padding-right: 64px;
+  }
+}
+
+.route-walk {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.line-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.route-stations ol {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.route-step-form {
+  margin: 6px 0 10px;
+}
+
+.route-time-inline {
+  display: none;
+}
+
+/* Phones: the dots and line bars go first, then the time before the station
+   name (User's idea); every line of a station and of a ride starts at the same
+   place, and rides use almost the whole width. */
+@media (max-width: 480px) {
+  .route-station,
+  .route-step {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+
+  .route-station .route-dot {
+    order: -1;
+  }
+
+  .route-time,
+  .route-step > :first-child {
+    display: none;
+  }
+
+  .route-time-inline {
+    display: inline;
+    margin-right: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.segment-notes {
+  white-space: pre-wrap;
+}
+
+/* "Edit route" mode: small buttons under each step. */
+.step-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.step-tool {
+  display: inline-grid;
+  place-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.step-tool.remove {
+  color: var(--accent-text);
+}
+
+.step-tool:disabled {
+  opacity: 0.4;
+}
+
+.leg-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  white-space: nowrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.leg-edit-toggle {
+  margin-left: auto;
+}
+
+/* LineColorPicker: round swatches. */
+.line-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.line-color {
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.line-color[aria-checked='true'] {
+  box-shadow: 0 0 0 2px var(--text);
+}
+
+.leg-footer-break {
+  display: none;
+}
+
+/* Phone: the link and "Edit route" on the first line, the edit actions on the second. */
+@media (max-width: 480px) {
+  .leg-footer-maps {
+    order: 1;
+  }
+
+  .leg-edit-toggle {
+    order: 2;
+  }
+
+  .leg-footer-break {
+    display: block;
+    order: 3;
+    flex-basis: 100%;
+    height: 0;
+  }
+
+  .leg-footer-add {
+    order: 4;
+  }
+
+  .leg-footer-clear {
+    order: 5;
+  }
+}
+
+/* Discreet: small text links; Add step / Clear route muted, red on hover. */
+.leg-footer a,
+.leg-footer button.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+/* The two main ones (open the route in Google Maps, edit it) in the app's red. */
+.leg-footer a:hover,
+.leg-footer button.link:hover,
+.leg-footer a.leg-footer-maps,
+.leg-footer button.link.leg-edit-toggle {
+  color: var(--accent-text);
+}
+
+/* Suggest buttons a bit apart from the "Arrive by / Leave at" time they use. */
+.leg-suggest {
+  margin-top: 6px;
+  align-items: center;
+}
+
+.leg-suggest,
+.leg-timing {
+  gap: 6px;
+}
+
+@media (max-width: 480px) {
+  .leg-suggest-label {
+    flex-basis: 100%;
+  }
+}
+
+/* InfoTip: an "i" whose text floats on hover with a mouse, or opens under its row on a phone. */
+.info-tip {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-tip-button {
+  min-height: 0;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+
+.info-tip-button:hover,
+.info-tip-button:focus-visible,
+.info-tip.open .info-tip-button {
+  color: var(--accent-text);
+}
+
+.info-tip-text {
+  display: none;
+  padding: 8px 10px;
+  /* Wraps even inside a no-wrap line (the Logbook's bar: one long line ran past the screen). */
+  white-space: normal;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 400;
+}
+
+@media (hover: hover) {
+  .info-tip-text {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 20;
+    width: max-content;
+    max-width: 280px;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  }
+
+  /* An "i" at the end of a line opens leftwards, inside the screen. */
+  .info-tip.end .info-tip-text {
+    left: auto;
+    right: 0;
+  }
+
+  /* Hover only (and keyboard focus); a click does nothing. */
+  .info-tip:hover .info-tip-text,
+  .info-tip:has(:focus-visible) .info-tip-text {
+    display: block;
+  }
+}
+
+@media (hover: none) {
+  /* The button and the text become items of the row, so the text takes a line of its own. */
+  .info-tip {
+    display: contents;
+  }
+
+  .info-tip.open .info-tip-text {
+    display: block;
+    flex-basis: 100%;
+  }
+}
+
+/* The leg's controls are compact everywhere (big ones wrapped and filled the
+   phone screen); on a touch screen they keep 32px of height for the finger.
+   Segment forms keep the normal size. */
+.leg-editor {
+  gap: 8px;
+}
+
+.leg-editor > .row > button:not(.link),
+.leg-timing select,
+.leg-timing input {
+  min-height: 0;
+  padding: 3px 9px;
+  font-size: 0.82rem;
+}
+
+.leg-timing select {
+  padding-right: 26px;
+  background-position: right 9px center;
+  background-size: 10px;
+}
+
+.leg-editor > .row button.link,
+.alternatives summary,
+.alternatives li {
+  font-size: 0.82rem;
+}
+
+.step-tools {
+  gap: 3px;
+}
+
+.step-tool {
+  min-height: 0;
+  padding: 2px 6px;
+}
+
+@media (pointer: coarse) {
+  .leg-editor > .row > button:not(.link),
+  .leg-timing select,
+  .leg-timing input,
+  .step-tool {
+    min-height: 32px;
+  }
+
+  .step-tool {
+    min-width: 36px;
+  }
+}
+
+.segment-form,
+.expense-form {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.segment-form .row.wrap,
+.expense-form .row.wrap {
+  align-items: end;
+}
+
+.alternatives ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.alternatives li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.draw-toolbar {
+  display: grid;
+  gap: 6px;
+  border-color: var(--accent);
+}
+
+.draw-toolbar-head {
+  align-items: baseline;
+  gap: 8px;
+}
+
+.draw-toolbar .line-colors {
+  margin-top: 0;
+}
+
+/* "Follow streets" and its "i" stay together. */
+.draw-follow {
+  gap: 2px;
+  align-items: center;
+}
+
+.draw-toolbar p {
+  margin: 0;
+}
+

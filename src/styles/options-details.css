@@ -1,0 +1,595 @@
+/* --- Journeys with connections ------------------------------------------- */
+
+.journey-legs {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.journey-leg-list,
+.journey-itinerary ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.journey-route {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.journey-route-leg {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+}
+
+.journey-route input {
+  width: 100%;
+}
+
+.journey-chain {
+  display: block;
+}
+
+fieldset.journey-leg {
+  margin: 0;
+  padding: 8px 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.journey-leg legend {
+  padding: 0 4px;
+  font-weight: 650;
+  font-size: 0.85rem;
+}
+
+.journey-connection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 6px 0 6px 14px;
+  padding: 4px 0 4px 12px;
+  border-left: 2px dashed var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.journey-connection.warn {
+  border-left-color: var(--accent);
+}
+
+.time-and-day {
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.install-tips {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+/* A time plus its day ("+1 (Wed 29 Mar)") needs more room: one per line on phones. */
+.field-row.time-fields {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.time-and-day input,
+.time-and-day select {
+  min-width: 0;
+  flex: 1;
+}
+
+.journey-total {
+  margin: 0;
+}
+
+.journey-itinerary summary {
+  cursor: pointer;
+  color: var(--accent-text);
+  margin-top: 2px;
+}
+
+.journey-itinerary-leg {
+  display: grid;
+}
+
+/* --- Option photos ------------------------------------------------------- */
+
+/* The first photo before the option's name ("+2" when there are more). */
+.option-with-photo {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.option-with-photo > div {
+  min-width: 0;
+  flex: 1;
+}
+
+/* Tags start at the line's edge, like the text above them (.tag has a left margin elsewhere). */
+.badges > .tag.in-plan {
+  margin-left: 0;
+}
+
+button.lead-photo {
+  position: relative;
+  flex: none;
+  padding: 0;
+  min-height: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: zoom-in;
+}
+
+.lead-photo-more {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@media (max-width: 899px) {
+  button.lead-photo {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* A tap on an option's row opens its details. */
+.option-row {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .option-row:hover > td {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+  }
+}
+
+/* --- Option details (read-only sheet) --- */
+
+.option-details {
+  display: grid;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.option-details-photos {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  height: 220px;
+}
+
+.option-details-photos.count-1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.option-details-photos.count-2 {
+  grid-template-rows: 1fr;
+}
+
+.option-details-photos > button {
+  padding: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: zoom-in;
+}
+
+.option-details-photos.count-3 > button:first-child {
+  grid-row: span 2;
+}
+
+.option-details-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.option-details-kicker:empty {
+  display: none;
+}
+
+/* .tag has a left margin elsewhere; here the gap spaces them. */
+.option-details-kicker .tag {
+  margin-left: 0;
+}
+
+.option-details-title {
+  margin: 4px 0 0;
+  font-size: 1.3rem;
+  line-height: 1.3;
+}
+
+.option-details-facts {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.option-details-facts dt {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.option-details-facts dd {
+  margin: 0;
+}
+
+.option-details-facts:empty {
+  display: none;
+}
+
+.option-details-fares {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option-details-fares .strong {
+  font-weight: 650;
+}
+
+.option-details-link {
+  overflow-wrap: anywhere;
+}
+
+.option-details-notes {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  white-space: pre-line;
+}
+
+@media (max-width: 480px) {
+  .option-details-facts {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}
+
+.lead-photo img,
+.photo-picker-item img,
+.photo-viewer-thumbs img,
+.option-details-photos img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+button.photo-picker-view {
+  display: block;
+  width: 100%;
+  padding: 0;
+  min-height: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+}
+
+.photo-picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.photo-picker-item {
+  position: relative;
+  margin: 0;
+  width: 104px;
+}
+
+.photo-picker-item.dragging {
+  z-index: 2;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 0.35);
+  border-radius: var(--radius-sm);
+}
+
+.photo-picker-item img {
+  height: 78px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+/* Controls on the photo: drag handle top left, trash top right, "Cover" on the first. */
+button.photo-picker-grip,
+button.photo-picker-remove {
+  position: absolute;
+  top: 4px;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+}
+
+button.photo-picker-grip {
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: grab;
+  /* The handle drags; the page must not scroll instead. */
+  touch-action: none;
+}
+
+.photo-picker-item.dragging .photo-picker-grip {
+  cursor: grabbing;
+}
+
+button.photo-picker-remove {
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+button.photo-picker-grip:hover,
+button.photo-picker-remove:hover {
+  background: rgb(0 0 0 / 0.75);
+}
+
+.photo-picker-cover {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+button.photo-add {
+  width: 104px;
+  height: 78px;
+  border-style: dashed;
+  font-size: 0.85rem;
+}
+
+.photo-picker > p {
+  margin: 4px 0 0;
+}
+
+/* The carousel: name and ✕ on top, the photo (swipe / side arrows), every photo below. */
+dialog.photo-viewer {
+  width: min(96vw, 1100px);
+  max-width: none;
+  max-height: none;
+  height: min(94vh, 900px);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: #111;
+  color: #f4efe8;
+  overflow: hidden;
+}
+
+dialog.photo-viewer[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.photo-viewer::backdrop {
+  background: rgb(0 0 0 / 0.75);
+}
+
+.photo-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+}
+
+.photo-viewer-head strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-viewer-head button {
+  color: inherit;
+}
+
+.photo-viewer-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* Horizontal swipes are ours; the page keeps vertical gestures. */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.photo-viewer-photo {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease;
+}
+
+.photo-viewer-photo.dragging {
+  transition: none;
+}
+
+.photo-viewer-photo img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+button.photo-viewer-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff;
+}
+
+button.photo-viewer-arrow:hover {
+  background: rgb(0 0 0 / 0.7);
+}
+
+.photo-viewer-arrow.prev {
+  left: 8px;
+}
+
+.photo-viewer-arrow.next {
+  right: 8px;
+}
+
+.photo-viewer-count {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 0.5);
+  font-size: 0.75rem;
+}
+
+.photo-viewer-thumbs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px 12px;
+}
+
+.photo-viewer-thumbs button {
+  width: 56px;
+  height: 42px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #2a2724;
+  opacity: 0.55;
+}
+
+.photo-viewer-thumbs button.active {
+  border-color: #f4efe8;
+  opacity: 1;
+}
+
+/* Phones: full screen, swiping is the main way to move. */
+@media (max-width: 899px) {
+  dialog.photo-viewer {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  button.photo-viewer-arrow {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* On phones the comparison table becomes one card per option. */
+@media (max-width: 899px) {
+  .options-table,
+  .options-table tbody,
+  .options-table tr,
+  .options-table td {
+    display: block;
+  }
+
+  .options-table thead {
+    display: none;
+  }
+
+  .options-table tr.option-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .options-table td {
+    border: none;
+    padding: 2px 0;
+  }
+
+  .options-table td.num {
+    text-align: left;
+  }
+
+  .options-table td[data-label]:not(.option-name)::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  .options-table .option-name,
+  .options-table .option-actions {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .options-table .option-actions {
+    text-align: left;
+  }
+
+  /* A tinted card (chosen, favorite) gets round corners and room around it, not glued to the group's title. */
+  .options-table tr.option-row:is(.status-chosen, .status-favorite) {
+    margin: 10px -4px 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border-bottom-color: transparent;
+  }
+}
+

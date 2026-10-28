@@ -1,0 +1,322 @@
+/* --- Transport between cities & airline guide ---------------------------- */
+
+.day-card-journey {
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+/* Transport rows: price, time and baggage centered in their columns (headers too); phone cards stay left-aligned. */
+@media (min-width: 900px) {
+  .transport-table :is(th, td):is(:nth-child(2), :nth-child(3)),
+  .transport-table .baggage-head {
+    text-align: center;
+  }
+
+  .transport-table .baggage-cell .bag-box {
+    margin-inline: auto;
+  }
+}
+
+/* Narrow enough for a transport row to fit a wide card with its actions (favorite, choose, discard, edit) uncut. */
+.baggage-cell .bag-box {
+  min-width: 210px;
+}
+
+/* In the phone cards (see options-table above) the column is narrower. */
+@media (max-width: 899px) {
+  .options-table td[data-label] .small,
+  .baggage-cell .bag-box {
+    min-width: 0;
+  }
+
+  /* Baggage needs the whole width of the card. */
+  .options-table td.baggage-cell {
+    grid-column: 1 / -1;
+  }
+
+  /* The airline guide becomes one card per airline, like the options. */
+  .airline-table,
+  .airline-table tbody,
+  .airline-table td {
+    display: block;
+  }
+
+  .airline-table thead {
+    display: none;
+  }
+
+  .airline-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px 12px;
+    padding: 10px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .airline-table td {
+    min-width: 0;
+    border: none;
+    padding: 0;
+  }
+
+  .airline-table td[data-label='Airline'],
+  .airline-table td[data-label='Checked'] {
+    grid-column: 1 / -1;
+  }
+
+  .airline-table td:not([data-label='Airline'])::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+}
+
+.airline-table td {
+  font-size: 0.85rem;
+  min-width: 120px;
+}
+
+.airline-table tr.mine {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.airline-meta {
+  display: block;
+}
+
+.fare-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.airline-details {
+  margin-top: 12px;
+}
+
+.airline-sources {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.airline-sources p {
+  margin: 2px 0;
+}
+
+.airline-sources a {
+  margin-right: 12px;
+}
+
+.airline-guide > header {
+  margin-bottom: 8px;
+}
+
+/* --- Opening hours & optimized order ------------------------------------- */
+
+.warning {
+  color: var(--error);
+  font-weight: 600;
+}
+
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+label.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.hours-editor {
+  margin: 12px 0 4px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.hours-editor legend {
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0 4px;
+}
+
+.open-days {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0;
+}
+
+.open-days > span {
+  margin-right: 4px;
+}
+
+/* Closed day: muted and struck through; open day: highlighted. */
+button.day-toggle {
+  min-height: 32px;
+  padding: 4px 9px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+button.day-toggle.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.hours-ranges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* "All day" next to the closing time: small, like the day toggles. */
+.hours-editor label.check.all-day {
+  font-size: 0.85rem;
+  gap: 6px;
+  margin: 0 0 0 4px;
+  flex: none;
+}
+
+.hours-range input:disabled {
+  opacity: 0.5;
+}
+
+.hours-editor label.check.all-day input {
+  width: 16px;
+  height: 16px;
+}
+
+.hours-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hours-range input {
+  padding: 6px 8px;
+}
+
+.hours-ranges > button.link {
+  padding: 2px 0;
+  font-size: 0.85rem;
+}
+
+/* Per day: the day's ranges side by side, wrapping on narrow screens. */
+.hours-ranges.compact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.hours-ranges.compact .hours-range {
+  gap: 4px;
+}
+
+.hours-ranges.compact input {
+  padding: 4px 6px;
+}
+
+.hours-ranges.compact .icon-button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+
+.hours-days {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.hours-days li {
+  display: flex;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 36px;
+}
+
+.hours-days li > .day-toggle {
+  width: 52px;
+  flex: none;
+}
+
+.list-toolbar {
+  min-height: 38px;
+}
+
+.optimize-panel {
+  border-color: var(--accent);
+}
+
+.optimize-panel .row {
+  margin-top: 8px;
+}
+
+.optimize-result {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 8px;
+}
+
+.optimize-result p {
+  margin: 0;
+}
+
+.optimize-compare {
+  display: grid;
+  gap: 2px;
+}
+
+.schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.schedule li {
+  display: grid;
+}
+
+.schedule-travel {
+  padding-left: 58px;
+}
+
+.schedule-stop {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.schedule-time {
+  flex: none;
+  width: 48px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-text);
+}
+

@@ -1,0 +1,121 @@
+/* --- Offline map (OpenStreetMap) ----------------------------------------- */
+
+.map-buttons {
+  gap: 6px;
+}
+
+.map-provider.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* Numbered place pin (SVG teardrop from placePinSvg), anchored at its tip. */
+.map-pin {
+  display: block;
+  line-height: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.4));
+}
+
+.offline-map-status {
+  display: block;
+  margin: 6px 0;
+}
+
+.offline-map-manage summary {
+  cursor: pointer;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.offline-progress {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.offline-progress .progress {
+  width: 100%;
+}
+
+/* The city's base (Cities on the itinerary page): a square tile, unlike the numbered place pins. */
+.base-pin {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  /* The same red as the place pins, so the hotel reads as part of the day's map. */
+  background: var(--base-pin);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Developer page with every icon (#/dev/icons). */
+.icon-gallery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.icon-gallery li {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.icon-gallery-sizes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-map-sample {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  /* Roughly a map's colors, to judge the markers on it. */
+  background: #e8e4da;
+}
+
+:root[data-theme='dark'] .icon-map-sample {
+  background: #2b2d31;
+}
+
+.icon-map-item {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+/* Points of a segment being drawn (map markers, centered on the point). */
+.draft-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-bottom: -7px;
+  border-radius: 50%;
+  background: #1f1d1a;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4);
+}
+
+.draft-dot.start {
+  background: #16a34a;
+}
+
+.draft-dot.end {
+  background: #b5332e;
+}
+
