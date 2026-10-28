@@ -70,8 +70,8 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 <br><sub><b>A day</b> — map and the way between places</sub>
 </td>
 <td align="center" valign="top" width="25%">
-<img src="docs/screenshots/option-details-phone-light.png" alt="An option's details on a phone: two photos of a Tokyo hotel, in the itinerary and booked, its price per night, stay total, rating, location and notes, with Edit and Close buttons" width="200">
-<br><sub><b>An option</b> — photos, prices and notes</sub>
+<img src="docs/screenshots/logbook-phone-light.png" alt="The logbook on a phone, following the GPS: the nearest place, Ueno Park, 250 m north with a compass arrow, the GPS precision, Show map, its hours and notes; then the day with Senso-ji ticked as visited and the distance to each place" width="200">
+<br><sub><b>The logbook</b> — the day by GPS, offline</sub>
 </td>
 <td align="center" valign="top" width="25%">
 <img src="docs/screenshots/budget-phone-light.png" alt="The budget on a phone: money set aside, booked, still to book and estimated, ending in what's left over; what to book before the trip; the estimates per category" width="200">
