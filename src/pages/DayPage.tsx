@@ -1,10 +1,9 @@
 import { APILoadingStatus, useApiLoadingStatus, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Fragment, lazy, Suspense, useMemo, useState } from 'react'
-import { dayBudget, travelersOf } from '../budget'
-import { BudgetBreakdown } from '../components/BudgetView'
+import { dayMoney, itemsBudget, travelersOf, tripStarted } from '../budget'
 import { DayMap } from '../components/DayMap'
-import { ExpenseList } from '../components/ExpenseList'
+import { DayMoney } from '../components/DayMoney'
 import { ExportCard } from '../components/ExportCard'
 import { DrawToolbar } from '../components/DrawToolbar'
 import { DayStrip } from '../components/DayStrip'
@@ -58,7 +57,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const trip = useLiveQuery(async () => (await db.trips.get(tripId)) ?? null, [tripId])
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
   const dayExpenses = useLiveQuery(() => db.expenses.where('dayId').equals(dayId).toArray(), [dayId])
-  // Booked flights: "Use my flight" in the day's legs.
+  // Flights in the itinerary (booked or not): "Use my flight" in the day's legs.
   const tripExpenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openLeg, setOpenLeg] = useState<string | null>(null)
@@ -365,11 +364,13 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             </p>
           </section>
 
-          <section className="card">
-            <BudgetBreakdown budget={dayBudget(day, dayPlaces, legs, dayExpenses, travelers)} trip={trip} title="Day budget" />
-            <h3>Expenses this day</h3>
-            <ExpenseList trip={trip} dayId={day.id} expenses={dayExpenses} />
-          </section>
+          <DayMoney
+            trip={trip}
+            dayId={day.id}
+            estimate={itemsBudget(dayMoney(day, index + 1, dayPlaces, legs, travelers).itinerary)}
+            expenses={dayExpenses}
+            started={tripStarted(trip)}
+          />
 
           <ExportCard tripId={tripId} day={{ id: day.id, number: index + 1 }} />
         </div>

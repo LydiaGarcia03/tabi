@@ -14,7 +14,7 @@ interface Props {
   number: number
   /** "Osaka", "Osaka → Okinawa" or "". */
   city: string
-  /** Booked journeys leaving that day (flight, shinkansen…). */
+  /** Journeys in the itinerary leaving that day (flight, shinkansen…), booked or not. */
   journeys: Journey[]
   /** The day's places in visiting order. */
   places: Place[]
@@ -22,15 +22,20 @@ interface Props {
   travelMinutes: number
   /** Walked along the day's routes (`dayWalking`). */
   walking: { meters: number; estimated: boolean }
-  budget: Budget | undefined
+  /** The day's estimate: its places and routes (what needs booking is on the Budget page). */
+  estimate: Budget | undefined
+  /** Money really spent that day; only once the trip has started. */
+  spent?: Budget
 }
 
 /** One day in the trip overview: calendar badge, title, route at a glance, totals. */
-export function DayCard({ trip, day, number, city, journeys, places, travelMinutes, walking, budget }: Props) {
+export function DayCard({ trip, day, number, city, journeys, places, travelMinutes, walking, estimate, spent }: Props) {
   const { weekday, day: dayOfMonth, month } = dateParts(day.date)
   const outside = day.date < trip.startDate || day.date > trip.endDate
   const shown = places.slice(0, 4)
-  const hasCosts = budget && Object.keys(budget.total).length > 0
+  const hasEstimate = !!estimate && Object.keys(estimate.total).length > 0
+  const hasSpent = !!spent && Object.keys(spent.total).length > 0
+  const hasCosts = hasEstimate || hasSpent
 
   return (
     <a className={`day-card${places.length === 0 ? ' empty' : ''}`} href={href({ page: 'day', tripId: trip.id, dayId: day.id })}>
@@ -79,7 +84,18 @@ export function DayCard({ trip, day, number, city, journeys, places, travelMinut
                 {formatDistance(walking.meters)} on foot
               </span>
             )}
-            {hasCosts && <MoneyTotals totals={budget.total} trip={trip} />}
+            {hasCosts && (
+              <span>
+                {/* Converted from yen, it reads "≈ R$420": an estimate either way. */}
+                {hasEstimate && <MoneyTotals totals={estimate.total} trip={trip} resultOnly />}
+                {hasSpent && (
+                  <span className="spent-text">
+                    {hasEstimate && ' · '}
+                    <MoneyTotals totals={spent.total} trip={trip} resultOnly /> spent
+                  </span>
+                )}
+              </span>
+            )}
           </span>
         )}
       </span>

@@ -24,6 +24,10 @@ export const ICON_PATHS = {
   pin: 'M12 21s-6-5.7-6-11a6 6 0 0112 0c0 5.3-6 11-6 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
   clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
   wallet: 'M4 7h14a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V7zM4 7l11-3v3M16 13.5h.01',
+  // Three dots: "More" (the itinerary's tabs on phones); drawn with a heavy stroke (weight) so the dots show.
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
+  // A pie chart with one slice out: the Budget page's "Breakdown".
+  pie: 'M10 6.5a7 7 0 107 7h-7v-7zM13.5 3v7h7a7 7 0 00-7-7z',
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5',
   download: 'M12 4v11M8 11l4 4 4-4M5 19h14',
   door: 'M6 20V5a1 1 0 011-1h10a1 1 0 011 1v15M4 20h16M14.5 12h.01',

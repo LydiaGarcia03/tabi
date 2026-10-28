@@ -1,5 +1,4 @@
-import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, inDisplayCurrency, totalsList, type Budget, type Totals } from '../budget'
-import { Icon } from './Icon'
+import { inDisplayCurrency, totalsList, type Totals } from '../budget'
 import type { Trip } from '../db/model'
 import { formatMoney } from '../format'
 
@@ -33,35 +32,5 @@ export function MoneyTotals({ totals, trip, resultOnly }: { totals: Totals; trip
         </span>
       )}
     </span>
-  )
-}
-
-/** Total plus one row per category that has costs. */
-export function BudgetBreakdown({ budget, trip, title }: { budget: Budget; trip: Trip; title: string }) {
-  const categories = CATEGORIES.filter((c) => budget.byCategory[c])
-  return (
-    <div className="budget">
-      <div className="budget-total">
-        <strong>{title}</strong>
-        <MoneyTotals totals={budget.total} trip={trip} resultOnly />
-      </div>
-      {categories.length > 0 && (
-        <ul className="budget-categories">
-          {categories.map((c) => (
-            <li key={c}>
-              <span>
-                <Icon name={CATEGORY_ICON[c]} size={16} /> {CATEGORY_LABEL[c]}
-              </span>
-              <MoneyTotals totals={budget.byCategory[c]!} trip={trip} />
-            </li>
-          ))}
-        </ul>
-      )}
-      {!(trip.exchangeRate > 0) && (
-        <p className="muted small">
-          Set the exchange rate (Trip settings, on the itinerary page) to see totals in {trip.displayCurrency}.
-        </p>
-      )}
-    </div>
   )
 }

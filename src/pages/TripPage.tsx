@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
-import { dayBudget, expensesBudget, mergeBudgets, travelersOf } from '../budget'
+import { dayMoney, expensesBudget, itemsBudget, travelersOf, tripStarted } from '../budget'
 import { MoneyTotals } from '../components/BudgetView'
 import { Checklist, type PlaceToBook } from '../components/Checklist'
 import { DayCard } from '../components/DayCard'
 import { ExportCard } from '../components/ExportCard'
-import { Icon } from '../components/Icon'
+import { Icon, type IconName } from '../components/Icon'
 import { StaysEditor } from '../components/StaysEditor'
 import { TripLayout } from '../components/TripLayout'
 import { formatDate } from '../dates'
@@ -16,15 +16,18 @@ import type { Trip } from '../db/model'
 import { cityLabel } from '../db/stays'
 import { deleteTrip, orderPlaces, updateTrip } from '../db/trips'
 import { useRefreshStalePlaces } from '../places/refresh'
-import { journeysOn } from '../planning/journeys'
+import { expenseNeedsBooking, journeysOn } from '../planning/journeys'
 import { href, navigate } from '../router'
 import { useDraft } from '../useDraft'
 
-type OverviewView = 'days' | 'plan'
+type OverviewView = 'days' | 'cities' | 'checklist' | 'more'
 
-const VIEWS: { id: OverviewView; label: string }[] = [
-  { id: 'days', label: 'Days' },
-  { id: 'plan', label: 'Cities, checklist & notes' },
+/** Phones: the itinerary page's tabs (User's choice A from a mock, 2026-10-27). */
+const VIEWS: { id: OverviewView; label: string; icon: IconName }[] = [
+  { id: 'days', label: 'Days', icon: 'calendar' },
+  { id: 'cities', label: 'Cities', icon: 'pin' },
+  { id: 'checklist', label: 'Checklist', icon: 'check' },
+  { id: 'more', label: 'More', icon: 'more' },
 ]
 
 export function TripPage({ tripId }: { tripId: string }) {
@@ -52,27 +55,47 @@ export function TripPage({ tripId }: { tripId: string }) {
           .slice(1)
           .flatMap((p, i) => legMap.get(legKey(route[i].id, p.id))?.segments ?? [])
           .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
-        const budget = dayBudget(day, dayPlaces, legMap, expenses.filter((e) => e.dayId === day.id), travelers)
-        return [day.id, { places: ordered, travelMinutes, walking: dayWalking(route, legMap), budget }]
+        const money = dayMoney(day, 0, dayPlaces, legMap, travelers)
+        const estimate = itemsBudget(money.itinerary)
+        const spent = expensesBudget(expenses.filter((e) => e.dayId === day.id))
+        return [day.id, { places: ordered, travelMinutes, walking: dayWalking(route, legMap), estimate, spent, money }]
       }),
     )
-    const tripWide = expenses.filter((e) => !e.dayId)
-    const total = mergeBudgets([...[...byDay.values()].map((d) => d.budget), expensesBudget(tripWide)])
-    return { byDay, total }
-  }, [days, places, legs, expenses, travelers])
+    // Needed for the trip: what is booked ahead + the itinerary's estimates + the additional estimates.
+    const total = itemsBudget([
+      ...[...byDay.values()].flatMap((d) => [...d.money.bookAhead, ...d.money.itinerary]),
+      ...expenses.filter((e) => !e.dayId),
+      ...(trip?.estimates ?? []),
+    ])
+    // Phones: the Checklist tab shows how many things are still to book.
+    const toBookCount =
+      [...byDay.values()].flatMap((d) => d.money.bookAhead).filter((i) => !i.booked).length +
+      expenses.filter((e) => !e.dayId && expenseNeedsBooking(e) && !e.booked).length
+    return { byDay, total, toBookCount }
+  }, [days, places, legs, expenses, travelers, trip?.estimates])
 
   if (trip === undefined || days === undefined || !overview || !stays) return null
   if (!trip) return <NotFound />
+  const { toBookCount } = overview
 
   return (
     <TripLayout trip={trip} active="itinerary">
       <TripHeader key={trip.id} trip={trip} dayCount={days.length} />
 
-      {/* Phones only: switch between the days and the rest of the plan. */}
-      <div className="segmented overview-switch" role="radiogroup" aria-label="View">
+      {/* Phones only: the days and the rest of the plan as a segmented control (User's choice B1 from a mock: unlike the
+          bottom bar, which changes page); no title, the top bar has the trip's name and dates. */}
+      <div className="overview-tabs overview-switch" role="tablist" aria-label="View">
         {VIEWS.map((v) => (
-          <button key={v.id} type="button" role="radio" aria-checked={view === v.id} className={view === v.id ? 'active' : ''} onClick={() => setView(v.id)}>
-            {v.label}
+          <button key={v.id} type="button" role="tab" aria-selected={view === v.id} className={view === v.id ? 'active' : ''} onClick={() => setView(v.id)}>
+            <Icon name={v.icon} size={15} weight={v.icon === 'more' ? 3.4 : undefined} />
+            <span className="overview-tab-label">
+              {v.label}
+              {v.id === 'checklist' && toBookCount > 0 && (
+                <span className="overview-tab-count" aria-label={`${toBookCount} to book`}>
+                  {toBookCount}
+                </span>
+              )}
+            </span>
           </button>
         ))}
       </div>
@@ -94,7 +117,8 @@ export function TripPage({ tripId }: { tripId: string }) {
                     places={info.places}
                     travelMinutes={info.travelMinutes}
                     walking={info.walking}
-                    budget={info.budget}
+                    estimate={info.estimate}
+                    spent={tripStarted(trip) ? info.spent : undefined}
                   />
                 </li>
               )
@@ -103,6 +127,7 @@ export function TripPage({ tripId }: { tripId: string }) {
         </section>
 
         <div className="overview-side">
+          <div className="overview-part" data-tab="cities">
           <StaysEditor
             trip={trip}
             stays={stays}
@@ -111,16 +136,19 @@ export function TripPage({ tripId }: { tripId: string }) {
             days={days ?? []}
             legs={legs ?? []}
           />
+          </div>
 
+          {/* Not on phones: there the bottom bar has Budget. */}
           <a className="card budget-link" href={href({ page: 'budget', tripId: trip.id })}>
             <span className="row between">
               <strong>Trip budget</strong>
               <Icon name="forward" size={16} />
             </span>
             <MoneyTotals totals={overview.total.total} trip={trip} />
-            <span className="muted small">Transport, hotels, estimates vs. booked</span>
+            <span className="muted small">Needed for the trip: booked ahead + estimated</span>
           </a>
 
+          <div className="overview-part" data-tab="checklist">
           <Checklist
             trip={trip}
             toBook={days.flatMap((day) =>
@@ -131,6 +159,8 @@ export function TripPage({ tripId }: { tripId: string }) {
             )}
             expenses={expenses?.filter((e) => !e.dayId) ?? []}
           />
+          </div>
+          <div className="overview-part" data-tab="more">
           <TripNotes key={trip.id} trip={trip} />
           <ExportCard tripId={trip.id} />
 
@@ -139,6 +169,7 @@ export function TripPage({ tripId }: { tripId: string }) {
             <TripSettings key={trip.id} trip={trip} />
             <DeleteTrip trip={trip} />
           </details>
+          </div>
         </div>
       </div>
     </TripLayout>
@@ -148,13 +179,23 @@ export function TripPage({ tripId }: { tripId: string }) {
 function TripHeader({ trip, dayCount }: { trip: Trip; dayCount: number }) {
   const [name, setName] = useDraft(trip.name, (value) => updateTrip(trip.id, { name: value.trim() || trip.name }))
   return (
-    <header className="hero">
+    <header className="hero trip-hero">
       <input className="hero-title" value={name} onChange={(e) => setName(e.target.value)} aria-label="Trip name" />
       <p className="hero-meta">
         <Icon name="calendar" size={16} /> {formatDate(trip.startDate)} – {formatDate(trip.endDate)} · {dayCount}{' '}
         {dayCount === 1 ? 'day' : 'days'}
       </p>
     </header>
+  )
+}
+
+function TripName({ trip }: { trip: Trip }) {
+  const [name, setName] = useDraft(trip.name, (value) => updateTrip(trip.id, { name: value.trim() || trip.name }))
+  return (
+    <label>
+      Name
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+    </label>
   )
 }
 
@@ -189,6 +230,8 @@ function TripSettings({ trip }: { trip: Trip }) {
 
   return (
     <div className="settings-grid">
+      {/* Phones show no title to edit, so the name is here too. */}
+      <TripName trip={trip} />
       <div className="field-row">
         <label>
           Start

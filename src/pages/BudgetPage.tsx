@@ -1,16 +1,17 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
-import { dayBudget, expensesBudget, mergeBudgets, travelersOf } from '../budget'
-import { BudgetBreakdown } from '../components/BudgetView'
-import { EstimatesCard } from '../components/EstimatesCard'
-import { ExpenseList } from '../components/ExpenseList'
-import { SavingsCard } from '../components/SavingsCard'
+import { categoryMoney, travelersOf, tripMoney, tripStarted } from '../budget'
 import { TripLayout } from '../components/TripLayout'
+import { BookAheadCard, EstimatesCard, TripCostsLink, TripMoneyCard } from '../components/TripMoney'
 import { db } from '../db/db'
-import { legKey } from '../db/legs'
 import { NotFound } from './TripPage'
 
-/** Everything about money: totals, estimates vs. booked, flights, hotels and other trip-wide costs. */
+/**
+ * Everything about money (User's model, 2026-10-27): what was set aside and what goes out of it; what needs
+ * booking before the trip; everything else as estimates (the itinerary + additional estimates), compared with
+ * what is really spent once the trip has started. Phones: one column; wide screens: the money on the left
+ * (sticky), the estimates on the right.
+ */
 export function BudgetPage({ tripId }: { tripId: string }) {
   const trip = useLiveQuery(async () => (await db.trips.get(tripId)) ?? null, [tripId])
   const days = useLiveQuery(() => db.days.where('tripId').equals(tripId).toArray(), [tripId])
@@ -18,45 +19,34 @@ export function BudgetPage({ tripId }: { tripId: string }) {
   const legs = useLiveQuery(() => db.legs.where('tripId').equals(tripId).toArray(), [tripId])
   const expenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
 
-  const budget = useMemo(() => {
+  const money = useMemo(() => {
     if (!trip || !days || !places || !legs || !expenses) return null
-    const legMap = new Map(legs.map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l]))
-    const perDay = days.map((day) =>
-      dayBudget(
-        day,
-        places.filter((p) => p.dayId === day.id),
-        legMap,
-        expenses.filter((e) => e.dayId === day.id),
-        travelersOf(trip),
-      ),
-    )
-    return mergeBudgets([...perDay, expensesBudget(expenses.filter((e) => !e.dayId))])
+    const all = tripMoney(days, places, legs, expenses, travelersOf(trip))
+    return { all, categories: categoryMoney(all, trip) }
   }, [trip, days, places, legs, expenses])
 
   if (trip === undefined) return null
   if (!trip) return <NotFound />
+  if (!money || !expenses) return null
 
-  if (!budget || !expenses) return null
+  const started = tripStarted(trip)
+  const estimates = <EstimatesCard trip={trip} categories={money.categories} started={started} />
+  const bookAhead = <BookAheadCard trip={trip} items={money.all.bookAhead} />
 
   return (
     <TripLayout trip={trip} active="budget">
-      <header className="hero">
+      {/* Phones: no title (the bottom bar says where you are), like Options. */}
+      <header className="hero budget-hero">
         <p className="hero-kicker trip-kicker">{trip.name}</p>
         <h1>Budget</h1>
       </header>
-      <div className="budget-grid">
-        <div className="section">
-          <SavingsCard trip={trip} actual={budget} />
-          <section className="card">
-            <BudgetBreakdown budget={budget} trip={trip} title="Trip budget" />
-          </section>
-          <section className="card">
-            <h2>Transport, hotels &amp; trip-wide costs</h2>
-            <p className="muted small">Costs not tied to one day. Day costs (tickets, fares, meals) are on each day.</p>
-            <ExpenseList trip={trip} expenses={expenses.filter((e) => !e.dayId)} />
-          </section>
+      <div className={`budget-grid${started ? ' started' : ''}`}>
+        <div className="section budget-money">
+          <TripMoneyCard trip={trip} money={money.all} categories={money.categories} started={started} />
+          {bookAhead}
+          <TripCostsLink trip={trip} expenses={expenses.filter((e) => !e.dayId)} />
         </div>
-        <EstimatesCard trip={trip} actual={budget} />
+        <div className="section budget-estimates">{estimates}</div>
       </div>
     </TripLayout>
   )
