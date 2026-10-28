@@ -368,6 +368,9 @@ export function ConnectionInfo({ connection }: { connection: Connection }) {
   )
 }
 
+/** Days after the first departure a time can be on ("+4"). */
+const MAX_DAY_OFFSET = 4
+
 function TimeAndDay({
   label,
   date,
@@ -387,7 +390,8 @@ function TimeAndDay({
       <span className="row time-and-day">
         <input type="time" value={time ?? ''} onChange={(e) => onChange(e.target.value || undefined, day)} />
         <select value={day ?? 0} onChange={(e) => onChange(time, Number(e.target.value) || undefined)} aria-label={`${label} day`}>
-          {[0, 1, 2].map((d) => (
+          {/* Up to +4, not Google Flights' +2: a whole trip with long layovers takes days (User's 57 h to Japan). */}
+          {Array.from({ length: Math.max(MAX_DAY_OFFSET, day ?? 0) + 1 }, (_, d) => d).map((d) => (
             <option key={d} value={d}>
               {d === 0 ? 'same day' : `+${d}`}
               {date ? ` (${formatDay(addDays(date, d))})` : ''}
