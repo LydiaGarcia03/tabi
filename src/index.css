@@ -4238,10 +4238,6 @@ button.icon-toggle.on {
     gap: 12px;
   }
 
-  .budget-grid .trip-costs-link {
-    align-self: flex-start;
-  }
-
   .budget-grid > .section {
     display: contents;
   }
@@ -4407,6 +4403,8 @@ button.icon-toggle.on {
 
 .saved-edit {
   display: grid;
+  /* Without it the column grew to the number field's natural width and pushed "Done" past the card (PC). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   padding: 8px 0;
 }
@@ -4418,7 +4416,8 @@ button.icon-toggle.on {
 }
 
 .savings-input input {
-  flex: 1;
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
 }
 
@@ -4501,13 +4500,44 @@ button.icon-toggle.on {
 }
 
 .trip-costs-link {
-  justify-self: start;
-  display: inline-flex;
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 4px;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
 }
 
+.trip-costs-link > .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.trip-costs-link:hover {
+  border-color: var(--muted);
+}
+
+.trip-costs-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.trip-costs-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.trip-costs-sheet {
+  display: grid;
+  gap: 10px;
+  padding: 12px 0 16px;
+}
 /* Estimates / Estimated vs spent: one row per category, in its color (--cat). */
 .estimates-card {
   display: grid;
@@ -4691,6 +4721,86 @@ button.estimate-chip.add {
   gap: 4px;
 }
 
+/* A category dropdown with icons (CategorySelect): the icon in the category's color; laid out like a field. */
+.category-field {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 4px;
+  min-width: 170px;
+}
+
+.category-field .field-label {
+  margin: 0;
+}
+
+.category-select {
+  position: relative;
+}
+
+button.category-select-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: left;
+}
+
+.category-select-label {
+  flex: 1;
+}
+
+.category-select-button > .icon:last-child {
+  color: var(--muted);
+}
+
+.category-select-icon {
+  display: grid;
+  place-items: center;
+  color: var(--cat);
+}
+
+.category-select-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+
+.category-select-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.category-select-list li.active {
+  background: var(--surface-2);
+}
+
+.category-select-list li[aria-selected='true'] {
+  font-weight: 650;
+}
+
+.category-select-list li > .icon:last-child {
+  margin-left: auto;
+  color: var(--accent-text);
+}
 /* The category sheet: total, then the itinerary (read-only) and the additional estimates; side by side when wide. */
 .estimate-sheet {
   display: grid;

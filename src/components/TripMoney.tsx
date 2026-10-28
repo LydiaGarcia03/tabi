@@ -16,6 +16,7 @@ import { formatMoney } from '../format'
 import { href } from '../router'
 import { useDraft } from '../useDraft'
 import { ExpenseList } from './ExpenseList'
+import { CategorySelect } from './CategorySelect'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
 
@@ -518,23 +519,19 @@ function EstimateSheet({
     <Sheet title={fixed ? CATEGORY_LABEL[fixed] : 'New estimate'} onClose={onClose}>
       <form className="estimate-sheet" onSubmit={submit}>
         {!fixed && (
-          <label>
-            Category
-            <select
+          <div className="category-field">
+            <label className="field-label" htmlFor="estimate-category">
+              Category
+            </label>
+            <CategorySelect
+              id="estimate-category"
               value={category}
-              onChange={(e) => {
-                const next = e.target.value as ExpenseCategory
+              onChange={(next) => {
                 setCategory(next)
                 setItems(draftsOf(next))
               }}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_LABEL[c]}
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
         )}
         <div>
           <p className="estimate-sheet-total">{total != null ? show(total) : '—'}</p>
@@ -619,21 +616,32 @@ function EstimateSheet({
   )
 }
 
-/** "Hotels, transport & other trip costs ›": the trip-wide costs, edited in a sheet. */
+/**
+ * The trip-wide costs (hotels, transport between cities, others), as a row like the cards around it (a bare link
+ * looked lost on the PC); a tap opens them in a sheet to add or edit.
+ */
 export function TripCostsLink({ trip, expenses }: { trip: Trip; expenses: Expense[] }) {
   const [open, setOpen] = useState(false)
+  const n = expenses.length
   return (
     <>
-      <button type="button" className="link trip-costs-link" onClick={() => setOpen(true)}>
-        Hotels, transport &amp; other trip costs <Icon name="forward" size={14} />
+      <button type="button" className="card trip-costs-link" onClick={() => setOpen(true)}>
+        <Icon name="home" size={18} />
+        <span className="trip-costs-text">
+          <strong>Hotels, transport &amp; other trip costs</strong>
+          <span className="muted small">{n ? `${n} ${n === 1 ? 'cost' : 'costs'} · add or edit` : 'Add hotels, flights and other costs'}</span>
+        </span>
+        <Icon name="forward" size={16} />
       </button>
       {open && (
         <Sheet title="Hotels, transport & other trip costs" onClose={() => setOpen(false)}>
-          <p className="muted small">
-            Costs not tied to one day. Hotels and flights (and transport marked "Booking needed") are booked before the trip; the rest
-            counts as an estimate.
-          </p>
-          <ExpenseList trip={trip} expenses={expenses} />
+          <div className="trip-costs-sheet">
+            <p className="muted small">
+              Costs not tied to one day. Hotels and flights (and transport marked "Booking needed") are booked before the trip; the
+              rest counts as an estimate.
+            </p>
+            <ExpenseList trip={trip} expenses={expenses} />
+          </div>
         </Sheet>
       )}
     </>

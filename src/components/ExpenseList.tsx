@@ -1,10 +1,11 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL } from '../budget'
+import { CATEGORY_ICON } from '../budget'
 import { addDays, daysBetween, formatDay } from '../dates'
 import { addExpense, deleteExpense, updateExpense } from '../db/expenses'
 import type { Expense, ExpenseCategory, Trip } from '../db/model'
 import { formatMoney } from '../format'
 import { JOURNEY_ICON, journeyDetails, journeyTitle } from '../planning/journeys'
+import { CategorySelect } from './CategorySelect'
 import { Icon, type IconName } from './Icon'
 import { JourneyItinerary } from './JourneyLegs'
 import { HotelForm, JourneyForm, type BookingValues } from './BookingForms'
@@ -235,16 +236,12 @@ function ExpenseForm({
   return (
     <form className="expense-form" onSubmit={submit}>
       <div className="row wrap">
-        <label>
-          Category
-          <select value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY_LABEL[c]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="category-field">
+          <label className="field-label" htmlFor="expense-category">
+            Category
+          </label>
+          <CategorySelect id="expense-category" value={category} onChange={setCategory} />
+        </div>
         <label className="grow">
           Description
           <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="JR Pass, insurance, lunch…" />
