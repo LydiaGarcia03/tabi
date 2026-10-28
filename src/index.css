@@ -19,8 +19,24 @@
   /* Ratings and favorites; chosen / done. */
   --star: #c98a12;
   --ok: #2e7d4f;
+  /* Budget: money saved but not spent yet, and what is still to save / over an estimate. */
+  --saved: #2f6fb3;
+  --alert: #b7791f;
+  /* Budget categories (bars and icons on the Budget page and the day's money), and money spent on the trip. */
+  --cat-activities: #3f9672;
+  --cat-transport: #3f7cb8;
+  --cat-lodging: #a8841c;
+  --cat-food: #c26a2e;
+  --cat-shopping: #9a5bb0;
+  --cat-other: #7d746a;
+  --spent: #8a5cb0;
   /* City base tile on the maps (white icon on it): the place pins' red (placePinSvg in mapLines.ts), in both themes. */
   --base-pin: #b5332e;
+  /* Option dots on the Options map, one color per kind, in both themes. */
+  --kind-hotel: #3d4b6b;
+  --kind-restaurant: #c56a1c;
+  --kind-place: #2f7a5c;
+  --kind-shop: #7a4a8c;
   --shadow: 0 1px 2px rgb(60 40 20 / 0.06), 0 4px 14px rgb(60 40 20 / 0.06);
   --radius: 14px;
   --radius-sm: 10px;
@@ -48,6 +64,15 @@
   --error: #ff8a80;
   --star: #e0a93a;
   --ok: #6cc08b;
+  --saved: #7fb2e8;
+  --alert: #e8a13a;
+  --cat-activities: #74c2a0;
+  --cat-transport: #6fa8dc;
+  --cat-lodging: #d8bb5c;
+  --cat-food: #e39a62;
+  --cat-shopping: #c792d8;
+  --cat-other: #9a9088;
+  --spent: #b98ad6;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
 
   color-scheme: dark;
@@ -197,8 +222,18 @@ a {
 }
 
 /* Reading pages are narrow; the day page (map + list) is wide. */
+/* A column at least as tall as the window: the page grows, so the footer is always at the bottom. */
 .shell {
   --page-width: 760px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.shell > main {
+  flex: 1 0 auto;
+  width: 100%;
 }
 
 .shell.wide {
@@ -224,6 +259,8 @@ a {
 
 .offline-banner {
   margin: 12px auto 0;
+  /* Full width up to the max (the shell is a flex column: auto margins alone would shrink it). */
+  width: 100%;
   max-width: calc(var(--page-width) - 32px);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
@@ -414,6 +451,12 @@ select:focus-visible {
 
 .field-row input {
   width: 100%;
+  /* Date inputs have a wide minimum of their own: without this, Start / End ran past the card on phones. */
+  min-width: 0;
+}
+
+.field-row > label {
+  min-width: 0;
 }
 
 /* Arrival time, a narrow visit length and the kind (wide enough for "Restaurant"). */
@@ -1423,6 +1466,19 @@ button.option-select-button {
   margin: 0;
 }
 
+/* "See option details" (a place added from an option). */
+.place-option-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.place-option-link .muted {
+  font-weight: 400;
+}
+
 .place-actions {
   margin-top: 10px;
 }
@@ -2010,6 +2066,8 @@ button.option-select-button {
 .info-tip-text {
   display: none;
   padding: 8px 10px;
+  /* Wraps even inside a no-wrap line (the Logbook's bar: one long line ran past the screen). */
+  white-space: normal;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -2026,6 +2084,12 @@ button.option-select-button {
     width: max-content;
     max-width: 280px;
     box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  }
+
+  /* An "i" at the end of a line opens leftwards, inside the screen. */
+  .info-tip.end .info-tip-text {
+    left: auto;
+    right: 0;
   }
 
   /* Hover only (and keyboard focus); a click does nothing. */
@@ -2344,7 +2408,8 @@ button.option-select-button {
 }
 
 /* While typing, the keyboard pushes the bar up: hide it to keep the field visible. */
-.shell:has(:is(input, textarea, select):focus) .bottom-nav {
+/* Only fields that open the keyboard: not a select or a checkbox (the bar vanished when picking a city). */
+.shell:has(:is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color']), textarea):focus) .bottom-nav {
   display: none;
 }
 
@@ -2583,17 +2648,76 @@ h2 > .city-tag {
   align-items: start;
 }
 
-/* Phones: days and the rest of the plan (cities, checklist, notes…) are two
-   views, like Wanderlog's Itinerary / Overview, instead of one long page. */
+/* Phones (User's choice A from a mock, 2026-10-27): Days · Cities · Checklist · More as tabs like Options',
+   instead of one long page; no title (the top bar has the trip's name and dates; it can be renamed in Trip
+   settings) and no "Trip budget" card (Budget is in the bottom bar). Wide screens show it all. */
+.overview-part {
+  display: contents;
+}
+
 @media (max-width: 899px) {
+  .overview-grid:not(.show-days) .overview-days,
   .overview-grid.show-days .overview-side,
-  .overview-grid.show-plan .overview-days {
+  .overview-grid:not(.show-cities) .overview-part[data-tab='cities'],
+  .overview-grid:not(.show-checklist) .overview-part[data-tab='checklist'],
+  .overview-grid:not(.show-more) .overview-part[data-tab='more'],
+  .overview-side > .budget-link,
+  .trip-hero {
     display: none;
   }
 
-  .overview-switch {
-    justify-self: start;
+  /* A gray track with the active part raised; no red (that is the bottom bar's, which changes page). */
+  .overview-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 12px;
+    background: var(--surface-2);
   }
+
+  .overview-tabs button {
+    /* Sized by their labels: the Checklist's has its count too. */
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 0;
+    border: none;
+    border-radius: 9px;
+    background: none;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .overview-tabs button.active {
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 650;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  }
+}
+
+/* The Checklist's count (how many are still to book), in the app's tag style: soft red, beside the label. */
+.overview-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.overview-tab-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
 }
 
 @media (min-width: 900px) {
@@ -2800,41 +2924,130 @@ h2 > .city-tag {
   margin: 10px 0;
 }
 
+/* The checklist (User's choice A from a mock, 2026-10-27): box · icon · name with "Ticket · Sat 1 Apr" under it ·
+   arrow to the day. Reminders the same, without the icon, with a quiet ✕. */
 .checklist {
   list-style: none;
   margin: 0 0 10px;
   padding: 0;
-  display: grid;
-  gap: 2px;
 }
 
-.checklist li {
+.check-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-height: 48px;
+  border-top: 1px solid var(--border);
 }
 
-.checklist label.check {
-  margin: 4px 0;
+.checklist > .check-row:first-child {
+  border-top: none;
 }
 
-.checklist li.done span {
+.check-row > input[type='checkbox'] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.check-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.check-body > .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.check-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+/* Phones: the tab above already says "Checklist". */
+@media (max-width: 899px) {
+  .checklist-card > h2 {
+    display: none;
+  }
+}
+
+.check-text {
+  flex: 1 1 auto;
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.check-text > span:first-child {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check-row.done .check-text > span:first-child {
   text-decoration: line-through;
+  color: var(--muted);
+}
+
+.check-remove {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
   color: var(--muted);
 }
 
 .checklist-add {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
 }
 
-.checklist-add input:first-child {
-  flex: 1;
-  min-width: 180px;
+.checklist-add > input:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
+.checklist-add > button {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+}
+
+.checklist-due.set {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* The real date input, only there for its picker (opened by the calendar button). */
+.checklist-due-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checklist-due-chosen {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 /* --- Comparison tables --------------------------------------------------- */
 
 .table-scroll {
@@ -2922,6 +3135,627 @@ h2 > .city-tag {
 
 .options-toolbar label.check {
   margin: 0;
+}
+
+.options-filters-start {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.options-toolbar label.options-discarded {
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* A checkbox drawn as a small on/off switch (role="switch"). */
+input[type='checkbox'].toggle {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+input[type='checkbox'].toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s;
+}
+
+input[type='checkbox'].toggle:checked {
+  background: var(--accent);
+}
+
+input[type='checkbox'].toggle:checked::after {
+  transform: translateX(12px);
+  background: #fff;
+}
+
+input[type='checkbox'].toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Kinds, then the city at the right end of the same line. */
+.options-filters {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* City filter: looks like the kinds bar beside it (same background, height and corners), a pin before the name;
+   in the city's tag color once one is chosen. The select stays native (the phone's own picker). */
+.city-filter {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  color: var(--muted);
+}
+
+button.city-filter-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  height: 42px;
+  min-height: 0;
+  padding: 0 10px 0 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-align: left;
+}
+
+.city-filter-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-filter-button > .icon:first-child {
+  color: var(--muted);
+}
+
+.city-filter-button > .icon:last-child {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+/* A city chosen: only its name and the pin take the city's color; background and focus ring stay the bar's. */
+.city-filter.chosen .city-filter-button,
+.city-filter.chosen .city-filter-button > .icon:first-child {
+  color: hsl(var(--hue, 0) 60% 36%);
+}
+
+:root[data-theme='dark'] .city-filter.chosen .city-filter-button,
+:root[data-theme='dark'] .city-filter.chosen .city-filter-button > .icon:first-child {
+  color: hsl(var(--hue, 0) 65% 72%);
+}
+
+.city-filter-button:focus-visible {
+  outline-color: var(--border);
+}
+
+/* The open list: the option dropdown's look, at least as wide as the button. */
+.city-filter-list {
+  left: auto;
+  min-width: max(100%, 180px);
+}
+
+.city-filter-list .option-select-item {
+  gap: 10px;
+  padding: 9px 12px;
+  color: var(--text);
+}
+
+.city-filter-list .option-select-item > .icon:first-child {
+  color: var(--muted);
+}
+
+.city-filter-list .option-select-item > .icon:last-child {
+  margin-left: auto;
+  color: var(--accent-text);
+}
+
+.city-filter-list .option-select-item[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+/* "How the score works · weights": quiet, at the end of the page. */
+.weights-link {
+  text-align: center;
+}
+
+.weights-link button.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.weights-link button.link:hover {
+  color: var(--text);
+}
+
+.weights-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.weights-panel p {
+  margin: 0;
+}
+
+button.options-map-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+button.options-map-toggle.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* Phones (User's choice E from a mock): city, map and add on one line, the kinds as full-width tabs below. */
+.options-phone-bar {
+  display: grid;
+  gap: 6px;
+}
+
+.options-phone-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.options-phone-top .city-filter {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.options-phone-top > button {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  justify-content: center;
+}
+
+.options-phone-top button.options-map-toggle .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.options-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0 -16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.options-tabs button {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 1px;
+  min-height: 0;
+  height: 50px;
+  padding: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.options-tabs button strong {
+  font-size: 0.95rem;
+  line-height: 20px;
+}
+
+.options-tabs button.active {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+
+/* "N discarded hidden · Show" at the end of the list (phones; computers have the checkbox). */
+.discarded-toggle {
+  margin: 0;
+  text-align: center;
+}
+
+.discarded-toggle button.link {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- Options map: the list beside the map (computers) or in a drawer over it (phones) --- */
+
+.options-map-layout {
+  position: relative;
+}
+
+.options-map-pane {
+  position: absolute;
+  inset: 0;
+}
+
+.options-map-pane > div,
+.options-map-pane .map-unavailable {
+  height: 100%;
+}
+
+/* The drawer: dragged by its handle between three stops (OptionsMapView). */
+.options-map-list.card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: var(--drawer-top, 50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -4px 18px rgb(0 0 0 / 0.15);
+  transition: top 0.2s;
+}
+
+.options-map-layout.dragging .options-map-list.card {
+  transition: none;
+}
+
+.options-map-handle {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 14px 6px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.options-map-handle > .small {
+  justify-self: start;
+}
+
+.options-map-grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--border);
+}
+
+.options-map-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 8px;
+}
+
+.options-map-note {
+  margin: 8px 14px 0;
+}
+
+.options-map-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 14px 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.options-map-rows ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.options-map-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.options-map-row.active {
+  background: color-mix(in srgb, var(--star) 16%, var(--surface));
+}
+
+.options-map-row.discarded {
+  opacity: 0.55;
+}
+
+.options-map-thumb {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.options-map-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.options-map-thumb.empty {
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.options-map-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  justify-items: start;
+}
+
+.options-map-name {
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.options-map-side {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: 0.8rem;
+}
+
+.options-map-score {
+  font-weight: 700;
+}
+
+@media (min-width: 960px) {
+  /* List left, map right following the scroll (like the day page). */
+  .options-map-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .options-map-pane {
+    order: 2;
+    position: sticky;
+    top: calc(var(--bar-height) + 16px);
+    inset: auto;
+    margin: 0;
+    height: min(72vh, 720px);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .options-map-list.card {
+    position: static;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .options-map-rows {
+    overflow: visible;
+  }
+
+  .options-map-row:first-child {
+    border-top: none;
+  }
+}
+
+/* Pins: a small dot in the kind's color; bigger with its icon and a card when highlighted.
+   Options not in the itinerary are a little paler. */
+.option-pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.option-pin-dot {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  color: #fff;
+  background: var(--kind-place);
+  transition:
+    width 0.12s,
+    height 0.12s;
+}
+
+.option-pin-dot .icon {
+  display: none;
+}
+
+.option-pin.kind-hotel .option-pin-dot {
+  background: var(--kind-hotel);
+}
+
+.option-pin.kind-restaurant .option-pin-dot {
+  background: var(--kind-restaurant);
+}
+
+.option-pin.kind-shop .option-pin-dot {
+  background: var(--kind-shop);
+}
+
+/* Offline map: an option from Google not found in OpenStreetMap is at Google's position (like the day's dashed pins). */
+.option-pin.approximate .option-pin-dot {
+  border-style: dashed;
+}
+
+.offline-options-map {
+  width: 100%;
+  height: 100%;
+}
+
+.option-pin.faded .option-pin-dot {
+  opacity: 0.8;
+}
+
+.option-pin.discarded .option-pin-dot {
+  opacity: 0.35;
+}
+
+.option-pin.active .option-pin-dot {
+  width: 28px;
+  height: 28px;
+  opacity: 1;
+}
+
+.option-pin.active .option-pin-dot .icon {
+  display: block;
+}
+
+.option-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  translate: -50% 0;
+  width: 210px;
+  display: grid;
+  overflow: hidden;
+  text-align: left;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgb(0 0 0 / 0.22);
+  cursor: pointer;
+}
+
+/* Computers: over the page, outside the map (placed by FloatingTip); the pointer goes through it to the pin. */
+.option-tip.floating {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: auto;
+  translate: none;
+  z-index: 40;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.option-tip-photo {
+  height: 92px;
+}
+
+.option-tip-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.option-tip-text {
+  display: grid;
+  gap: 1px;
+  justify-items: start;
+  padding: 7px 10px 9px;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+/* "Show map" with "All cities": the map waits for a city. */
+.options-map-pick {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.options-map-pick p {
+  margin: 0;
+  color: var(--text);
+}
+
+.options-map-cities {
+  justify-content: center;
+}
+
+.options-map-cities button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+}
+
+.city-dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: hsl(var(--hue, 0) 55% 45%);
 }
 
 .segmented .count {
@@ -3180,6 +4014,7 @@ button.icon-toggle.on {
 
 .choose-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -3190,6 +4025,940 @@ button.icon-toggle.on {
 
 .choose-panel label {
   margin: 0;
+}
+
+/* "Add to day" (restaurants, places, shops): a box of its own, apart from the next option. */
+.choose-row:has(.add-to-day) td {
+  background: none;
+}
+
+.add-to-day {
+  position: relative;
+  max-width: 460px;
+  margin: 4px 0 10px;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  gap: 10px;
+}
+
+.add-to-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.92rem;
+}
+
+.add-to-day-head .icon-button {
+  margin: -4px -6px -4px 0;
+  color: var(--muted);
+}
+
+.add-to-day .row {
+  align-items: stretch;
+}
+
+.add-to-day-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  font-size: 0.85rem;
+}
+
+.add-to-day-links button.link {
+  font-weight: 600;
+}
+
+/* ✓ on a hotel / transport (User's choice 1B, 2026-10-27): the same box, with the dates and the price editable. */
+.add-to-trip .date-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.add-to-trip .date-chip small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.add-to-trip .date-chip input {
+  width: 100%;
+  min-width: 0;
+}
+
+.add-stay-dates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+
+.add-stay-nights {
+  display: grid;
+  justify-items: center;
+  padding-bottom: 6px;
+  font-size: 0.75rem;
+  line-height: 1.1;
+  color: var(--muted);
+}
+
+.add-stay-nights strong {
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.add-trip-price {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.add-trip-price input {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-trip-price select {
+  width: auto;
+}
+
+.add-trip-price .segmented {
+  flex: none;
+}
+
+.add-trip-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.add-trip-footer .primary {
+  min-width: 96px;
+}
+
+/* "Booked" next to "In the itinerary": the same pill, in the ok green with a check. */
+.tag.in-plan.booked {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  color: var(--ok);
+}
+
+.badges > .tag.in-plan.booked,
+.option-details-kicker .tag.booked {
+  margin-left: 0;
+}
+
+/* The note over a sheet's pinned buttons (e.g. deleting an option that is in the itinerary). */
+.sheet-actions-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* Checklist: what the itinerary still needs booked (User's choice 3A + 3C's fold, 2026-10-27). */
+.to-book {
+  margin-bottom: 12px;
+}
+
+.to-book-head {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.to-book .progress {
+  margin: 6px 0 8px;
+}
+
+.to-book-done summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 2px 0 4px;
+}
+
+/* --- Budget page (TripMoney.tsx; User's model and picks from mocks, 2026-10-27) --------------------------
+   Trip money (1A), Book before the trip (2B), Estimates (3C) / Estimated vs spent (5A), the category sheet (4A).
+   Phones: one column (during the trip the estimates come right after Trip money); wide screens: the money on the
+   left (sticky), the estimates on the right. */
+
+@media (max-width: 599px) {
+  .budget-hero {
+    display: none;
+  }
+}
+
+/* The budget column's sections are grids too: without this, something wide widened the whole page on phones. */
+.budget-grid > .section {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .budget-grid {
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  }
+
+  .budget-money {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+/* Phones: Trip money, Book before the trip, Estimates, then the trip costs link; during the trip, estimated vs
+   spent comes right after Trip money. */
+@media (max-width: 899px) {
+  .budget-grid {
+    display: flex;
+    flex-direction: column;
+    /* Every card full width (the shared grid rule aligns them to the start, which shrank Trip money). */
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .budget-grid .trip-costs-link {
+    align-self: flex-start;
+  }
+
+  .budget-grid > .section {
+    display: contents;
+  }
+
+  .budget-grid .trip-money {
+    order: 1;
+  }
+
+  .budget-grid .book-ahead {
+    order: 2;
+  }
+
+  .budget-grid .estimates-card {
+    order: 3;
+  }
+
+  .budget-grid.started .estimates-card {
+    order: 2;
+  }
+
+  .budget-grid.started .book-ahead {
+    order: 3;
+  }
+
+  .budget-grid .trip-costs-link {
+    order: 4;
+  }
+}
+
+.money-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.money-head .link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.trip-money-kicker {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.money-reserve-label {
+  margin: 6px 0 0;
+}
+
+.money-reserve {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--saved);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Paid (green), still to book (gray), spent (purple), estimated (striped), left over (blue), missing (striped amber). */
+.money-bar {
+  display: flex;
+  height: 12px;
+  margin: 10px 0 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.money-bar > span {
+  height: 100%;
+}
+
+.money-bar .paid,
+.money-swatch.paid {
+  background: var(--ok);
+}
+
+.money-bar .unbooked,
+.money-swatch.unbooked {
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
+.money-bar .spent,
+.money-swatch.spent {
+  background: var(--spent);
+}
+
+.money-bar .estimated,
+.money-swatch.estimated {
+  background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--muted) 60%, transparent) 3px 5px);
+}
+
+.money-swatch.estimated {
+  outline: 1px dashed var(--muted);
+  outline-offset: -1px;
+}
+
+.money-bar .free {
+  background: color-mix(in srgb, var(--saved) 35%, transparent);
+}
+
+.money-bar .missing {
+  background: repeating-linear-gradient(135deg, transparent 0 3px, var(--alert) 3px 6px);
+}
+
+.money-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.money-lines {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.money-lines > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.money-lines > li:first-child {
+  border-top: none;
+}
+
+.money-lines > li > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.money-lines > li.money-result {
+  border-top: 2px solid var(--text);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.money-result > span {
+  font-weight: 650;
+}
+
+.money-alert {
+  color: var(--alert);
+  font-weight: 650;
+}
+
+.saved-edit {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+/* An amount and a narrow currency select on one line. */
+.savings-input {
+  display: flex;
+  gap: 8px;
+}
+
+.savings-input input {
+  flex: 1;
+  min-width: 0;
+}
+
+.savings-input select {
+  width: auto;
+  flex: none;
+}
+
+/* Book before the trip */
+.book-ahead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.book-ahead-count {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.money-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.money-items > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border-top: 1px solid var(--border);
+}
+
+.money-items > li.paid .money-item-name {
+  color: var(--muted);
+}
+
+.money-items > li > .num {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.money-item-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.money-item-name > span:not(.muted) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.money-item-name > .muted {
+  flex: none;
+}
+
+/* A quiet text button ("Show the 3 paid"). */
+.link-quiet {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.link-quiet:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.trip-costs-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+/* Estimates / Estimated vs spent: one row per category, in its color (--cat). */
+.estimates-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.estimate-cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.estimate-cat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.estimate-cat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.estimate-cat-name {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.estimate-cat-name > .icon {
+  color: var(--cat);
+}
+
+.estimate-cat-name:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .estimate-cat-name:hover {
+    color: var(--accent-text);
+  }
+}
+
+.estimate-cat-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.estimate-chevron {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  color: var(--muted);
+}
+
+.estimate-chevron.open {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.estimate-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.estimate-bar > span {
+  height: 100%;
+}
+
+.estimate-bar .fill {
+  background: var(--cat);
+}
+
+/* Additional estimates: the same color, striped. */
+.estimate-bar .extra {
+  background: repeating-linear-gradient(135deg, var(--cat) 0 3px, color-mix(in srgb, var(--cat) 45%, transparent) 3px 5px);
+}
+
+.estimate-bar .over {
+  background: var(--alert);
+}
+
+.estimate-cat-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.estimate-cat-status > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.estimate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.estimate-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.estimate-chip.additional {
+  background: none;
+  border: 1px dashed var(--muted);
+}
+
+button.estimate-chip.add {
+  min-height: 0;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  background: none;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+.estimate-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.estimate-table th {
+  padding: 6px 10px 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+}
+
+.estimate-table td {
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.estimate-table td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.estimate-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.estimate-table tr.additional td:first-child::before {
+  content: '+ ';
+  color: var(--accent-text);
+}
+
+.estimate-add {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The category sheet: total, then the itinerary (read-only) and the additional estimates; side by side when wide. */
+.estimate-sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 10px;
+}
+
+.estimate-sheet-total {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.estimate-sheet-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .estimate-sheet-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.estimate-additional {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+
+.estimate-items-title {
+  margin: 0 0 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* One additional estimate: name · amount (with its currency, a tap switches it) · remove. */
+.estimate-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.estimate-item input {
+  width: 100%;
+  min-width: 0;
+}
+
+.estimate-amount {
+  position: relative;
+  display: block;
+}
+
+.estimate-amount input {
+  padding-right: 40px;
+  text-align: right;
+}
+
+.estimate-currency {
+  all: unset;
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+button.estimate-currency {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+/* --- The day's money (DayMoney.tsx): 6A before the trip, 6C + the quick entry (7C) during it ------------- */
+.day-money {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.day-money-cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-money-cats > li {
+  display: grid;
+  grid-template-columns: 20px 84px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+}
+
+.day-money-cats .icon {
+  color: var(--cat);
+}
+
+.day-money-cats .name {
+  font-size: 0.85rem;
+}
+
+.day-money-cats .value {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-money-cats .estimate-bar .fill {
+  background: var(--cat);
+}
+
+.day-money-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.day-money-info > .icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* The quick entry: amount · category + what · add. */
+.spent-entry {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.spent-entry input {
+  width: 100%;
+  min-width: 0;
+}
+
+.spent-what {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.spent-what input {
+  padding-left: 40px;
+}
+
+.spent-category {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  color: var(--cat);
+}
+
+.spent-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spent-categories button {
+  min-height: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.spent-categories button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.spent-list .remove {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  color: var(--muted);
+}
+
+.spent-list .money-item-name {
+  color: var(--text);
+  font-size: inherit;
+}
+
+.spent-text {
+  color: var(--spent);
+}
+/* The days dropdown (`DaySelect`): built on the option dropdown's look. In the box, the open list takes its
+   whole width (the select itself shares a line with Add). */
+.add-to-day .day-select {
+  position: static;
+}
+
+.add-to-day .day-select .option-select-list {
+  top: auto;
+  left: 8px;
+  right: 8px;
+  max-height: min(280px, 45vh);
+  margin-top: 4px;
+}
+
+.day-select button.option-select-button {
+  justify-content: flex-start;
+  min-height: 42px;
+  padding-left: 10px;
+}
+
+/* The calendar stays at the start (only the arrow goes to the right end). */
+.day-select .option-select-button > .icon:first-child {
+  margin-left: 0;
+  color: var(--muted);
+}
+
+.day-select-city {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.day-select .option-select-city {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.day-select-badge {
+  display: grid;
+  justify-items: center;
+  flex: none;
+  width: 38px;
+  padding: 3px 0;
+  border-radius: 7px;
+  background: var(--surface-2);
+  line-height: 1.05;
+}
+
+.day-select-badge span {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-select-badge strong {
+  font-size: 1rem;
+}
+
+.day-select-count {
+  flex: none;
+}
+
+.day-select .option-select-item[aria-selected='true'] {
+  background: var(--accent-soft);
 }
 
 .stars {
@@ -3237,77 +5006,314 @@ button.icon-toggle.on {
   margin-bottom: 4px;
 }
 
-/* --- Logbook ------------------------------------------------------------- */
+/* --- Logbook (User's choice A from a mock, 2026-10-27) -------------------
+   One line of controls (day · Follow · settings sheet), the card of the place you're at (or the nearest one with a
+   compass arrow), then the day as a compact list. */
 
-.logbook-intro {
-  margin: -8px 0 0;
+@media (max-width: 599px) {
+  .logbook-hero {
+    display: none;
+  }
 }
 
-.logbook-controls {
-  display: grid;
+.logbook-bar {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.logbook-controls .row label {
+.logbook-bar {
+  position: relative;
+}
+
+/* The day (choice B): a short button; the open list takes the whole line's width. */
+.logbook-day-picker {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+button.logbook-day-button {
+  width: 100%;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
-  margin: 0;
+  padding: 0 10px 0 12px;
+  font-weight: 600;
+}
+
+.logbook-day-name {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
   white-space: nowrap;
 }
 
-.logbook-stop h2 {
-  margin: 0 0 4px;
+.logbook-day-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: min(60vh, 360px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+
+.logbook-day-list li {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.logbook-day-list li:hover,
+.logbook-day-list li:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.logbook-day-list li[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+.logbook-day-list li[aria-selected='true'] strong {
+  color: var(--accent-text);
+}
+
+.logbook-day-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.logbook-today {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--saved) 22%, transparent);
+  color: var(--saved);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 16px;
+}
+.logbook-bar button {
+  flex: none;
+}
+
+.logbook-follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Following: blue, not the red of an action still to take. */
+.logbook-follow.on {
+  border-color: color-mix(in srgb, var(--saved) 55%, transparent);
+  background: color-mix(in srgb, var(--saved) 18%, transparent);
+  color: var(--saved);
+}
+
+.logbook-kicker {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.logbook-stop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.logbook-stop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
 .logbook-stop.here {
-  border-color: var(--accent);
-  border-width: 2px;
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.logbook-stop.here .logbook-stop-head .logbook-kicker {
+  color: var(--ok);
+}
+
+.logbook-stop-title {
+  margin: 2px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+}
+
+.logbook-gps {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.logbook-gps-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
+}
+
+.logbook-gps.rough .logbook-gps-dot {
+  background: var(--alert);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--alert) 25%, transparent);
+}
+
+.logbook-nearest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.logbook-compass {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  color: var(--saved);
+}
+
+.logbook-compass > span {
+  display: grid;
+}
+
+.logbook-compass small {
+  position: absolute;
+  top: 1px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.logbook-hint {
+  margin: 0;
 }
 
 .logbook-number {
+  flex: none;
   display: inline-grid;
   place-items: center;
-  min-width: 24px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
   padding: 0 4px;
   border-radius: 999px;
   background: var(--accent);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 700;
+}
+
+.logbook-day {
+  padding-bottom: 4px;
 }
 
 .logbook-list {
   list-style: none;
-  margin: 0;
+  margin: 4px 0 0;
   padding: 0;
 }
 
 .logbook-list li {
   border-top: 1px solid var(--border);
-  padding: 8px 0;
 }
 
-.logbook-list li.here .logbook-name {
-  color: var(--accent-text);
+.logbook-list li:first-child {
+  border-top: none;
 }
 
 .logbook-list summary {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 0;
   cursor: pointer;
+  list-style: none;
+}
+
+.logbook-list summary::-webkit-details-marker {
+  display: none;
 }
 
 .logbook-name {
-  font-weight: 650;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+}
+
+.logbook-name > span:first-child {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logbook-distance {
+  flex: none;
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.logbook-list li.visited .logbook-name > span:first-child {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.logbook-list li.visited .logbook-number {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.logbook-list li.here .logbook-number {
+  background: var(--ok);
+  color: #1b1917;
+}
+
+.logbook-list .logbook-details {
+  padding: 0 0 10px 32px;
 }
 
 .logbook-details {
-  padding: 6px 0 0;
+  padding: 4px 0 0;
 }
 
 .logbook-details p {
@@ -3318,11 +5324,150 @@ button.icon-toggle.on {
   white-space: pre-wrap;
 }
 
+.logbook-next {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
 .logbook-next ul {
   margin: 4px 0 0;
   padding-left: 18px;
 }
 
+/* Wide screens: the settings on the bar, the day on the left and the place in focus on the right (sticky). */
+.logbook-inline-settings {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.logbook-inline-settings .segmented button {
+  min-height: 0;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+.logbook-inline-settings label.check {
+  margin: 0;
+  gap: 6px;
+}
+
+.logbook-bar .day-select.detailed {
+  flex: 0 1 380px;
+}
+
+.logbook-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.logbook-focus {
+  position: sticky;
+  top: 12px;
+}
+
+.logbook-rows li > button {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.logbook-rows li > button:hover,
+.logbook-rows li.focus > button {
+  background: var(--surface-2);
+}
+
+.logbook-rows li > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.logbook-stop-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logbook-step {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+}
+
+/* The richer day dropdown (DaySelect detailed): the date as a badge, "date · title · N places" under the day. */
+.day-select.detailed button.option-select-button {
+  min-height: 48px;
+}
+
+.day-select-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  line-height: 1.25;
+}
+.logbook-settings {
+  display: grid;
+  gap: 16px;
+  padding: 12px 0 20px;
+}
+
+.logbook-radius {
+  display: flex;
+}
+
+.logbook-radius button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+.logbook-offline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.logbook-offline > span {
+  flex: 1;
+  display: grid;
+}
+
+.logbook-offline > .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.logbook-about {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.logbook-about .icon {
+  flex: none;
+  margin-top: 2px;
+}
 /* --- Journeys with connections ------------------------------------------- */
 
 .journey-legs {
@@ -3908,6 +6053,14 @@ button.photo-viewer-arrow:hover {
   .options-table .option-actions {
     text-align: left;
   }
+
+  /* A tinted card (chosen, favorite) gets round corners and room around it, not glued to the group's title. */
+  .options-table tr.option-row:is(.status-chosen, .status-favorite) {
+    margin: 10px -4px 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border-bottom-color: transparent;
+  }
 }
 
 /* --- Transport between cities & airline guide ---------------------------- */
@@ -4234,36 +6387,6 @@ button.day-toggle.active {
 
 /* --- Budget -------------------------------------------------------------- */
 
-.budget {
-  display: grid;
-  gap: 6px;
-}
-
-.budget p {
-  margin: 0;
-}
-
-.budget-total {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 4px 12px;
-  font-size: 1.05rem;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.budget-categories {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 4px;
-  font-size: 0.875rem;
-}
-
-.budget-categories li,
 .expense-row {
   display: flex;
   flex-wrap: wrap;
@@ -4333,6 +6456,7 @@ button.day-toggle.active {
 
 .settings-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .danger-zone {
@@ -4671,18 +6795,6 @@ details pre {
   color: var(--text);
 }
 
-/* --- Money set aside (budget page) --------------------------------------- */
-
-.savings-progress {
-  display: grid;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.savings-progress p {
-  margin: 0;
-}
-
 .progress.done > span {
   background: #16a34a;
 }
@@ -4763,6 +6875,46 @@ dialog.sheet::backdrop {
     border: none;
     border-radius: 0;
   }
+
+  /* A short panel rising from the bottom (a few settings): a handle and the title, no ✕. */
+  dialog.sheet.bottom {
+    /* fit-content: a modal dialog is pinned top and bottom, so "auto" would stretch it to full height. */
+    height: fit-content;
+    max-height: 85%;
+    margin: auto 0 0;
+    border-top: 1px solid var(--border);
+    border-radius: 18px 18px 0 0;
+  }
+
+  dialog.sheet.bottom .sheet-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 16px 4px;
+    border-bottom: none;
+  }
+
+  dialog.sheet.bottom .sheet-handle {
+    align-self: center;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+
+  dialog.sheet.bottom .sheet-close {
+    display: none;
+  }
+
+  dialog.sheet.bottom .sheet-body {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 600px) {
+  .sheet-handle {
+    display: none;
+  }
 }
 
 /* One-tap choices that wrap (types of hotel, restaurant…). */
@@ -4811,20 +6963,26 @@ dialog.sheet::backdrop {
     padding: 14px;
   }
 
-  /* Filter chips: one row that scrolls sideways, instead of wrapping into a block. */
-  .options-toolbar .segmented {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    max-width: 100%;
-    scrollbar-width: none;
+  /* Options on a phone, shorter: the map as an icon toggle, no group explanations. */
+  .options-map-toggle-label,
+  .option-group-hint {
+    display: none;
   }
 
-  .options-toolbar .segmented button {
-    flex: none;
+  /* The options map from edge to edge, like the day map. */
+  .options-map-pane {
+    left: -16px;
+    right: -16px;
   }
 
+  .options-map-list.card {
+    left: -16px;
+    right: -16px;
+  }
+
+  /* Not needed on a phone (the maps carry their own attribution). */
   .app-footer {
-    font-size: 0.75rem;
+    display: none;
   }
 }
 
@@ -4860,6 +7018,9 @@ dialog.sheet::backdrop {
   .export-card,
   .expenses > .row,
   .expense-row button,
+  .spent-entry,
+  .spent-categories,
+  .day-money-info,
   .place-chevron,
   .leg-editor,
   .leg-item.empty,
