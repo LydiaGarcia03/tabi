@@ -3,7 +3,8 @@
 // the position in the background.
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { FAKE_GPS_AVAILABLE, getFakeGps, subscribeFakeGps, type FakeGps } from './fakeGps'
+import { useDebugFeatures } from './debug'
+import { getFakeGps, subscribeFakeGps, type FakeGps } from './fakeGps'
 import type { LatLng } from './routing/types'
 
 export interface Position extends LatLng {
@@ -19,10 +20,10 @@ const ERROR_TEXT: Record<number, string> = {
   3: 'Getting your position is taking too long. Still trying…',
 }
 
-/** The fake GPS of `npm run dev` when it is on (see fakeGps.ts), else null. */
+/** The fake GPS of `npm run dev` when it is turned on in Debug features and in its panel (see fakeGps.ts), else null. */
 function useFakeGps(): FakeGps | null {
   const fake = useSyncExternalStore(subscribeFakeGps, getFakeGps)
-  return FAKE_GPS_AVAILABLE && fake?.on ? fake : null
+  return useDebugFeatures().fakeGps && fake?.on ? fake : null
 }
 
 /** Follows the device position while `enabled`. */

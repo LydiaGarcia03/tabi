@@ -1,4 +1,6 @@
+import { DebugSettings } from '../components/debug/DebugSettings'
 import { Icon } from '../components/Icon'
+import { DEBUG_AVAILABLE } from '../debug'
 import { SyncCard } from '../components/SyncCard'
 import { installApp, useInstallState } from '../install'
 import { SettingsPanel } from '../SettingsPanel'
@@ -50,6 +52,7 @@ export function SettingsPage() {
           <a href={href({ page: 'icons' })}>Icons</a>
         </p>
       </section>
+      {DEBUG_AVAILABLE && <DebugSettings />}
     </>
   )
 }

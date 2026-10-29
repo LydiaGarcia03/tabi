@@ -45,7 +45,7 @@ declare global {
 
 let scriptLoading: Promise<GoogleOAuth2> | null = null
 
-function loadGoogleScript(): Promise<GoogleOAuth2> {
+export function loadGoogleScript(): Promise<GoogleOAuth2> {
   if (window.google?.accounts?.oauth2) return Promise.resolve(window.google.accounts.oauth2)
   scriptLoading ??= new Promise<GoogleOAuth2>((resolve, reject) => {
     const script = document.createElement('script')

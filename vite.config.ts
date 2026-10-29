@@ -43,7 +43,19 @@ export default defineConfig({
   // Served from https://lydiagarcia03.github.io/tabi/
   base: '/tabi/',
   // Port 5177 is the one allowed by the Google API key referrer restriction.
-  server: { port: 5177, strictPort: true },
+  server: {
+    port: 5177,
+    strictPort: true,
+    // `npm run dev` only: NAVITIME through this server, so the browser can read RapidAPI's monthly count
+    // (x-ratelimit-requests-*, not exposed to other sites by CORS) for the API usage debug panel.
+    proxy: {
+      '/navitime-api': {
+        target: 'https://navitime-route-totalnavi.p.rapidapi.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/navitime-api/, ''),
+      },
+    },
+  },
   preview: { port: 5177, strictPort: true },
   // The Japanese names dictionary (~660 kB) is a lazily loaded chunk; that's expected.
   build: { chunkSizeWarningLimit: 800 },

@@ -1,9 +1,8 @@
 // Development only (`npm run dev`): a made-up GPS position and compass heading, to test the Logbook on a PC
-// whose location is turned off. Never in the published build (import.meta.env.DEV is false there).
+// whose location is turned off. A debug feature (see debug.ts); never in the published build.
 
+import { DEBUG_AVAILABLE } from './debug'
 import { loadJson, saveJson } from './settings'
-
-export const FAKE_GPS_AVAILABLE = import.meta.env.DEV
 
 export interface FakeGps {
   on: boolean
@@ -18,7 +17,7 @@ export interface FakeGps {
 }
 
 const KEY = 'tabi.fakeGps'
-let state: FakeGps | null = FAKE_GPS_AVAILABLE ? loadJson<FakeGps>(KEY) : null
+let state: FakeGps | null = DEBUG_AVAILABLE ?loadJson<FakeGps>(KEY) : null
 const listeners = new Set<() => void>()
 
 export function getFakeGps(): FakeGps | null {

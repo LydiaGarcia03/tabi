@@ -21,11 +21,9 @@ import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { DayPicker } from '../components/logbook/DayPicker'
 import { GpsStatus, StopCard, StopDetails, type Stop } from '../components/logbook/StopCard'
-import { FakeGpsPanel } from '../components/logbook/FakeGpsPanel'
 import { OfflineMapWarning } from '../components/logbook/OfflineMapWarning'
 import { PlaceThumb } from '../components/logbook/PlaceDetails'
 import { SwipeRow } from '../components/logbook/SwipeRow'
-import { FAKE_GPS_AVAILABLE } from '../fakeGps'
 import { WayMap, type Way } from '../components/logbook/WayMap'
 import { WideDay } from '../components/logbook/WideDay'
 import { NotFound } from './TripPage'
@@ -210,7 +208,6 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
       </div>
 
       {!wide && <OfflineMapWarning tripId={tripId} />}
-      {FAKE_GPS_AVAILABLE && <FakeGpsPanel start={ordered[0]} />}
 
       {stops.length === 0 ? (
         <section className="empty-state">

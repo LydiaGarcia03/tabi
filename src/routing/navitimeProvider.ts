@@ -4,6 +4,7 @@
 // Docs: https://api-sdk.navitime.co.jp/api/specs/api_guide/route_transit.html
 
 import { distanceKm } from '../geo'
+import { recordNavitimeResponse } from '../usage/navitimeUsage'
 import {
   RouteProviderError,
   type LatLng,
@@ -15,7 +16,8 @@ import {
 } from './types'
 
 const HOST = 'navitime-route-totalnavi.p.rapidapi.com'
-const BASE_URL = `https://${HOST}`
+// In `npm run dev`, through the dev server's proxy (vite.config.ts): same origin, so RapidAPI's monthly count can be read.
+const BASE_URL = import.meta.env.DEV ? '/navitime-api' : `https://${HOST}`
 const TIMEOUT_MS = 20_000
 
 // Minimal typing of the parts of the response we read.
@@ -141,10 +143,12 @@ async function send(params: URLSearchParams, apiKey: string): Promise<Response> 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   try {
-    return await fetch(`${BASE_URL}/route_transit?${params}`, {
+    const response = await fetch(`${BASE_URL}/route_transit?${params}`, {
       headers: { 'X-RapidAPI-Key': apiKey, 'X-RapidAPI-Host': HOST },
       signal: controller.signal,
     })
+    recordNavitimeResponse(response)
+    return response
   } catch (error) {
     if (controller.signal.aborted) {
       throw new RouteProviderError('timeout', `No answer after ${TIMEOUT_MS / 1000} s.`)

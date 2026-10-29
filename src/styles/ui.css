@@ -131,6 +131,159 @@ a {
   font-weight: 600;
 }
 
+.app-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+/* --- Debug features (npm run dev only, src/debug.ts) --------------------- */
+
+/* Top-bar buttons, dashed so they never pass for the app's own. */
+.debug-button {
+  border: 1px dashed var(--muted);
+}
+
+.debug-button.active {
+  background: var(--surface-2);
+  color: var(--accent-text);
+}
+
+/* The open tool: a panel in the top-right corner, under the bar, over the page. */
+.debug-popup {
+  position: fixed;
+  z-index: 40;
+  top: calc(var(--bar-height) + 8px);
+  right: 8px;
+  width: min(380px, calc(100vw - 16px));
+  max-height: calc(100dvh - var(--bar-height) - 16px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), 0 8px 28px rgb(0 0 0 / 0.18);
+}
+
+.debug-popup-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.debug-popup-bar .icon-button {
+  margin-left: auto;
+}
+
+.debug-popup-body {
+  padding: 12px 14px 14px;
+  overflow: auto;
+}
+
+.debug-features {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.debug-feature {
+  align-items: flex-start;
+}
+
+.fake-gps-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.fake-gps-body .row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fake-gps-move {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.fake-gps-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-areas: '. n .' 'w . e' '. s .';
+  gap: 4px;
+}
+
+.fake-gps-pad button {
+  min-height: 32px;
+  padding: 0;
+}
+
+.fake-gps-pad button:nth-child(1) { grid-area: n; }
+.fake-gps-pad button:nth-child(2) { grid-area: w; }
+.fake-gps-pad button:nth-child(3) { grid-area: e; }
+.fake-gps-pad button:nth-child(4) { grid-area: s; }
+
+.fake-gps-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fake-gps-field input {
+  width: 80px;
+}
+
+.api-usage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.api-usage-part {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.api-usage-part p {
+  margin: 0;
+}
+
+.api-usage-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.api-usage-table th,
+.api-usage-table td {
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.api-usage-table th:first-child,
+.api-usage-table td:first-child {
+  text-align: left;
+  white-space: normal;
+}
+
+.api-usage-table .warning {
+  color: var(--alert);
+  font-weight: 650;
+}
+
+.api-usage-big {
+  font-size: 1.3rem;
+  font-weight: 750;
+}
+
 /* Reading pages are narrow; the day page (map + list) is wide. */
 /* A column at least as tall as the window: the page grows, so the footer is always at the bottom. */
 .shell {

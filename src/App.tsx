@@ -1,9 +1,11 @@
 import { APIProvider } from '@vis.gl/react-google-maps'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { DebugBar } from './components/debug/DebugBar'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Icon, Logo } from './components/Icon'
 import { formatDate } from './dates'
 import { db } from './db/db'
+import { DEBUG_AVAILABLE } from './debug'
 import { BudgetPage } from './pages/BudgetPage'
 import { DayPage } from './pages/DayPage'
 import { LogbookPage } from './pages/LogbookPage'
@@ -38,9 +40,12 @@ export default function App() {
             Tabi <span lang="ja">旅</span>
           </span>
         </a>
-        <a className="icon-button" href={href({ page: 'settings' })} aria-label="Settings" title="Settings">
-          <Icon name="settings" size={20} />
-        </a>
+        <span className="app-bar-actions">
+          {DEBUG_AVAILABLE && <DebugBar />}
+          <a className="icon-button" href={href({ page: 'settings' })} aria-label="Settings" title="Settings">
+            <Icon name="settings" size={20} />
+          </a>
+        </span>
       </header>
       {!online && (
         <p className="offline-banner small">
