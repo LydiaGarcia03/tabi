@@ -1,14 +1,15 @@
-import { useState, type FormEvent } from 'react'
-import { formatDay } from '../dates'
+import { useId, useState, type FormEvent } from 'react'
+import { addDays, formatDay } from '../dates'
 import { addExpense } from '../db/expenses'
 import type { Day, Expense, Leg, Stay, StayBase, StayKind, Trip, TripOption } from '../db/model'
 import { legTimes } from '../db/legs'
 import { formatTime } from '../format'
-import { addStay, baseIcon, deleteStay, homeOf, routeStays, stayNights, updateStay } from '../db/stays'
+import { addStay, baseIcon, cityGroups, cityNights, deleteStay, groupOf, homeOf, routeStays, stayNights, updateStay } from '../db/stays'
 import { JOURNEY_LABEL, journeyDetails, journeysOnRoute } from '../planning/journeys'
 import { href } from '../router'
 import { JourneyForm } from './BookingForms'
 import { useCityHue } from '../cityColors'
+import { HotelOptionSelect } from './HotelOptionSelect'
 import { Icon, type IconName } from './Icon'
 import { LocateSearch } from './LocateSearch'
 import { Sheet } from './Sheet'
@@ -43,6 +44,8 @@ export function StaysEditor({
   const last = sorted.at(-1)
   // Travel goes city to city along the route; day trips leave from where you sleep and come back.
   const route = routeStays(sorted)
+  // A city with hotel changes is one stop (several stays of the same city in a row).
+  const cities = cityGroups(route)
   const dayTrips = sorted.filter((s) => s.kind === 'day-trip')
   const homes = new Map(dayTrips.map((t) => [t.id, homeOf(sorted, t)]))
   const hotels = options.filter((o) => o.kind === 'hotel')
@@ -68,9 +71,9 @@ export function StaysEditor({
     <section className="card">
       <header className="row between">
         <h2>Cities</h2>
-        {route.length > 0 && (
+        {cities.length > 0 && (
           <span className="muted small">
-            {route.length} {route.length === 1 ? 'city' : 'cities'} · {nightsTotal} {nightsTotal === 1 ? 'night' : 'nights'}
+            {cities.length} {cities.length === 1 ? 'city' : 'cities'} · {nightsTotal} {nightsTotal === 1 ? 'night' : 'nights'}
           </span>
         )}
       </header>
@@ -80,30 +83,30 @@ export function StaysEditor({
 
       {sorted.length > 0 && (
         <ol className="city-route">
-          {route.length > 0 && leg('arrival', undefined, route[0])}
-          {route.map((stay, i) => [
-            <CityItem key={stay.id} stay={stay} stays={sorted} trip={trip} onEdit={() => setEditing({ city: stay })} />,
+          {cities.length > 0 && leg('arrival', undefined, cities[0][0])}
+          {cities.map((group, i) => [
+            <CityItem key={group[0].id} group={group} stays={sorted} trip={trip} onEdit={() => setEditing({ city: group[0] })} />,
             ...dayTrips
-              .filter((t) => homes.get(t.id)?.id === stay.id)
+              .filter((t) => group.some((s) => s.id === homes.get(t.id)?.id))
               .map((t) => (
                 <DayTripItem
                   key={t.id}
                   dayTrip={t}
-                  home={stay}
+                  home={homes.get(t.id)!}
                   stays={sorted}
                   expenses={expenses}
                   planned={plannedInDays(t, days, legs)}
                   onEdit={() => setEditing({ city: t })}
-                  onAddTransport={() => setEditing({ transfer: { from: stay, to: t, roundTrip: true } })}
+                  onAddTransport={() => setEditing({ transfer: { from: homes.get(t.id)!, to: t, roundTrip: true } })}
                 />
               )),
-            leg(`after-${stay.id}`, stay, route[i + 1]),
+            leg(`after-${group[0].id}`, group.at(-1), cities[i + 1]?.[0]),
           ])}
           {/* Day trips with no city to sleep in around them. */}
           {dayTrips
             .filter((t) => !homes.get(t.id))
             .map((t) => (
-              <CityItem key={t.id} stay={t} stays={sorted} trip={trip} onEdit={() => setEditing({ city: t })} />
+              <CityItem key={t.id} group={[t]} stays={sorted} trip={trip} onEdit={() => setEditing({ city: t })} />
             ))}
         </ol>
       )}
@@ -117,6 +120,7 @@ export function StaysEditor({
           <StayForm
             trip={trip}
             stay={editing.city === 'new' ? undefined : editing.city}
+            stays={sorted}
             hotels={hotels}
             defaults={{ startDate: last && last.endDate < trip.endDate ? last.endDate : trip.startDate, endDate: trip.endDate }}
             onDone={close}
@@ -139,9 +143,20 @@ function legLabel({ from, to, roundTrip }: { from?: Stay; to?: Stay; roundTrip?:
 }
 
 /** "Thu 30 Mar – Sun 2 Apr" or "Mon 19 Oct". */
-function dateRange(stay: Stay): string {
-  return stay.endDate === stay.startDate ? formatDay(stay.startDate) : `${formatDay(stay.startDate)} – ${formatDay(stay.endDate)}`
+function dateRange({ startDate, endDate }: Pick<Stay, 'startDate' | 'endDate'>): string {
+  return endDate === startDate ? formatDay(startDate) : `${formatDay(startDate)} – ${formatDay(endDate)}`
 }
+
+/** "5–9 Apr", or "30 Mar – 2 Apr" across months. */
+function shortRange(startDate: string, endDate: string): string {
+  const [from, to] = [new Date(`${startDate}T12:00`), new Date(`${endDate}T12:00`)]
+  const month = (d: Date) => d.toLocaleDateString('en-GB', { month: 'short' })
+  return month(from) === month(to)
+    ? `${from.getDate()}–${to.getDate()} ${month(to)}`
+    : `${from.getDate()} ${month(from)} – ${to.getDate()} ${month(to)}`
+}
+
+const nightsText = (nights: number) => `${nights} ${nights === 1 ? 'night' : 'nights'}`
 
 const BASE_LABEL: Record<NonNullable<StayBase['kind']>, string> = { hotel: 'Hotel', station: 'Station', other: 'Base' }
 
@@ -153,12 +168,27 @@ function EditButton({ label, onClick }: { label: string; onClick: () => void }) 
   )
 }
 
-/** A city on the route: name, dates and nights, base. Its marker carries the city color. */
-function CityItem({ stay, stays, trip, onEdit }: { stay: Stay; stays: Stay[]; trip: Trip; onEdit: () => void }) {
+/** "Hotel: Meander", or "No base set". */
+function BaseLine({ base }: { base?: StayBase }) {
+  return base ? (
+    <>
+      {BASE_LABEL[base.kind ?? 'other']}: <span className="cr-strong">{base.name}</span>
+    </>
+  ) : (
+    <span className="cr-faint">No base set</span>
+  )
+}
+
+/**
+ * A city on the route: name, dates and nights, base. Its marker carries the city color. A city with hotel
+ * changes (User's choice 1 from a mock, 2026-10-29) lists each hotel under it, on small hollow marks of the rail.
+ */
+function CityItem({ group, stays, trip, onEdit }: { group: Stay[]; stays: Stay[]; trip: Trip; onEdit: () => void }) {
+  const stay = group[0]
+  const end = group.at(-1)!.endDate
   const hue = useCityHue(stay.city)
-  const nights = stayNights(stay, trip, stays).nights
-  const note =
-    stay.kind === 'day-trip' ? 'Day trip' : stay.kind === 'stopover' ? 'Stop on the way · no hotel' : `${nights} ${nights === 1 ? 'night' : 'nights'}`
+  const nights = cityNights(stay, trip, stays).nights
+  const note = stay.kind === 'day-trip' ? 'Day trip' : stay.kind === 'stopover' ? 'Stop on the way · no hotel' : nightsText(nights)
   return (
     <li className="cr-item cr-city" style={{ ['--hue' as string]: hue }}>
       <span className="cr-rail">
@@ -167,17 +197,26 @@ function CityItem({ stay, stays, trip, onEdit }: { stay: Stay; stays: Stay[]; tr
       <div className="cr-body">
         <span className="cr-title">{stay.city}</span>
         <span className="cr-meta">
-          {dateRange(stay)} · {note}
+          {dateRange({ startDate: stay.startDate, endDate: end })} · {note}
         </span>
-        <span className="cr-meta">
-          {stay.base ? (
-            <>
-              {BASE_LABEL[stay.base.kind ?? 'other']}: <span className="cr-strong">{stay.base.name}</span>
-            </>
-          ) : (
-            <span className="cr-faint">No base set</span>
-          )}
-        </span>
+        {group.length === 1 ? (
+          <span className="cr-meta">
+            <BaseLine base={stay.base} />
+          </span>
+        ) : (
+          <ul className="cr-bases">
+            {group.map((s) => (
+              <li key={s.id} className="cr-meta">
+                <span>
+                  <BaseLine base={s.base} />
+                </span>
+                <span className="cr-base-dates">
+                  {shortRange(s.startDate, s.endDate)} · {nightsText(stayNights(s, trip, stays).nights)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <EditButton label={`Edit ${stay.city}`} onClick={onEdit} />
     </li>
@@ -384,12 +423,14 @@ const BASE_KINDS: [BaseKind, string][] = [
  * options, or searched by name), a station or anything else (searched).
  */
 function BasePicker({
+  tripId,
   city,
   base,
   hotels,
   region,
   onChange,
 }: {
+  tripId: string
   city: string
   base?: StayBase
   hotels: TripOption[]
@@ -398,6 +439,8 @@ function BasePicker({
   onChange: (base: StayBase | undefined) => void
 }) {
   const [kind, setKind] = useState<BaseKind>(base?.kind ?? (hotels.length > 0 ? 'hotel' : 'station'))
+  // Its own radio group: a city with hotel changes has one picker per hotel.
+  const radioName = useId()
   // The hotel options of this city that are still in the running.
   const cityHotels = hotels.filter(
     (h) => h.status !== 'discarded' && (h.city ?? '').trim().toLowerCase() === city.toLowerCase(),
@@ -433,42 +476,28 @@ function BasePicker({
       {kind === 'hotel' && (
         <div className="base-sources" role="radiogroup" aria-label="Where the hotel comes from">
           <label className="check base-source">
-            <input type="radio" name="hotel-source" checked={source === 'option'} onChange={() => setSource('option')} />
+            <input type="radio" name={radioName} checked={source === 'option'} onChange={() => setSource('option')} />
             From my hotel options
           </label>
           {source === 'option' && (
             <div className="base-source-body">
-              <select
-                value={base?.optionId && cityHotels.some((h) => h.id === base.optionId) ? base.optionId : ''}
-                disabled={cityHotels.length === 0}
-                onChange={(e) => {
-                  const h = cityHotels.find((o) => o.id === e.target.value)
-                  if (h && h.lat != null && h.lng != null) onChange({ name: h.name, lat: h.lat, lng: h.lng, kind: 'hotel', optionId: h.id })
-                }}
-                aria-label="Your hotel options"
-              >
-                {cityHotels.length === 0 ? (
-                  <option value="">— No hotel options for {city || 'this city'} —</option>
-                ) : (
-                  <>
-                    <option value="">Choose one…</option>
-                    {cityHotels.map((h) => (
-                      <option key={h.id} value={h.id} disabled={h.lat == null || h.lng == null}>
-                        {h.status === 'chosen' ? '✓ ' : h.status === 'favorite' ? '★ ' : ''}
-                        {h.name}
-                        {h.lat == null ? ' (no location yet)' : ''}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
+              {cityHotels.length === 0 ? (
+                <p className="muted small">No hotel options for {city || 'this city'} yet.</p>
+              ) : (
+                <HotelOptionSelect
+                  tripId={tripId}
+                  hotels={cityHotels}
+                  selectedId={base?.optionId}
+                  onPick={(h) => onChange({ name: h.name, lat: h.lat!, lng: h.lng!, kind: 'hotel', optionId: h.id })}
+                />
+              )}
               {cityHotels.some((h) => h.lat == null) && (
                 <p className="muted small">Options without a location can't be picked: edit them in Options to find them on the map.</p>
               )}
             </div>
           )}
           <label className="check base-source">
-            <input type="radio" name="hotel-source" checked={source === 'search'} onChange={() => setSource('search')} />
+            <input type="radio" name={radioName} checked={source === 'search'} onChange={() => setSource('search')} />
             Search on the map
           </label>
           {source === 'search' && (
@@ -502,35 +531,85 @@ function BasePicker({
   )
 }
 
+/** One hotel of the city: the first from the city's first day, each next one from the day you move. */
+interface HotelPeriod {
+  /** The stay it is saved in (none yet for a new one). */
+  id?: string
+  /** The day you move in (the first one's is the city's first day). */
+  from: string
+  base?: StayBase
+}
+
 function StayForm({
   trip,
   stay,
+  stays,
   defaults,
   hotels,
   onDone,
 }: {
   trip: Trip
   stay?: Stay
+  /** All the trip's stays: a city with hotel changes is several of them. */
+  stays: Stay[]
   defaults?: { startDate: string; endDate: string }
   /** The trip's hotel options, to pick the base from. */
   hotels: TripOption[]
   onDone: () => void
 }) {
+  const group = stay ? groupOf(stays, stay) : []
   const [city, setCity] = useState(stay?.city ?? '')
   const [startDate, setStartDate] = useState(stay?.startDate ?? defaults?.startDate ?? trip.startDate)
-  const [endDate, setEndDate] = useState(stay?.endDate ?? defaults?.endDate ?? trip.endDate)
-  const [base, setBase] = useState(stay?.base)
+  const [endDate, setEndDate] = useState(group.at(-1)?.endDate ?? defaults?.endDate ?? trip.endDate)
+  const [periods, setPeriods] = useState<HotelPeriod[]>(
+    group.length > 0 ? group.map((s) => ({ id: s.id, from: s.startDate, base: s.base })) : [{ from: '' }],
+  )
   const [kind, setKind] = useState<StayKind>(stay?.kind ?? 'stay')
-  const valid = city.trim() !== '' && !!startDate && !!endDate && endDate >= startDate
+  // Hotel changes only where you sleep.
+  const shown = kind === 'stay' ? periods : periods.slice(0, 1)
+  // Each move is after the previous one, within the city's days.
+  const movesValid = shown.every((p, i) => i === 0 || (p.from > (i === 1 ? startDate : shown[i - 1].from) && p.from <= endDate))
+  const valid = city.trim() !== '' && !!startDate && !!endDate && endDate >= startDate && movesValid
+
+  const setPeriod = (i: number, changes: Partial<HotelPeriod>) => setPeriods((all) => all.map((p, j) => (j === i ? { ...p, ...changes } : p)))
+  const periodEnd = (i: number) => (i + 1 < shown.length ? shown[i + 1].from : endDate)
+  // Nights of each hotel as they would be saved (the next city may start on the last day).
+  const others = stays.filter((s) => !group.some((g) => g.id === s.id))
+  const periodNights = (i: number) => {
+    const draft = shown.map((p, j) => ({ id: `draft-${j}`, tripId: trip.id, city, startDate: j === 0 ? startDate : p.from, endDate: periodEnd(j) }))
+    return stayNights(draft[i], trip, [...others, ...draft]).nights
+  }
+
+  function addMove() {
+    // The day after the last move (or after the first day), within the city.
+    const after = shown.length > 1 ? shown.at(-1)!.from : startDate
+    setPeriods([...shown, { from: after < endDate ? addDays(after, 1) : endDate }])
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
-    const values = { city: city.trim(), startDate, endDate, base, kind: kind === 'stay' ? undefined : kind }
-    if (stay) await updateStay(stay.id, values)
-    else await addStay({ ...values, tripId: trip.id })
+    const common = { city: city.trim(), kind: kind === 'stay' ? undefined : kind }
+    for (const [i, p] of shown.entries()) {
+      const values = { ...common, startDate: i === 0 ? startDate : p.from, endDate: periodEnd(i), base: p.base }
+      if (p.id) await updateStay(p.id, values)
+      else await addStay({ ...values, tripId: trip.id })
+    }
+    // Hotels taken out.
+    for (const s of group) if (!shown.some((p) => p.id === s.id)) await deleteStay(s.id)
     onDone()
   }
+
+  const picker = (i: number) => (
+    <BasePicker
+      tripId={trip.id}
+      city={city.trim()}
+      base={shown[i].base}
+      hotels={hotels}
+      region={trip.countries?.[0]}
+      onChange={(base) => setPeriod(i, { base })}
+    />
+  )
 
   return (
     <form className="expense-form" onSubmit={submit}>
@@ -571,7 +650,54 @@ function StayForm({
         </label>
       </div>
       {kind === 'stay' && <p className="muted small">A travel day can be the last day of one city and the first of the next.</p>}
-      <BasePicker city={city.trim()} base={base} hotels={hotels} region={trip.countries?.[0]} onChange={setBase} />
+      {shown.length === 1 ? (
+        picker(0)
+      ) : (
+        // Hotel changes (User's choice A from a mock, 2026-10-29): one card per hotel, each from the day you move.
+        <div className="field hotel-periods">
+          <span className="field-label">Where you sleep</span>
+          {shown.map((p, i) => (
+            <div key={p.id ?? `new-${i}`} className="hotel-period">
+              <div className="hotel-period-head">
+                {i === 0 ? (
+                  <strong>{shortRange(startDate, periodEnd(0))}</strong>
+                ) : (
+                  <label className="hotel-period-from">
+                    From
+                    <input
+                      type="date"
+                      value={p.from}
+                      min={addDays(i === 1 ? startDate : shown[i - 1].from, 1)}
+                      max={endDate}
+                      onChange={(e) => setPeriod(i, { from: e.target.value })}
+                    />
+                  </label>
+                )}
+                <span className="muted small">{nightsText(periodNights(i))}</span>
+                {i > 0 && (
+                  <button
+                    type="button"
+                    className="ghost icon-button"
+                    aria-label="Remove this hotel change"
+                    title="Remove"
+                    onClick={() => setPeriods(shown.filter((_, j) => j !== i))}
+                  >
+                    <Icon name="close" size={16} />
+                  </button>
+                )}
+              </div>
+              {picker(i)}
+            </div>
+          ))}
+          {!movesValid && <p className="error small">Each move must be after the previous one, within the city's days.</p>}
+        </div>
+      )}
+      {kind === 'stay' && startDate < endDate && (
+        <button type="button" className="link toggle-link" onClick={addMove}>
+          <span>+ Change hotel on another day</span>
+          <span className="muted small">sleep in another hotel of {city.trim() || 'this city'} from a day you choose</span>
+        </button>
+      )}
       <div className="row wrap sheet-actions">
         <button type="submit" className="primary" disabled={!valid}>
           Save city
@@ -584,7 +710,7 @@ function StayForm({
             type="button"
             className="danger-outline"
             onClick={async () => {
-              await deleteStay(stay.id)
+              for (const s of group) await deleteStay(s.id)
               onDone()
             }}
           >

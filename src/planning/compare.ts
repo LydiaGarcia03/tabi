@@ -5,7 +5,7 @@
 import { displayAmount, optionPriced, pricePerPerson, travelersOf } from '../budget'
 import type { OptionKind, Stay, Trip, TripOption } from '../db/model'
 import type { Money } from '../routing/types'
-import { stayNights, stayOfCity } from '../db/stays'
+import { cityNights, stayOfCity } from '../db/stays'
 import { distanceKm } from '../geo'
 
 export interface Weights {
@@ -68,7 +68,8 @@ export function compareOptions(options: TripOption[], trip: Trip, stays: Stay[],
     const route = kind === 'transport' && list[0].journey ? `${list[0].journey.from} → ${list[0].journey.to}` : undefined
     const stay = stayOfCity(stays, city)
     const reference = referencePoint(kind, stay, options, city)
-    const nights = stay ? stayNights(stay, trip, stays).nights : undefined
+    // A city with hotel changes counts all its nights: options compete for the whole city.
+    const nights = stay ? cityNights(stay, trip, stays).nights : undefined
 
     const items: Scored[] = list.map((option) => {
       let total: Money | undefined

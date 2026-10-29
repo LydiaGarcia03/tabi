@@ -118,7 +118,7 @@ export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
 const located = (o: TripOption) => o.lat != null && o.lng != null
 
 /** The option's first photo, or its kind's icon when it has none. */
-function OptionThumb({ option, photo }: { option: TripOption; photo?: Blob }) {
+export function OptionThumb({ option, photo }: { option: TripOption; photo?: Blob }) {
   return <span className="option-thumb">{photo ? <BlobImage image={photo} alt="" /> : <Icon name={KIND_ICON[option.kind]} size={18} />}</span>
 }
 

@@ -4,7 +4,7 @@ import { DaySelect } from '../DaySelect'
 import { daysBetween } from '../../dates'
 import type { Day, Stay, Trip, TripOption } from '../../db/model'
 import { addOptionToDay, addOptionToTrip, removeOptionFromItinerary, updateOption } from '../../db/options'
-import { stayNights, stayOfCity } from '../../db/stays'
+import { cityNights, stayNights, stayOfCity } from '../../db/stays'
 import { travelersOf } from '../../budget'
 import { formatMoney } from '../../format'
 import { type Scored } from '../../planning/compare'
@@ -72,8 +72,10 @@ export function CurrencyPicker({ trip, value, onChange }: { trip: Trip; value: s
  */
 export function AddHotelPanel({ item, trip, stays, onDone }: { item: Scored; trip: Trip; stays: Stay[]; onDone: () => void }) {
   const { option } = item
+  // The nights where it is the base (a city with hotel changes), else the whole city's.
+  const asBase = stays.find((s) => s.base?.optionId === option.id)
   const stay = stayOfCity(stays, option.city)
-  const stayed = stay ? stayNights(stay, trip, stays) : null
+  const stayed = asBase ? stayNights(asBase, trip, stays) : stay ? cityNights(stay, trip, stays) : null
   const [checkIn, setCheckIn] = useState(stayed && stayed.nights > 0 ? stayed.checkIn : '')
   const [checkOut, setCheckOut] = useState(stayed && stayed.nights > 0 ? stayed.checkOut : '')
   const [mode, setMode] = useState<'night' | 'total'>(option.totalPrice || !option.price ? 'total' : 'night')

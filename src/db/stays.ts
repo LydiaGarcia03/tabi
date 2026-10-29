@@ -58,18 +58,59 @@ export function staysOn(stays: Stay[], date: string): Stay[] {
     .sort((a, b) => Number(isDayTrip(b)) - Number(isDayTrip(a)) || a.startDate.localeCompare(b.startDate))
 }
 
+const cityKey = (city: string) => city.trim().toLowerCase()
+const overnight = (stay: Stay) => (stay.kind ?? 'stay') === 'stay'
+
+/** The cities' names once each: a hotel change inside a city is two stays of the same city on that day. */
+const cityNames = (on: Stay[]) => on.map((s) => s.city).filter((c, i, all) => all.findIndex((o) => cityKey(o) === cityKey(c)) === i)
+
 /** "Osaka", "Osaka → Okinawa", "Kyoto · day trip" or "" for a day without a city. */
 export function cityLabel(stays: Stay[], date: string): string {
   const on = staysOn(stays, date)
   const dayTrip = on.find(isDayTrip)
   if (dayTrip) return `${dayTrip.city} · day trip`
-  return on.map((s) => s.city).join(' → ')
+  return cityNames(on).join(' → ')
 }
 
 /** "Osaka", "Osaka → Okinawa", or a day trip's city alone ("· day trip" takes room for nothing in the day dropdowns). */
 export function dayCity(stays: Stay[], date: string): string {
   const on = staysOn(stays, date)
-  return on.find(isDayTrip)?.city ?? on.map((s) => s.city).join(' → ')
+  return on.find(isDayTrip)?.city ?? cityNames(on).join(' → ')
+}
+
+/**
+ * A city with hotel changes is stored as stays of the same city one after the other (each starting the day
+ * the previous one ends), one per hotel: everything per stay (nights, bases, "From base") works unchanged.
+ * These are the trip's overnight stays grouped that way, in order; a city without changes is a group of one.
+ */
+export function cityGroups(stays: Stay[]): Stay[][] {
+  const groups: Stay[][] = []
+  for (const stay of [...stays].sort((a, b) => a.startDate.localeCompare(b.startDate))) {
+    const last = groups.at(-1)?.at(-1)
+    if (last && overnight(last) && overnight(stay) && cityKey(last.city) === cityKey(stay.city) && stay.startDate === last.endDate) {
+      groups.at(-1)!.push(stay)
+    } else {
+      groups.push([stay])
+    }
+  }
+  return groups
+}
+
+/** The stays of the city a stay belongs to: itself, or every hotel of a city with hotel changes. */
+export function groupOf(stays: Stay[], stay: Stay): Stay[] {
+  return cityGroups(stays).find((g) => g.some((s) => s.id === stay.id)) ?? [stay]
+}
+
+/** A day spent between two hotels of the same city: morning in one, night in the other. */
+export function isHotelChange(stays: Stay[], date: string): boolean {
+  return cityGroups(stays).some((g) => g.some((s, i) => i > 0 && s.startDate === date))
+}
+
+/** Hotel nights of a whole city, over its hotel changes: from the first check-in to the last check-out. */
+export function cityNights(stay: Stay, trip: Trip, stays: Stay[]): { checkIn: string; checkOut: string; nights: number } {
+  const group = groupOf(stays, stay)
+  const nights = group.map((s) => stayNights(s, trip, stays))
+  return { checkIn: nights[0].checkIn, checkOut: nights.at(-1)!.checkOut, nights: nights.reduce((sum, n) => sum + n.nights, 0) }
 }
 
 /** The cities travelled through in order (stays and stops): day trips leave from one of them and come back. */

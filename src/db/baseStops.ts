@@ -18,8 +18,15 @@ export type RouteStop = Place & { baseStop?: BaseStop }
 export function dayBases(stays: Stay[], date: string): Stay[] {
   const bases = todaysBases(stays, date)
   const yesterday = addDays(date, -1)
+  const overnight = (s: Stay) => (s.kind ?? 'stay') === 'stay'
+  // A stay that ended yesterday, unless yesterday was a travel day: then the night was already in the next one.
   const lastNight = stays.find(
-    (s) => (s.kind ?? 'stay') === 'stay' && s.base && s.startDate <= yesterday && yesterday <= s.endDate && s.endDate < date,
+    (s) =>
+      overnight(s) &&
+      s.base &&
+      s.startDate <= yesterday &&
+      s.endDate === yesterday &&
+      !stays.some((o) => o.id !== s.id && overnight(o) && o.startDate === yesterday && o.startDate > s.startDate),
   )
   return lastNight && !bases.some((s) => s.id === lastNight.id) ? [lastNight, ...bases] : bases
 }

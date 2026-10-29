@@ -514,6 +514,80 @@ h2 > .city-tag {
   color: var(--text);
 }
 
+/* A city with hotel changes: each hotel on a small hollow mark of the route line, its dates below. */
+.cr-bases {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-bases li {
+  position: relative;
+  display: grid;
+}
+
+.cr-bases li::before {
+  content: '';
+  position: absolute;
+  /* Centered on the line: the rail is 16px wide, then 14px of gap before the body. */
+  left: -26px;
+  top: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid hsl(var(--hue, 0) 40% 48%);
+}
+
+.cr-base-dates {
+  font-size: 0.8rem;
+}
+
+/* The city form's hotel changes: one card per hotel. */
+.hotel-periods {
+  display: grid;
+  gap: 10px;
+}
+
+.hotel-period {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.hotel-period-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hotel-period-head > .muted {
+  margin-left: auto;
+}
+
+.hotel-period-from {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+}
+
+.hotel-period-from input {
+  width: auto;
+  min-width: 0;
+}
+
+/* Inside a card the base picker has no label of its own: the card says which hotel it is. */
+.hotel-period .stay-base > .field-label {
+  display: none;
+}
+
 .cr-faint {
   color: var(--muted);
   font-weight: 400;
@@ -547,6 +621,31 @@ h2 > .city-tag {
 
 .base-source-body p {
   margin: 0;
+}
+
+/* The hotel options dropdown (HotelOptionSelect): the tags under the name. */
+.hotel-select button.option-select-button {
+  min-height: 44px;
+}
+
+/* Scrolling to the end of the list doesn't scroll the sheet under it (which would close the list). */
+.hotel-select .option-select-list {
+  overscroll-behavior: contain;
+}
+
+.hotel-select .option-select-item[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+.hotel-select-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.hotel-select-tags .tag.in-plan.booked {
+  margin-left: 0;
 }
 
 .cr-options {

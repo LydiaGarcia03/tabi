@@ -61,6 +61,18 @@
   gap: 4px;
 }
 
+/* "Hotel change": a quiet tag beside the city, in normal case. */
+.hero-kicker .tag.hotel-change {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
 .day-hero-actions {
   gap: 0;
   margin-right: -8px;

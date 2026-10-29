@@ -9,7 +9,7 @@ import { DrawToolbar } from '../components/DrawToolbar'
 import { DayStrip } from '../components/DayStrip'
 import { CityTag, TripLayout } from '../components/TripLayout'
 import { addBaseStop, baseStopLabel, dayBases, dayRoute, removeBaseStop, setBaseStopStay } from '../db/baseStops'
-import { baseIcon, cityLabel, staysOn } from '../db/stays'
+import { baseIcon, cityLabel, isHotelChange, staysOn } from '../db/stays'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Icon } from '../components/Icon'
 import { LegItem } from '../components/LegItem'
@@ -222,6 +222,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             day={day}
             number={index + 1}
             city={stays ? cityLabel(stays, day.date) : ''}
+            hotelChange={!!stays && isHotelChange(stays, day.date)}
             places={places}
             legs={legs}
             travelers={travelers}
@@ -444,6 +445,7 @@ function DayHeader({
   day,
   number,
   city,
+  hotelChange,
   places,
   legs,
   travelers,
@@ -453,6 +455,8 @@ function DayHeader({
   day: Day
   number: number
   city: string
+  /** Morning in one hotel of the city, night in another. */
+  hotelChange: boolean
   places: Place[]
   legs: Map<string, Leg>
   travelers: number
@@ -477,6 +481,7 @@ function DayHeader({
         <p className="hero-kicker">
           Day {number} · {formatDay(day.date)}
           {city && <CityTag city={city} />}
+          {hotelChange && <span className="tag hotel-change">Hotel change</span>}
         </p>
         <span className="row day-hero-actions">
           <button type="button" className="ghost icon-button" onClick={share} aria-label="Share this day" title="Share">

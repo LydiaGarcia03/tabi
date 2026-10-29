@@ -10,7 +10,7 @@ import { CityTag } from '../TripLayout'
 import { formatDay } from '../../dates'
 import type { Day, OptionStatus, Stay, Trip, TripOption } from '../../db/model'
 import { updateOption } from '../../db/options'
-import { stayNights } from '../../db/stays'
+import { cityNights } from '../../db/stays'
 import { describePriced, optionPriced, pricedTotal, travelersOf } from '../../budget'
 import { formatMoney } from '../../format'
 import { type Group, type Scored } from '../../planning/compare'
@@ -37,7 +37,7 @@ export interface Context {
 
 export function OptionGroup({ group, ...context }: { group: Group } & Context) {
   const { trip, stays } = context
-  const nights = group.kind === 'hotel' && group.stay ? stayNights(group.stay, trip, stays) : null
+  const nights = group.kind === 'hotel' && group.stay ? cityNights(group.stay, trip, stays) : null
   const isTransport = group.kind === 'transport'
   const facts = [
     group.kind === 'hotel' && group.stay && group.stay.kind && group.stay.kind !== 'stay' && 'No night here (day trip or stop on the way)',
