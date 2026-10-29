@@ -270,7 +270,7 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
                   >
                     <details>
                       <summary>
-                        <span className="logbook-number">{stop.place.visited ? <Icon name="check" size={14} /> : stop.number}</span>
+                        <span className="logbook-number">{stop.place.visited ? <Icon name="check" size={14} /> : <span>{stop.number}</span>}</span>
                         <PlaceThumb place={stop.place} />
                         <span className="logbook-name">
                           <span>{stop.place.name}</span>

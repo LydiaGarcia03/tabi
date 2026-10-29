@@ -170,7 +170,9 @@ function StopTitle({ stop }: { stop: Stop }) {
   const [open, setOpen] = useState(false)
   const name = (
     <>
-      <span className="logbook-number">{stop.number}</span> {stop.place.name}
+      <span className="logbook-number">
+        <span>{stop.number}</span>
+      </span> {stop.place.name}
     </>
   )
   if (!found) return <h2 className="logbook-stop-title">{name}</h2>

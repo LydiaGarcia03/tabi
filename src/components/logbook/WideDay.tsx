@@ -63,7 +63,7 @@ export function WideDay({
                 className={[stop === here ? 'here' : stop.place.visited ? 'visited' : '', stop === focus ? 'focus' : ''].join(' ')}
               >
                 <button type="button" aria-current={stop === focus} onClick={() => onFocus(stop.place.id)}>
-                  <span className="logbook-number">{stop.place.visited ? <Icon name="check" size={14} /> : stop.number}</span>
+                  <span className="logbook-number">{stop.place.visited ? <Icon name="check" size={14} /> : <span>{stop.number}</span>}</span>
                   <span className="logbook-name">
                     <span>{stop.place.name}</span>
                     {(stop.place.plannedTime || hours) && (

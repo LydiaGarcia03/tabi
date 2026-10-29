@@ -310,6 +310,12 @@ button.logbook-gps {
   color: #fff;
   font-size: 0.74rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Centered by the digits themselves, not the line box: Windows' Segoe UI has more room above than below. */
+.logbook-number > span {
+  text-box: trim-both cap alphabetic;
 }
 
 .logbook-day {
