@@ -22,6 +22,7 @@ import type { Money } from '../routing/types'
 import { JourneyFields } from './BookingForms'
 import { FaresEditor } from './FaresEditor'
 import { Icon } from './Icon'
+import { CityInput } from './options/CityInput'
 import { LocateSearch } from './LocateSearch'
 import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { PhotoPicker } from './Photos'
@@ -205,12 +206,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
           </label>
           <label>
             City
-            <input value={city} onChange={(e) => setCity(e.target.value)} list="option-cities" placeholder="Osaka" />
-            <datalist id="option-cities">
-              {cities.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            <CityInput value={city} cities={cities} onChange={setCity} />
           </label>
         </div>
       )}

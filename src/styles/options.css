@@ -220,6 +220,37 @@ button.city-filter-button {
   min-width: max(100%, 180px);
 }
 
+/* The option form's City field: the list opens under the field, as wide as it. */
+.city-input {
+  position: relative;
+  display: block;
+}
+
+.city-input > input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.city-input button.city-input-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.city-input .city-filter-list {
+  left: 0;
+  font-weight: normal;
+}
+
 .city-filter-list .option-select-item {
   gap: 10px;
   padding: 9px 12px;
