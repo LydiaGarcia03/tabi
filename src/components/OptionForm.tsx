@@ -343,7 +343,13 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
               near={city || undefined}
               region={trip.countries?.[0]}
               onPick={(p) =>
-                setLocation({ lat: p.lat, lng: p.lng, address: p.address, googlePlaceId: p.googlePlaceId, googleFetchedAt: new Date().toISOString() })
+                setLocation({
+                  lat: p.lat,
+                  lng: p.lng,
+                  address: p.address,
+                  googlePlaceId: p.googlePlaceId,
+                  googleFetchedAt: p.googlePlaceId ? new Date().toISOString() : undefined,
+                })
               }
             />
           )}

@@ -36,16 +36,6 @@ export function subscribeFakeGps(listener: () => void): () => void {
   return () => listeners.delete(listener)
 }
 
-/** "lat, lng", or a Google Maps link (the place's own !3d…!4d… point, else the map centre after @). */
-export function parseLatLng(text: string): { lat: number; lng: number } | null {
-  const match =
-    text.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) ?? text.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) ?? text.match(/(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/)
-  if (!match) return null
-  const lat = Number(match[1])
-  const lng = Number(match[2])
-  return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null
-}
-
 /** Moves a point by metres north (negative = south) and east (negative = west). */
 export function moveBy(p: { lat: number; lng: number }, north: number, east: number): { lat: number; lng: number } {
   const metresPerDegree = 111_320

@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { getFakeGps, moveBy, parseLatLng, setFakeGps, subscribeFakeGps, type FakeGps } from '../../fakeGps'
+import { getFakeGps, moveBy, setFakeGps, subscribeFakeGps, type FakeGps } from '../../fakeGps'
+import { parseCoordinates } from '../../places/coordinates'
 import type { LatLng } from '../../routing/types'
 
 const STEPS = [10, 50, 200]
@@ -28,7 +29,7 @@ export function FakeGpsPanel({ start }: { start?: LatLng }) {
   }, [on])
 
   const place = () => {
-    const point = parseLatLng(text)
+    const point = parseCoordinates(text)
     setBad(!point)
     if (point) {
       update({ ...point, on: true })
