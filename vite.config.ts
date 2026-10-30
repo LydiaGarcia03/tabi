@@ -1,20 +1,26 @@
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// The app's name and version live in app.config.json (bumped by `npm run version:patch|minor`).
+const app = JSON.parse(readFileSync('app.config.json', 'utf8')) as AppConfig
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    // index.html's %APP_NAME% (the tab's title).
+    { name: 'app-config-html', transformIndexHtml: (html) => html.replaceAll('%APP_NAME%', app.name) },
     // Installable app + offline app shell. Trip data is in IndexedDB, so once
     // the shell is cached everything saved is readable without internet.
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Tabi 旅',
-        short_name: 'Tabi',
-        description: 'Plan every step of a trip, and take it offline.',
+        name: `${app.name} ${app.nameJapanese}`,
+        short_name: app.name,
+        description: app.description,
         lang: 'en',
         // Stable identity of the installed app (Chrome uses it to match installs).
         id: '/tabi/',
@@ -50,6 +56,8 @@ export default defineConfig({
   ],
   // Served from https://lydiagarcia03.github.io/tabi/
   base: '/tabi/',
+  // app.config.json, read by the app as __APP__ (name in the top bar, version at the end of Settings).
+  define: { __APP__: JSON.stringify(app) },
   // Port 5177 is the one allowed by the Google API key referrer restriction.
   server: {
     port: 5177,

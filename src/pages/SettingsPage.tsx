@@ -43,16 +43,21 @@ export function SettingsPage() {
       </section>
       <InstallCard />
       <SettingsPanel />
-      <section className="card">
-        <h2>Developer</h2>
-        <p>
-          <a href={href({ page: 'transit-spike' })}>Transit spike (Google vs NAVITIME)</a>
-        </p>
-        <p>
-          <a href={href({ page: 'icons' })}>Icons</a>
-        </p>
-      </section>
-      {DEBUG_AVAILABLE && <DebugSettings />}
+      {DEBUG_AVAILABLE && (
+        <>
+          <section className="card">
+            <h2>Developer</h2>
+            <p>
+              <a href={href({ page: 'transit-spike' })}>Transit spike (Google vs NAVITIME)</a>
+            </p>
+            <p>
+              <a href={href({ page: 'icons' })}>Icons</a>
+            </p>
+          </section>
+          <DebugSettings />
+        </>
+      )}
+      <p className="muted small app-version">v. {__APP__.version}</p>
     </>
   )
 }

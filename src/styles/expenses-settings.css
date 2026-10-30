@@ -65,6 +65,12 @@
   margin-top: 10px;
 }
 
+/* The app's version, at the end of Settings (outside the cards). */
+.app-version {
+  margin: 24px 0 8px;
+  text-align: center;
+}
+
 /* --- Trip settings, export, import --------------------------------------- */
 
 .settings-grid {

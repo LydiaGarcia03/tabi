@@ -9,6 +9,9 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_ACCOUNT?: string
 }
 
+/** The app's name and version, from app.config.json (vite.config.ts `define`). */
+declare const __APP__: AppConfig
+
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }

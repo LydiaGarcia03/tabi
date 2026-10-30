@@ -37,7 +37,7 @@ export default function App() {
         <a className="brand" href={href({ page: 'trips' })}>
           <Logo />
           <span>
-            Tabi <span lang="ja">旅</span>
+            {__APP__.name} <span lang="ja">{__APP__.nameJapanese}</span>
           </span>
         </a>
         <span className="app-bar-actions">
