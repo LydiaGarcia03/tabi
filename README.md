@@ -86,7 +86,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 
 ### And also
 
-- 🌍 **Any destination** — tell it the countries: their currencies come with today's rate, and place searches find those countries first.
+- 🌍 **Made for Japan, ready for anywhere** — Japan gets the extras (NAVITIME routes, station names in English), but any trip works just as well: pick the countries, and their currencies come with today's rate, place searches look there first and Google suggests the public transport.
 - 🏙️ **Cities** — split the trip by city (stays, day trips, stopovers), with a base hotel or station for each.
 - ✈️ **Transport between cities** — flights with connections, shinkansen, buses; fares compared side by side, plus a flight planner and an airline baggage guide (Brazil → Japan, inside Brazil and Japan, and the biggest airlines of the Americas).
 - ✅ **Checklist** — what the itinerary still needs booked (hotels, flights, tickets, tables), plus your own reminders.
