@@ -65,10 +65,16 @@
   margin-top: 10px;
 }
 
-/* The app's version, at the end of Settings (outside the cards). */
+/* The app's version, at the end of Settings (outside the cards). Phones only: from 600px it is in the footer. */
 .app-version {
   margin: 24px 0 8px;
   text-align: center;
+}
+
+@media (min-width: 600px) {
+  .app-version {
+    display: none;
+  }
 }
 
 /* --- Trip settings, export, import --------------------------------------- */
