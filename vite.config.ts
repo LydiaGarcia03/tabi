@@ -22,8 +22,16 @@ export default defineConfig({
         scope: '/tabi/',
         display: 'standalone',
         // Android paints its navigation bar with this (the meta theme-color, which follows dark mode, only covers the top).
+        // With `viewport-fit=cover` (index.html) recent Chrome draws the page under that bar instead, so it shows the
+        // bottom nav in the app's theme; the dark colors below cover Chrome versions that read them, following the phone's mode.
         theme_color: '#f6f1e9',
         background_color: '#f7f5f2',
+        // Not in vite-plugin-pwa's types yet.
+        ...({
+          user_preferences: {
+            color_scheme_dark: { theme_color: '#1b1917', background_color: '#1b1917' },
+          },
+        } as object),
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
