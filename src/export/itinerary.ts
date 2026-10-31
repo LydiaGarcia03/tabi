@@ -10,6 +10,7 @@ import type { TripData } from '../db/tripData'
 import { orderPlaces } from '../db/trips'
 import { MODE_COLOR, MODE_LABEL, segmentColor, formatDistance, formatDuration, formatMoney, formatTime, rideFacts } from '../format'
 import { translateExit } from '../i18n/japaneseNames'
+import { drawnPath } from '../mapLines'
 import { describeWindow, weekdayOf, windowFor } from '../planning/hours'
 import { BOOK_AHEAD_LABEL, BOOKED_LABEL } from '../planning/optionKinds'
 
@@ -69,7 +70,7 @@ export function buildItinerary(data: TripData, dayIds?: string[]): Itinerary {
             name: `${prefix}${label(i - 1)} → ${label(i)} ${MODE_LABEL[segment.mode]}${segment.lineName ? ` · ${segment.lineName}` : ''}`,
             description: segmentText(segment),
             color: toHexColor(segmentColor(segment)) ?? MODE_COLOR[segment.mode],
-            path: segment.path,
+            path: drawnPath(segment),
           })
         })
     })

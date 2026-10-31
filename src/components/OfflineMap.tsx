@@ -7,7 +7,7 @@ import type { Leg, Place, StayBase } from '../db/model'
 import { baseMarkerSvg } from '../db/stays'
 import { drawingPoints, type Drawing, type LegFocus } from '../drawing'
 import { segmentColor } from '../format'
-import { drawWalkDot, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, YOU_LINE, type YouAreHere } from '../mapLines'
+import { drawnPath, drawWalkDot, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, YOU_LINE, type YouAreHere } from '../mapLines'
 import { isCovered } from '../offlineMap/area'
 import { deleteTripMap } from '../offlineMap/download'
 import { matchPlaces, type OsmMatch } from '../offlineMap/match'
@@ -321,7 +321,7 @@ function OfflineDayMap({
         if (!drawing) features.push(line([from, to], { style: 'undefined' }))
         continue
       }
-      for (const s of drawn) features.push(line(s.path, { style: s.mode === 'walk' ? 'walk' : 'solid', color: segmentColor(s) }))
+      for (const s of drawn) features.push(line(drawnPath(s), { style: s.mode === 'walk' ? 'walk' : 'solid', color: segmentColor(s) }))
     }
     source.setData({ type: 'FeatureCollection', features })
     // eslint-disable-next-line react-hooks/exhaustive-deps

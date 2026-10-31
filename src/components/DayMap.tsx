@@ -5,7 +5,7 @@ import { baseMarkerSvg } from '../db/stays'
 import type { Leg, Place, Stay } from '../db/model'
 import { drawingPoints, type Drawing, type LegFocus } from '../drawing'
 import { segmentColor } from '../format'
-import { placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, WALK_DOT_OUTER, YOU_LINE, type YouAreHere } from '../mapLines'
+import { drawnPath, placePinSvg, SOLID_LINE, UNDEFINED_LINE, WALK_DOT, WALK_DOT_OUTER, YOU_LINE, type YouAreHere } from '../mapLines'
 import type { LatLng } from '../routing/types'
 import { useIsDark } from '../theme'
 
@@ -120,7 +120,7 @@ function LegLines({
         lines.push(
           segment.mode === 'walk'
             ? walkingLine(map, segment.path, color)
-            : solidLine(map, segment.path, color),
+            : solidLine(map, drawnPath(segment), color),
         )
       }
     }

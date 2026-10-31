@@ -240,11 +240,16 @@ function toOption(item: NtRoute): RouteOption {
 
 /**
  * Gives each move section its piece(s) of the route geometry. Pieces come in
- * route order, tagged walk/transport; consecutive pieces of the same kind
- * belong to one section until the path reaches that section's end point.
- * A piece starting far from where the section is belongs to a later section
- * (a short transfer walk often has no piece of its own). A section without a
- * matching piece gets null (drawn as a straight line).
+ * route order, tagged walk/transport. For each section, the first piece of its
+ * kind starting near where the section starts (looking a few pieces ahead) is
+ * taken, then the pieces of the same kind that follow on from it, until the
+ * path reaches the section's end point. A section without a matching piece
+ * gets null (drawn through its stations, else straight: `drawnPath`).
+ *
+ * Before 2026-10-31 a section could only take the very next piece: one piece
+ * that didn't match (a station point more than 500 m from where its track
+ * starts, in big stations like Osaka or Kyoto) stopped the matching, and every
+ * later step of the route was drawn as a straight line.
  */
 function assignShapes(moves: NtMoveWithPoints[], features: NtShapeFeature[]) {
   const pieces = features.flatMap((feature) =>
@@ -259,24 +264,43 @@ function assignShapes(moves: NtMoveWithPoints[], features: NtShapeFeature[]) {
   let next = 0
   return moves.map(({ section, from, to }) => {
     const walk = section.move === 'walk'
+    const gap = walk ? WALK_GAP_KM : RIDE_GAP_KM
+    const start = from?.coord && toLatLng(from.coord)
+    const end = to?.coord && toLatLng(to.coord)
+    // The first piece of this kind, from where the last section stopped, that starts near this section.
+    let first = -1
+    for (let i = next; i < Math.min(pieces.length, next + LOOK_AHEAD); i++) {
+      if (pieces[i].walk === walk && (!start || distanceKm(start, pieces[i].path[0]) <= gap)) {
+        first = i
+        break
+      }
+    }
+    if (first < 0) return null
     const path: LatLng[] = []
     let color: string | undefined
-    let at = from?.coord && toLatLng(from.coord)
-    while (next < pieces.length && pieces[next].walk === walk) {
-      const piece = pieces[next]
-      if (at && distanceKm(at, piece.path[0]) > PIECE_GAP_KM) break
+    let i = first
+    while (i < pieces.length && pieces[i].walk === walk) {
+      const piece = pieces[i]
+      const at = path.at(-1)
+      // A piece far from where the path is belongs to a later section of the same kind.
+      if (at && distanceKm(at, piece.path[0]) > gap) break
       path.push(...piece.path)
       color ??= piece.color
-      next++
-      at = path.at(-1)
-      if (to?.coord && at && distanceKm(at, toLatLng(to.coord)) < PIECE_GAP_KM) break
+      i++
+      const reached = path.at(-1)
+      if (end && reached && distanceKm(reached, end) < gap) break
     }
+    next = i
     return path.length > 1 ? { path, color } : null
   })
 }
 
-/** Station points can be a few hundred meters from where a track or an exit's walk starts. */
-const PIECE_GAP_KM = 0.5
+/** A walk's piece starts where the place or the station exit is. */
+const WALK_GAP_KM = 0.5
+/** A station's point can be far from where its tracks start (Osaka, Kyoto, Umeda are huge). */
+const RIDE_GAP_KM = 1.5
+/** How many pieces ahead a section may look for its own (skipping ones no section took). */
+const LOOK_AHEAD = 6
 
 /** "Y" + "15" → "Y15"; the first number when a station has several on one line. */
 function stationCode(numbers: NtNumber[] | undefined): string | undefined {

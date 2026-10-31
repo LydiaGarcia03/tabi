@@ -7,6 +7,7 @@ import { legKey } from '../../db/legs'
 import type { Leg, Place, StayBase } from '../../db/model'
 import type { LegFocus } from '../../drawing'
 import { distanceKm } from '../../geo'
+import { drawnPath } from '../../mapLines'
 import { formatDistance, type Position } from '../../location'
 import { useOnline } from '../../useOnline'
 import { DayMap } from '../DayMap'
@@ -66,7 +67,7 @@ export function WayMap({
   const focus: LegFocus = {
     fromId: from?.id ?? to.id,
     toId: to.id,
-    points: [...(from ? [from] : []), to, ...(leg?.segments.flatMap((s) => s.path) ?? []), ...(position ? [position] : [])],
+    points: [...(from ? [from] : []), to, ...(leg?.segments.flatMap(drawnPath) ?? []), ...(position ? [position] : [])],
   }
   const mapProps = {
     places,

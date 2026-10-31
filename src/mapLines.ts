@@ -1,7 +1,7 @@
 // How legs and place pins look on both maps (Google and offline), so they match exactly.
 
 import { MODE_COLOR } from './format'
-import type { LatLng } from './routing/types'
+import type { LatLng, RouteSegment } from './routing/types'
 
 /**
  * Walking: round dots in the segment color with a white rim and a soft dark
@@ -21,6 +21,20 @@ export const WALK_DOT = {
 
 /** Outer radius of a walking dot, edge included. */
 export const WALK_DOT_OUTER = WALK_DOT.radius + WALK_DOT.rim / 2 + WALK_DOT.shadow
+
+/**
+ * The line to draw for a step. A ride whose route shape didn't come with it (only its two ends: the provider's
+ * shape pieces didn't match, or there were none) is drawn through the stations it passes, when they are known
+ * (NAVITIME's stops on the way): close to the tracks, unlike a straight line from end to end.
+ */
+export function drawnPath(segment: Pick<RouteSegment, 'mode' | 'path' | 'fromCoord' | 'toCoord' | 'intermediateStops'>): LatLng[] {
+  if (segment.mode === 'walk' || segment.path.length > 2) return segment.path
+  const stations = (segment.intermediateStops ?? []).flatMap((stop) => (stop.coord ? [stop.coord] : []))
+  const start = segment.path[0] ?? segment.fromCoord
+  const end = segment.path.at(-1) ?? segment.toCoord
+  if (stations.length === 0 || !start || !end) return segment.path
+  return [start, ...stations, end]
+}
 
 /** Transit (bus, train…): a solid line in the line's color. */
 export const SOLID_LINE = { width: 5, opacity: 0.9 }

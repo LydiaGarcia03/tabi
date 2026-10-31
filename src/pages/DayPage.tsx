@@ -33,6 +33,7 @@ import { clockTime, sunSlots, sunTimes } from '../planning/sun'
 import { utcOffsetAt } from '../data/countries'
 import { useClimate } from '../weather/climate'
 import { lateRide, type LateRide } from '../planning/lateRide'
+import { drawnPath } from '../mapLines'
 import { holidayKind, useTripHolidays, type DayHoliday } from '../holidays/holidays'
 import { InfoTip } from '../components/InfoTip'
 import { dayRides, passCoverage, PassCoverageContext } from '../planning/railPasses'
@@ -169,7 +170,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
       ? {
           fromId: focusFrom.id,
           toId: focusTo.id,
-          points: [focusFrom, focusTo, ...(legs.get(focusKey)?.segments.flatMap((s) => s.path) ?? [])],
+          points: [focusFrom, focusTo, ...(legs.get(focusKey)?.segments.flatMap(drawnPath) ?? [])],
         }
       : undefined
 
