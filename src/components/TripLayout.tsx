@@ -6,6 +6,7 @@ import { db } from '../db/db'
 import type { Trip } from '../db/model'
 import { cityLabel, staysOn } from '../db/stays'
 import { useTripHolidays } from '../holidays/holidays'
+import { useFillLocalNames } from '../places/fillLocalNames'
 import { href } from '../router'
 import { useOnline } from '../useOnline'
 import { Icon, type IconName } from './Icon'
@@ -34,7 +35,10 @@ export function TripLayout({ trip, active, children }: Props) {
   const days = useLiveQuery(() => db.days.where('tripId').equals(trip.id).sortBy('date'), [trip.id])
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(trip.id).toArray(), [trip.id])
   const places = useLiveQuery(() => db.places.where('tripId').equals(trip.id).toArray(), [trip.id])
-  const holidays = useTripHolidays(trip, days, places, stays, useOnline())
+  const online = useOnline()
+  const holidays = useTripHolidays(trip, days, places, stays, online)
+  // The driver card's local address and name, got ahead for every place (no wait when the card opens).
+  useFillLocalNames(trip, places, stays, online)
   // The trip's cities get distinct colors in visiting order.
   const hues = useMemo(() => cityHueMap(stays ?? []), [stays])
   const section = typeof active === 'string' ? active : 'itinerary'

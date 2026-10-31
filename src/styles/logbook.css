@@ -450,25 +450,41 @@ button.logbook-gps {
   top: 12px;
 }
 
-.logbook-rows .swipe-content > button {
+/* The row (a click puts the place in focus) and, beside it, the driver card's button: one highlight for both. */
+.logbook-rows .swipe-content {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+}
+
+.logbook-rows .swipe-content:hover,
+.logbook-rows li.focus .swipe-content {
+  background: var(--surface-2);
+}
+
+.logbook-rows .swipe-content .driver-card-button {
+  margin-right: 4px;
+}
+
+.logbook-rows .swipe-content .driver-card-button:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.logbook-rows .swipe-content > .logbook-row-main {
   all: unset;
   box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
   min-height: 52px;
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
-.logbook-rows .swipe-content > button:hover,
-.logbook-rows li.focus .swipe-content > button {
-  background: var(--surface-2);
-}
-
-.logbook-rows .swipe-content > button:focus-visible {
+.logbook-rows .swipe-content > .logbook-row-main:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
@@ -740,4 +756,193 @@ button.logbook-thumb {
 .logbook-swipe-hint {
   margin: 6px 0 0;
   text-align: center;
+}
+
+/* --- Driver card (User's choice 5b-B, 2026-10-31) --------------------------- */
+
+.driver-card-button {
+  flex: none;
+  color: var(--muted);
+}
+
+.driver-card-button:hover {
+  color: var(--text);
+}
+
+/* "Base" (tonight's hotel) under the day's list, apart from it: a dashed block like the day page's base rows. */
+.logbook-base-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 6px 4px 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.logbook-base-row .base-stop-icon {
+  flex: none;
+}
+
+.logbook-base-row > span:not(.base-stop-icon) {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Computers: a window in the middle of the screen over a dimmed page (User: not the whole page there). */
+.driver-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(25 20 15 / 0.55);
+}
+
+/* Black on white in both themes: what reads best held up to a driver. */
+.driver-card {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  padding: 14px 22px 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+  background: #ffffff;
+  color: #111111;
+  overflow: auto;
+}
+
+.driver-card .driver-card-body {
+  min-height: 260px;
+}
+
+/* Phones (touch, no hover): the whole screen, meant to be held sideways. */
+@media (hover: none) {
+  .driver-card-backdrop {
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .driver-card {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    padding: max(12px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+      max(20px, env(safe-area-inset-left));
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+.driver-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #77706a;
+  font-size: 0.9rem;
+}
+
+.driver-card-top > span {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The card is white in both themes: its buttons use the light theme's quiet look (the dark one's hover showed a
+   dark box on it). */
+.driver-card-top button {
+  min-height: 0;
+  border: 0;
+  background: none;
+  color: #6f665c;
+}
+
+.driver-card-top button:hover:not(:disabled) {
+  background: #f0e9de;
+  color: #1f1b17;
+}
+
+/* "Edit" in the app's red, like its other text links (the light theme's accent: the card is always white). */
+.driver-card-top button.driver-card-edit {
+  color: #9c2a26;
+}
+
+.driver-card-top button.driver-card-edit:hover:not(:disabled) {
+  background: #f6e2de;
+  color: #9c2a26;
+}
+
+.driver-card-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.driver-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.driver-card-body p {
+  margin: 0;
+}
+
+.driver-card-address {
+  font-size: clamp(1.8rem, 6.5vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.driver-card-name {
+  margin-top: 14px !important;
+  font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+  font-weight: 700;
+}
+
+/* On the phone's whole screen, held sideways: as big as it fits. */
+@media (hover: none) {
+  .driver-card-address {
+    font-size: clamp(1.8rem, 6.5vw, 3.6rem);
+  }
+
+  .driver-card-name {
+    font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+  }
+}
+
+.driver-card-reading {
+  color: #8a8378;
+  font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+}
+
+.driver-card-hint {
+  margin-top: 18px;
+  color: #9c2a26;
+}
+
+.driver-card-form {
+  display: grid;
+  gap: 12px;
+  width: min(560px, 100%);
+  margin: 12px auto 0;
+  color: var(--text);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.driver-card-form p {
+  margin: 0;
 }

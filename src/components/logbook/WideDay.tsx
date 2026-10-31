@@ -4,6 +4,7 @@ import { distanceKm } from '../../geo'
 import { compassDirection, formatDistance, type Position } from '../../location'
 import type { Place } from '../../db/model'
 import { Icon } from '../Icon'
+import { DriverCardButton } from '../DriverCard'
 import { StopCard, type Stop } from './StopCard'
 import { SwipeRow } from './SwipeRow'
 
@@ -24,9 +25,12 @@ export function WideDay({
   error,
   radius,
   wayMap,
+  baseRow,
 }: {
   /** The map of the way to the place in focus, under its card. */
   wayMap?: ReactNode
+  /** "Back to base" at the end of the list, with its driver card. */
+  baseRow?: ReactNode
   stops: Stop[]
   focus: Stop
   onFocus: (placeId: string) => void
@@ -62,7 +66,7 @@ export function WideDay({
                 onToggle={() => onToggleVisited(stop.place)}
                 className={[stop === here ? 'here' : stop.place.visited ? 'visited' : '', stop === focus ? 'focus' : ''].join(' ')}
               >
-                <button type="button" aria-current={stop === focus} onClick={() => onFocus(stop.place.id)}>
+                <button type="button" className="logbook-row-main" aria-current={stop === focus} onClick={() => onFocus(stop.place.id)}>
                   <span className="logbook-number">{stop.place.visited ? <Icon name="check" size={14} /> : <span>{stop.number}</span>}</span>
                   <span className="logbook-name">
                     <span>{stop.place.name}</span>
@@ -76,10 +80,12 @@ export function WideDay({
                     </span>
                   )}
                 </button>
+                <DriverCardButton place={stop.place} />
               </SwipeRow>
             )
           })}
         </ol>
+        {baseRow}
         <p className="muted small logbook-swipe-hint">Drag a place to the right when you've visited it (again to untick).</p>
       </section>
       <div className="logbook-focus">

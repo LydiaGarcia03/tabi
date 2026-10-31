@@ -34,6 +34,16 @@ export async function fetchPlace(googlePlaceId: string): Promise<PlaceResult | n
   return toResult(place)
 }
 
+/**
+ * A place's name and address in another language (the local one, for the driver card): one request, the same
+ * fields as adding a place, only on an explicit tap.
+ */
+export async function fetchLocalNames(googlePlaceId: string, language: string): Promise<{ name?: string; address?: string }> {
+  const { Place } = await placesLibrary()
+  const { place } = await new Place({ id: googlePlaceId, requestedLanguage: language }).fetchFields({ fields: ['displayName', 'formattedAddress'] })
+  return { name: place.displayName ?? undefined, address: place.formattedAddress ?? undefined }
+}
+
 async function placesLibrary(): Promise<google.maps.PlacesLibrary> {
   if (typeof google === 'undefined' || !google.maps?.importLibrary) {
     throw new Error('Google Maps is not loaded (is the API key set?).')

@@ -3,11 +3,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { travelersOf } from '../budget'
 import { TripLayout } from '../components/TripLayout'
 import { today } from '../dates'
-import { dayRoute, type RouteStop } from '../db/baseStops'
+import { dayBases, dayRoute, type RouteStop } from '../db/baseStops'
+import { DriverCardButton } from '../components/DriverCard'
+import { DriverCardContext } from '../places/localNames'
+import { useOnline } from '../useOnline'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import type { Day, Place } from '../db/model'
-import { staysOn } from '../db/stays'
+import { baseIcon, staysOn } from '../db/stays'
 import { updatePlace } from '../db/trips'
 import { DaySelect } from '../components/DaySelect'
 import { Icon } from '../components/Icon'
@@ -70,6 +73,7 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
   }
 
   const { position, error } = useWatchPosition(tracking)
+  const online = useOnline()
   useWakeLock(tracking && settings.keepScreenOn)
 
   // Today when the trip is on, otherwise the first day with places.
@@ -142,8 +146,22 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
   const cardWay = card && wayOf(card, card === here)
   const wideFocus = stops.find((s) => s.place.id === focusId) ?? here ?? nearest ?? stops[0]
   const wideWay = wideFocus && wayOf(wideFocus, wideFocus === here)
+  // Tonight's hotel (or station), with its driver card, at the end of the day's list.
+  const nightBase = day ? dayBases(stays, day.date).at(-1) : undefined
+  const baseRow = nightBase?.base && (
+    <div className="logbook-base-row">
+      <span className="base-stop-icon" aria-hidden="true">
+        <Icon name={baseIcon(nightBase.base)} size={18} />
+      </span>
+      <span>
+        <strong className="small">Base</strong> <span className="muted small">{nightBase.base.name}</span>
+      </span>
+      <DriverCardButton stay={nightBase} />
+    </div>
+  )
 
   return (
+    <DriverCardContext.Provider value={{ countries: trip.countries ?? [], online }}>
     <TripLayout trip={trip} active="logbook">
       {/* Phones: no title (the bottom bar says where you are), like Options and Budget. */}
       <header className="hero logbook-hero">
@@ -228,6 +246,7 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
           position={position}
           error={error}
           radius={settings.radius}
+          baseRow={baseRow}
         />
       ) : (
         <>
@@ -281,6 +300,7 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
                             {formatDistance(m)} {m >= settings.radius && compassDirection(position!, stop.place)}
                           </span>
                         )}
+                        <DriverCardButton place={stop.place} />
                       </summary>
                       <StopDetails stop={stop} date={day!.date} travelers={travelers} />
                     </details>
@@ -288,6 +308,7 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
                 )
               })}
             </ol>
+            {baseRow}
             {!swipeLearned && <p className="muted small logbook-swipe-hint">Swipe a place to the right when you've visited it (again to untick).</p>}
           </section>
         </>
@@ -338,6 +359,7 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
         </Sheet>
       )}
     </TripLayout>
+    </DriverCardContext.Provider>
   )
 }
 

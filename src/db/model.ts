@@ -114,6 +114,19 @@ export interface StayBase {
   kind?: 'hotel' | 'station' | 'other'
   /** The hotel option it was picked from, if any. */
   optionId?: string
+  /** Its name and address in the local language, for the driver card. */
+  local?: LocalNames
+}
+
+/**
+ * A place's name and address in the local language, and how they read (romaji, transliteration), shown on the
+ * "show to the driver" card (User's choice 5b-B from a mock, 2026-10-31).
+ */
+export interface LocalNames {
+  name?: string
+  nameReading?: string
+  address?: string
+  addressReading?: string
 }
 
 export type OptionKind = 'hotel' | 'restaurant' | 'place' | 'shop' | 'transport'
@@ -249,6 +262,8 @@ export interface Place {
   /** Google place_id, when the place came from Google (may be stored indefinitely). */
   googlePlaceId?: string
   address?: string
+  /** Its name and address in the local language, for the driver card. */
+  local?: LocalNames
   /** When the Google-provided details (address, coordinates) were last fetched. */
   googleFetchedAt?: string
   /** Free text (markdown): history, tickets, opening hours, tips. */

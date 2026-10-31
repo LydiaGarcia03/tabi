@@ -6,6 +6,7 @@ import { baseIcon } from '../../db/stays'
 import { Icon } from '../Icon'
 import { Sheet } from '../Sheet'
 import { useFromOption } from '../../places/useFromOption'
+import { DriverCardButton } from '../DriverCard'
 import { PlaceDetailsSheet } from './PlaceDetails'
 import { hoursText, segmentText } from '../../export/itinerary'
 import { distanceKm } from '../../geo'
@@ -119,6 +120,7 @@ export function StopCard({
         </p>
         <span className="logbook-stop-tools">
           {position || error ? <GpsStatus position={position} error={error} radius={radius} /> : null}
+          <DriverCardButton place={stop.place} />
           {(onPrev || onNext) && (
             <>
               <button type="button" className="icon-button logbook-step" aria-label="Previous place" disabled={!onPrev} onClick={onPrev}>
