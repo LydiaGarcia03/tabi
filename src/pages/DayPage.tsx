@@ -21,7 +21,7 @@ import { formatDay } from '../dates'
 import { db } from '../db/db'
 import { dayWalking, legKey, legTimes } from '../db/legs'
 import { formatDistance, formatTime } from '../format'
-import type { BaseStop, Day, Leg, Place, Stay } from '../db/model'
+import type { BaseStop, Day, Leg, Place, Stay, Trip } from '../db/model'
 import { addPlace, applyDayOrder, orderPlaces, updateDay } from '../db/trips'
 import type { Drawing, LegFocus } from '../drawing'
 import { dayText, shareText } from '../export/shareText'
@@ -32,6 +32,8 @@ import { timeConflict } from '../planning/hours'
 import { clockTime, sunSlots, sunTimes } from '../planning/sun'
 import { utcOffsetAt } from '../data/countries'
 import { useClimate } from '../weather/climate'
+import { holidayKind, useTripHolidays, type DayHoliday } from '../holidays/holidays'
+import { InfoTip } from '../components/InfoTip'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { useDraft } from '../useDraft'
@@ -76,6 +78,9 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   }
   const mapStatus = useApiLoadingStatus()
   const online = useOnline()
+  // The day's holidays (regional ones are matched by the addresses of all the trip's places).
+  const tripPlaces = useLiveQuery(() => db.places.where('tripId').equals(tripId).toArray(), [tripId])
+  const holidays = useTripHolidays(trip, days, tripPlaces, stays, online)
   useRefreshStalePlaces(dayPlaces)
   const { listRef, draggingId, order, handleProps } = useReorder(
     day && dayPlaces ? orderPlaces(day, dayPlaces).map((p) => p.id) : [],
@@ -241,6 +246,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             hotelChange={!!stays && isHotelChange(stays, day.date)}
             point={dayPoint}
             online={online}
+            trip={trip}
+            holidays={holidays?.byDay.get(day.id) ?? []}
             places={places}
             legs={legs}
             travelers={travelers}
@@ -480,6 +487,8 @@ function DayHeader({
   hotelChange,
   point,
   online,
+  trip,
+  holidays,
   places,
   legs,
   travelers,
@@ -494,6 +503,9 @@ function DayHeader({
   /** Where the day is spent, for its usual weather. */
   point?: { lat: number; lng: number }
   online: boolean
+  trip: Trip
+  /** Days off there that day. */
+  holidays: DayHoliday[]
   places: Place[]
   legs: Map<string, Leg>
   travelers: number
@@ -549,6 +561,16 @@ function DayHeader({
         placeholder="Add a title (e.g. Asakusa and Ueno)"
         aria-label="Day title"
       />
+      {holidays.map((h) => (
+        // "Showa Day · National holiday", with an "i" about the busy week it falls in (Golden Week…).
+        <p key={h.name} className="day-holiday">
+          <Icon name="flag" size={14} />
+          <span>
+            <strong>{h.name}</strong> · {holidayKind(h, trip)}
+          </span>
+          {h.note && <InfoTip label="About this holiday week">{h.note}</InfoTip>}
+        </p>
+      ))}
       {climate && (
         // Only the symbols (User): a mouse shows what they are on hover, a tap on a phone shows it below.
         <button

@@ -5,7 +5,9 @@ import { dateParts } from '../dates'
 import { db } from '../db/db'
 import type { Trip } from '../db/model'
 import { cityLabel, staysOn } from '../db/stays'
+import { useTripHolidays } from '../holidays/holidays'
 import { href } from '../router'
+import { useOnline } from '../useOnline'
 import { Icon, type IconName } from './Icon'
 
 export type TripSection = 'itinerary' | 'logbook' | 'options' | 'budget'
@@ -31,6 +33,8 @@ const SECTIONS: { id: TripSection; label: string; icon: IconName }[] = [
 export function TripLayout({ trip, active, children }: Props) {
   const days = useLiveQuery(() => db.days.where('tripId').equals(trip.id).sortBy('date'), [trip.id])
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(trip.id).toArray(), [trip.id])
+  const places = useLiveQuery(() => db.places.where('tripId').equals(trip.id).toArray(), [trip.id])
+  const holidays = useTripHolidays(trip, days, places, stays, useOnline())
   // The trip's cities get distinct colors in visiting order.
   const hues = useMemo(() => cityHueMap(stays ?? []), [stays])
   const section = typeof active === 'string' ? active : 'itinerary'
@@ -76,6 +80,11 @@ export function TripLayout({ trip, active, children }: Props) {
                       </span>
                       {city && firstCity && <SidebarCity label={city} city={firstCity} />}
                     </span>
+                    {holidays?.byDay.has(day.id) && (
+                      <span className="sidebar-day-holiday" title={holidays.byDay.get(day.id)!.map((h) => h.name).join(', ')}>
+                        <Icon name="flag" size={12} />
+                      </span>
+                    )}
                     {day.placeIds.length > 0 && <span className="sidebar-day-count">{day.placeIds.length}</span>}
                   </a>
                 </li>

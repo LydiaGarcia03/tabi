@@ -200,7 +200,7 @@ Tabi is designed to run at **zero cost**:
 
 ## 📜 Data and attribution
 
-Map and place data © Google. Transit routes by NAVITIME JAPAN. English names of Japanese stations and lines from [Wikidata](https://www.wikidata.org/) (CC0). Offline map tiles by [OpenFreeMap](https://openfreemap.org/), © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors. Offline maps by Organic Maps. Exchange rates: European Central Bank reference rates via [Frankfurter](https://frankfurter.dev/).
+Map and place data © Google. Transit routes by NAVITIME JAPAN. English names of Japanese stations and lines from [Wikidata](https://www.wikidata.org/) (CC0). Offline map tiles by [OpenFreeMap](https://openfreemap.org/), © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors. Offline maps by Organic Maps. Exchange rates: European Central Bank reference rates via [Frankfurter](https://frankfurter.dev/). Usual weather: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0). Public holidays: [date-holidays](https://github.com/commenthol/date-holidays) (CC BY 3.0).
 
 <div align="center">
 <br>

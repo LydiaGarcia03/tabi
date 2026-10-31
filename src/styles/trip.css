@@ -256,6 +256,13 @@
   color: hsl(var(--hue, 0) 55% 70%);
 }
 
+/* A holiday that day: a small flag (its name on hover). */
+.sidebar-day-holiday {
+  flex: none;
+  display: inline-flex;
+  color: var(--accent-text);
+}
+
 .sidebar-day-count {
   flex: none;
   min-width: 20px;

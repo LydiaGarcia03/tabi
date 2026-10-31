@@ -20,7 +20,9 @@ import { useRefreshStalePlaces } from '../places/refresh'
 import { expenseNeedsBooking, journeysOn } from '../planning/journeys'
 import { href, navigate } from '../router'
 import { useDraft } from '../useDraft'
-
+import { useOnline } from '../useOnline'
+import { DaysTitle } from '../components/DaysTitle'
+import { useTripHolidays } from '../holidays/holidays'
 type OverviewView = 'days' | 'cities' | 'checklist' | 'more'
 
 /** Phones: the itinerary page's tabs (User's choice A from a mock, 2026-10-27). */
@@ -42,6 +44,9 @@ export function TripPage({ tripId }: { tripId: string }) {
   const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
   const options = useLiveQuery(() => db.options.where('tripId').equals(tripId).toArray(), [tripId])
   useRefreshStalePlaces(places)
+  const online = useOnline()
+  // TripLayout computes them too, for its sidebar (the country files are fetched once, shared).
+  const holidays = useTripHolidays(trip, days, places, stays, online)
   const travelers = trip ? travelersOf(trip) : 1
 
   const overview = useMemo(() => {
@@ -103,7 +108,7 @@ export function TripPage({ tripId }: { tripId: string }) {
 
       <div className={`overview-grid show-${view}`}>
         <section className="section overview-days">
-          <h2 className="section-title">Itinerary</h2>
+          <DaysTitle holidays={holidays} />
           <ol className="day-cards">
             {days.map((day, i) => {
               const info = overview.byDay.get(day.id)!
@@ -120,6 +125,7 @@ export function TripPage({ tripId }: { tripId: string }) {
                     walking={info.walking}
                     estimate={info.estimate}
                     spent={tripStarted(trip) ? info.spent : undefined}
+                    holiday={holidays?.byDay.has(day.id)}
                   />
                 </li>
               )

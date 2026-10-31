@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "names:update": "node scripts/update-japanese-names.mjs",
     "icons": "node scripts/generate-icons.mjs",
+    "holidays:update": "node scripts/update-holidays.mjs",
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor"
   },
@@ -29,6 +30,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "date-holidays": "^3.38.0",
     "oxlint": "^1.88.0",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",

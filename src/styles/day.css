@@ -630,6 +630,21 @@ button.option-select-button {
   opacity: 0.4;
 }
 
+/* A holiday that day, under its title: "Showa Day · National holiday", an "i" about its busy week. */
+.day-holiday {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: -4px 0 0;
+  font-size: 0.8rem;
+  color: var(--accent-text);
+}
+
+.day-holiday strong {
+  font-weight: 650;
+}
+
 /* The day's usual weather under its title: only the symbols and numbers. */
 .day-weather {
   display: inline-flex;

@@ -170,6 +170,34 @@
   color: var(--muted);
 }
 
+/* "Holiday" beside the city: only the tag (User); the name is on the day's page. */
+.day-card-kicker .tag.holiday-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* "ITINERARY" with "3 holidays on this trip" on the same line, at the right: only information (User). */
+.days-title {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.days-title-holidays {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
 .day-card-title {
   font-weight: 700;
   font-size: 1.05rem;

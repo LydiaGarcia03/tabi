@@ -73,6 +73,8 @@ export const ICON_PATHS = {
   sunset: 'M3 19h18M7 19a5 5 0 0110 0M12 3v6M9.5 6.5L12 9l2.5-2.5M4.5 13.5l1.4 1M19.5 13.5l-1.4 1',
   thermometer: 'M10 13.5V5a2 2 0 014 0v8.5a4 4 0 11-4 0zM12 9v6',
   drop: 'M12 3.5c3.4 4.3 5.8 7.4 5.8 10.3a5.8 5.8 0 01-11.6 0c0-2.9 2.4-6 5.8-10.3z',
+  // Holidays (a day off): a small flag.
+  flag: 'M5 21V4M5 4h12l-2.5 4.5L17 13H5',
 } as const
 
 export type IconName = keyof typeof ICON_PATHS

@@ -59,7 +59,7 @@ export default function App() {
         </ErrorBoundary>
       </main>
       <footer className="app-footer muted small">
-        Map and place data © Google. Transit routes by NAVITIME JAPAN. Station names from Wikidata · v. {__APP__.version}
+        Map and place data © Google. Transit routes by NAVITIME JAPAN. Station names from Wikidata. Weather by Open-Meteo. Holidays from date-holidays · v. {__APP__.version}
       </footer>
     </div>
   )

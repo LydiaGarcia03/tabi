@@ -26,10 +26,12 @@ interface Props {
   estimate: Budget | undefined
   /** Money really spent that day; only once the trip has started. */
   spent?: Budget
+  /** A day off there (its name is in the note above the days). */
+  holiday?: boolean
 }
 
 /** One day in the trip overview: calendar badge, title, route at a glance, totals. */
-export function DayCard({ trip, day, number, city, journeys, places, travelMinutes, walking, estimate, spent }: Props) {
+export function DayCard({ trip, day, number, city, journeys, places, travelMinutes, walking, estimate, spent, holiday }: Props) {
   const { weekday, day: dayOfMonth, month } = dateParts(day.date)
   const outside = day.date < trip.startDate || day.date > trip.endDate
   const shown = places.slice(0, 4)
@@ -48,6 +50,11 @@ export function DayCard({ trip, day, number, city, journeys, places, travelMinut
         <span className="day-card-kicker">
           Day {number}
           {city && <CityTag city={city} />}
+          {holiday && (
+            <span className="tag holiday-tag">
+              <Icon name="flag" size={11} /> Holiday
+            </span>
+          )}
           {outside && <span className="tag">outside trip dates</span>}
         </span>
         {journeys.map((j, i) => (
