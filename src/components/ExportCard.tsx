@@ -83,16 +83,11 @@ export function ExportCard({ tripId, day }: Props) {
     </>
   )
 
-  // A day's export is rarely needed: folded at the end of the day page (User, 2026-10-31).
-  return day ? (
+  // Rarely needed: folded, closed by default, like Trip settings (User, 2026-10-31).
+  return (
     <details className="card disclosure export-card">
-      <summary>Export this day</summary>
+      <summary>{day ? 'Export this day' : 'Export & backup'}</summary>
       {body}
     </details>
-  ) : (
-    <section className="card export-card">
-      <h2>Export &amp; backup</h2>
-      {body}
-    </section>
   )
 }
