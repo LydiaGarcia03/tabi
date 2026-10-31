@@ -630,6 +630,14 @@ button.option-select-button {
   opacity: 0.4;
 }
 
+/* A ride paid by a rail pass in use: its fare struck through and the pass (leg header and timeline). */
+.tag.pass-tag {
+  margin-left: 2px;
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+  font-weight: 650;
+}
+
 /* A holiday that day, under its title: "Showa Day · National holiday", an "i" about its busy week. */
 .day-holiday {
   display: flex;

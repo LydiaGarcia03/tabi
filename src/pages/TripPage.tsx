@@ -18,6 +18,7 @@ import { cityLabel } from '../db/stays'
 import { deleteTrip, orderPlaces, updateTrip } from '../db/trips'
 import { useRefreshStalePlaces } from '../places/refresh'
 import { expenseNeedsBooking, journeysOn } from '../planning/journeys'
+import { dayRides, passCoverage } from '../planning/railPasses'
 import { href, navigate } from '../router'
 import { useDraft } from '../useDraft'
 import { useOnline } from '../useOnline'
@@ -52,6 +53,8 @@ export function TripPage({ tripId }: { tripId: string }) {
   const overview = useMemo(() => {
     if (!days || !places || !legs || !expenses) return null
     const legMap = new Map(legs.map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l]))
+    // Fares covered by a rail pass in use leave the days' estimates.
+    const { covered } = passCoverage(trip?.railPasses, dayRides(days, places, legMap))
     const byDay = new Map(
       days.map((day) => {
         const dayPlaces = places.filter((p) => p.dayId === day.id)
@@ -61,7 +64,7 @@ export function TripPage({ tripId }: { tripId: string }) {
           .slice(1)
           .flatMap((p, i) => legMap.get(legKey(route[i].id, p.id))?.segments ?? [])
           .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
-        const money = dayMoney(day, 0, dayPlaces, legMap, travelers)
+        const money = dayMoney(day, 0, dayPlaces, legMap, travelers, covered)
         const estimate = itemsBudget(money.itinerary)
         const spent = expensesBudget(expenses.filter((e) => e.dayId === day.id))
         return [day.id, { places: ordered, travelMinutes, walking: dayWalking(route, legMap), estimate, spent, money }]
@@ -78,7 +81,7 @@ export function TripPage({ tripId }: { tripId: string }) {
       [...byDay.values()].flatMap((d) => d.money.bookAhead).filter((i) => !i.booked).length +
       expenses.filter((e) => !e.dayId && expenseNeedsBooking(e) && !e.booked).length
     return { byDay, total, toBookCount }
-  }, [days, places, legs, expenses, travelers, trip?.estimates])
+  }, [days, places, legs, expenses, travelers, trip?.estimates, trip?.railPasses])
 
   if (trip === undefined || days === undefined || !overview || !stays) return null
   if (!trip) return <NotFound />

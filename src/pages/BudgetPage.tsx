@@ -4,6 +4,9 @@ import { categoryMoney, travelersOf, tripMoney, tripStarted } from '../budget'
 import { TripLayout } from '../components/TripLayout'
 import { BookAheadCard, EstimatesCard, TripCostsLink, TripMoneyCard } from '../components/TripMoney'
 import { db } from '../db/db'
+import { legKey } from '../db/legs'
+import { dayRides, icCardFares, otherCompanies, passCoverage } from '../planning/railPasses'
+import { RailPassesCard } from '../components/RailPasses'
 import { NotFound } from './TripPage'
 
 /**
@@ -21,8 +24,17 @@ export function BudgetPage({ tripId }: { tripId: string }) {
 
   const money = useMemo(() => {
     if (!trip || !days || !places || !legs || !expenses) return null
-    const all = tripMoney(days, places, legs, expenses, travelersOf(trip))
-    return { all, categories: categoryMoney(all, trip) }
+    const all = tripMoney(days, places, legs, expenses, travelersOf(trip), trip.railPasses)
+    // Rail passes: each one against the fares of the days' rides.
+    const rides = dayRides(days, places, new Map(legs.map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l])))
+    const coverage = passCoverage(trip.railPasses, rides)
+    return {
+      all,
+      categories: categoryMoney(all, trip),
+      passes: coverage.reports,
+      companies: otherCompanies(rides),
+      icCard: icCardFares(rides, coverage.covered),
+    }
   }, [trip, days, places, legs, expenses])
 
   if (trip === undefined) return null
@@ -44,6 +56,8 @@ export function BudgetPage({ tripId }: { tripId: string }) {
         <div className="section budget-money">
           <TripMoneyCard trip={trip} money={money.all} categories={money.categories} started={started} />
           {bookAhead}
+          {/* Only for trips to Japan (User). */}
+          {trip.countries?.includes('JP') && days && <RailPassesCard trip={trip} days={days} reports={money.passes} companies={money.companies} icCard={money.icCard} />}
           <TripCostsLink trip={trip} expenses={expenses.filter((e) => !e.dayId)} />
         </div>
         <div className="section budget-estimates">{estimates}</div>

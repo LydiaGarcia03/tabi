@@ -33,6 +33,31 @@ export interface Trip {
   savedMoney?: Money
   /** How many people are going (default 1): per-person prices are multiplied by it. */
   travelers?: number
+  /** Rail passes compared with the fares of the days (Japan trips). */
+  railPasses?: RailPass[]
+}
+
+/**
+ * A rail pass (JR Pass, Kansai Area Pass…), typed by User: valid on some companies for some consecutive days. In use,
+ * it is paid before the trip and the fares it covers leave the days' estimates.
+ */
+export interface RailPass {
+  id: string
+  name: string
+  /** Per person. */
+  price?: Money
+  /** Consecutive days it is valid. */
+  days: number
+  /** "All JR", a JR company ("JR West"…) or another company's name as in the routes ("Osaka Metro"). */
+  validOn: string[]
+  /** Whether it covers the shinkansen too (the JR Pass does; area passes usually don't). */
+  shinkansen?: boolean
+  /** First day it is used ("YYYY-MM-DD"); absent = the days where it covers the most. */
+  startDate?: string
+  /** "Use this pass": in the budget and the days. */
+  use?: boolean
+  /** Bought (paid before the trip). */
+  booked?: boolean
 }
 
 export interface TripCurrency {

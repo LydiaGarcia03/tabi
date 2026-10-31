@@ -34,6 +34,7 @@ import { utcOffsetAt } from '../data/countries'
 import { useClimate } from '../weather/climate'
 import { holidayKind, useTripHolidays, type DayHoliday } from '../holidays/holidays'
 import { InfoTip } from '../components/InfoTip'
+import { dayRides, passCoverage, PassCoverageContext } from '../planning/railPasses'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { useDraft } from '../useDraft'
@@ -138,6 +139,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const route = dayRoute(day, places)
   const listedRoute = dayRoute(day, listed)
   const walking = dayWalking(route, legs)
+  // Rides paid by a rail pass in use: struck through in the legs, left out of the day's money.
+  const passCovered = tripPlaces ? passCoverage(trip.railPasses, dayRides(days, tripPlaces, legs)).covered : new Map<string, string>()
   // Sun and usual weather where the day is spent: its first place, else its city's base.
   const dayPoint: { lat: number; lng: number } | undefined = places[0] ?? bases[0]
   const sun = dayPoint && sunTimes(dayPoint, day.date, utcOffsetAt(dayPoint, day.date, trip.countries))
@@ -173,6 +176,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
     <TripLayout trip={trip} active={{ dayId: day.id }}>
       <DayStrip tripId={tripId} days={days} currentId={day.id} />
 
+      <PassCoverageContext.Provider value={passCovered}>
       <div className="day-layout">
         <div className={`day-map-column${mapOpen ? '' : ' map-collapsed'}`}>
           <div className="map-bar">
@@ -400,7 +404,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
           <DayMoney
             trip={trip}
             dayId={day.id}
-            estimate={itemsBudget(dayMoney(day, index + 1, dayPlaces, legs, travelers).itinerary)}
+            estimate={itemsBudget(dayMoney(day, index + 1, dayPlaces, legs, travelers, passCovered).itinerary)}
             expenses={dayExpenses}
             started={tripStarted(trip)}
           />
@@ -408,6 +412,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
           <ExportCard tripId={tripId} day={{ id: day.id, number: index + 1 }} />
         </div>
       </div>
+      </PassCoverageContext.Provider>
     </TripLayout>
   )
 }

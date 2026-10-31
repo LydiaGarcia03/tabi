@@ -920,6 +920,105 @@ button.estimate-currency {
   font-size: 0.875rem;
 }
 
+/* --- Rail passes (Budget, Japan trips; User's choice 3-B) ------------------- */
+
+.rail-passes {
+  display: grid;
+  gap: 4px;
+}
+
+.rail-pass {
+  display: grid;
+  gap: 3px;
+  padding: 10px 0 8px;
+  border-top: 1px solid var(--border);
+}
+
+.money-head + .rail-pass {
+  border-top: 0;
+}
+
+.rail-pass p {
+  margin: 0;
+}
+
+.rail-pass:not(.in-use) > p {
+  opacity: 0.85;
+}
+
+.rail-pass-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rail-pass-head strong {
+  flex: 1;
+  min-width: 0;
+}
+
+.rail-pass-head .tag {
+  margin-left: 0;
+}
+
+.rail-pass-head .icon-button {
+  margin: -6px -8px -6px 0;
+  color: var(--muted);
+}
+
+.tag.ok-tag {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+
+.tag.alert-tag {
+  background: color-mix(in srgb, var(--alert) 16%, transparent);
+  color: var(--alert);
+}
+
+.rail-pass select.compact {
+  max-width: 100%;
+}
+
+.rail-pass-use {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin-top: 4px;
+}
+
+/* "Load on your IC card (Suica): ≈ ¥X per person", at the end of the card. */
+.ic-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.ic-card > .icon {
+  color: var(--muted);
+}
+
+.ic-card > span:not(.info-tip) {
+  flex: 1;
+  min-width: 0;
+}
+
+.pass-sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.pass-sheet .field-row > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 .option-form .segmented {
   margin-bottom: 4px;
 }

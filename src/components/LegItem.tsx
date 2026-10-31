@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useContext, useEffect, useState } from 'react'
 import { formatDay } from '../dates'
 import { chooseAlternative, deleteLeg, retranslateLeg, saveLeg, toSegments } from '../db/legs'
 import type { Leg, Place, Segment } from '../db/model'
@@ -11,6 +11,7 @@ import type { IconName } from '../iconPaths'
 import { translateRouteResult } from '../i18n/japaneseNames'
 import { flightRoute, flightSegments, refreshFlightSteps, type FlightSource } from '../planning/flightSteps'
 import { journeyCarriers } from '../planning/journeys'
+import { PassCoverageContext } from '../planning/railPasses'
 import { inJapan, utcOffsetAt } from '../data/countries'
 import { computeDrivingRoute, computeWalkingRoute, googleProvider } from '../routing/googleProvider'
 import { navitimeProvider, suggestionDate } from '../routing/providers'
@@ -155,17 +156,37 @@ function UseFlight({ flights, onUse }: { flights: FlightSource[]; onUse: (flight
   )
 }
 
-/** " · 1 h 7 min · ¥1,080" after the title. */
+/** " · 1 h 7 min · ¥1,080" after the title; fares a rail pass in use covers struck through, with the pass. */
 function LegTotals({ segments }: { segments: Segment[] }) {
+  const passes = useContext(PassCoverageContext)
   const minutes = segments.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
-  const fares = totalFares(segments)
+  const paid = segments.filter((s) => !passes.has(s.id))
+  const fares = totalFares(paid)
+  const coveredFares = totalFares(segments.filter((s) => passes.has(s.id)))
+  const passNames = [...new Set(segments.flatMap((s) => passes.get(s.id) ?? []))]
   // A ride without a known price: "fare unknown" (or "+ fare unknown" after the known ones), never read as free.
-  const unknown = segments.some(fareUnknown)
+  const unknown = paid.some(fareUnknown)
   const money = [fares.length > 0 && fares.map(formatMoney).join(' + '), unknown && (fares.length > 0 ? '+ fare unknown' : 'fare unknown')]
     .filter(Boolean)
     .join(' ')
   const parts = [minutes > 0 && formatDuration(minutes), money].filter(Boolean)
-  return parts.length > 0 ? <span className="leg-totals"> · {parts.join(' · ')}</span> : null
+  if (parts.length === 0 && passNames.length === 0) return null
+  return (
+    <span className="leg-totals">
+      {parts.length > 0 && ` · ${parts.join(' · ')}`}
+      {passNames.length > 0 && (
+        <>
+          {' · '}
+          {coveredFares.length > 0 && <s>{coveredFares.map(formatMoney).join(' + ')}</s>}{' '}
+          {passNames.map((name) => (
+            <span key={name} className="tag pass-tag">
+              {name}
+            </span>
+          ))}
+        </>
+      )}
+    </span>
+  )
 }
 
 /** "🚶4′ › Yotsubashi › 🚶6′ › JR Kyoto › …": walks as a small walker, rides as short colored badges. */

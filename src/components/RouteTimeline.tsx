@@ -1,4 +1,5 @@
-import { Fragment, type CSSProperties, type ReactNode } from 'react'
+import { Fragment, useContext, type CSSProperties, type ReactNode } from 'react'
+import { PassCoverageContext } from '../planning/railPasses'
 import { MODE_ICON, MODE_LABEL, fareUnknown, formatDistance, formatDuration, formatMoney, formatTime, segmentColor, stopsMade } from '../format'
 import { lineSignName, signName, translateExit } from '../i18n/japaneseNames'
 import type { IconName } from '../iconPaths'
@@ -40,6 +41,8 @@ export function RouteTimeline<T extends RouteSegment & { id: string; notes?: str
   /** Replaces a step while it's being edited. */
   stepForm?: (index: number) => ReactNode | null
 }) {
+  // Rides paid by a rail pass in use (the day page provides them; none elsewhere).
+  const passes = useContext(PassCoverageContext)
   return (
     <ol className="route-timeline">
       <StationRow time={beforeFirst ? undefined : segments[0]?.departureTime} name={start.name} icon={start.icon} terminal />
@@ -61,7 +64,7 @@ export function RouteTimeline<T extends RouteSegment & { id: string; notes?: str
             {form ? (
               <li className="route-step-form">{form}</li>
             ) : (
-              <StepRow segment={segment} tools={stepTools?.(i)} actions={stepActions?.(i)} />
+              <StepRow segment={segment} tools={stepTools?.(i)} actions={stepActions?.(i)} pass={passes.get(segment.id)} />
             )}
             {next ? (
               <Transfer prev={segment} next={next} />
@@ -154,7 +157,18 @@ function StationRow({
   )
 }
 
-function StepRow({ segment, tools, actions }: { segment: RouteSegment & { notes?: string }; tools?: ReactNode; actions?: ReactNode }) {
+function StepRow({
+  segment,
+  tools,
+  actions,
+  pass,
+}: {
+  segment: RouteSegment & { notes?: string }
+  tools?: ReactNode
+  actions?: ReactNode
+  /** The rail pass in use that pays this ride. */
+  pass?: string
+}) {
   const color = segmentColor(segment)
   const walk = segment.mode === 'walk'
   return (
@@ -163,7 +177,7 @@ function StepRow({ segment, tools, actions }: { segment: RouteSegment & { notes?
       <span className="route-bar" aria-hidden="true" />
       <div className={`route-step-body${actions ? ' with-actions' : ''}`}>
         {actions && <span className="route-step-actions">{actions}</span>}
-        {walk ? <WalkText segment={segment} /> : <RideText segment={segment} color={color} />}
+        {walk ? <WalkText segment={segment} /> : <RideText segment={segment} color={color} pass={pass} />}
         {segment.notes?.trim() && <div className="small segment-notes">{segment.notes}</div>}
         {tools}
       </div>
@@ -182,14 +196,15 @@ function WalkText({ segment }: { segment: RouteSegment }) {
   )
 }
 
-function RideText({ segment, color }: { segment: RouteSegment; color: string }) {
+function RideText({ segment, color, pass }: { segment: RouteSegment; color: string; pass?: string }) {
   const original = segment.originalNames
   const stops = stopsMade(segment)
   const facts = [
     stops && `${stops.length + 1} stop${stops.length === 0 ? '' : 's'}`,
     segment.durationMinutes != null && formatDuration(segment.durationMinutes),
     segment.distanceMeters && !stops ? formatDistance(segment.distanceMeters) : undefined,
-    segment.fare ? formatMoney(segment.fare) : fareUnknown(segment) && 'fare unknown (edit the step to add it)',
+    // Paid by a rail pass in use: shown at the end, struck through, with the pass.
+    !pass && (segment.fare ? formatMoney(segment.fare) : fareUnknown(segment) && 'fare unknown (edit the step to add it)'),
     segment.booking &&
       (segment.booking.kind === 'booking'
         ? `In the itinerary${segment.booking.price ? ` · ${formatMoney(segment.booking.price)} in the trip's transport` : ''}`
@@ -232,7 +247,17 @@ function RideText({ segment, color }: { segment: RouteSegment; color: string }) 
           )}
         </div>
       )}
-      {facts.length > 0 && <div className="small muted">{facts.join(' · ')}</div>}
+      {(facts.length > 0 || pass) && (
+        <div className="small muted">
+          {facts.join(' · ')}
+          {pass && (
+            <>
+              {facts.length > 0 && ' · '}
+              {segment.fare && <s>{formatMoney(segment.fare)}</s>} <span className="tag pass-tag">in {pass}</span>
+            </>
+          )}
+        </div>
+      )}
       {segment.intermediateStops && segment.intermediateStops.length > 0 && (
         <details className="route-stations small">
           <summary className="muted">

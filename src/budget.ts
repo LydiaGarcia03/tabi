@@ -5,11 +5,12 @@
 import { today } from './dates'
 import { dayRoute } from './db/baseStops'
 import { legKey } from './db/legs'
-import type { Day, Estimate, Expense, ExpenseCategory, Leg, Place, PlaceKind, Segment, Trip, TripOption } from './db/model'
+import type { Day, Estimate, Expense, ExpenseCategory, Leg, Place, PlaceKind, RailPass, Segment, Trip, TripOption } from './db/model'
 import { orderPlaces } from './db/trips'
 import { formatMoney } from './format'
 import type { IconName } from './iconPaths'
 import { expenseNeedsBooking, JOURNEY_ICON, journeyTitle } from './planning/journeys'
+import { dayRides, passCoverage } from './planning/railPasses'
 import { rateOf } from './money/currencies'
 import type { Money } from './routing/types'
 
@@ -151,6 +152,7 @@ export interface TripMoney {
 /**
  * One day's items: its places (those needing a ticket or reservation apart) and the fares of the legs along
  * its route (base stops included: going back to the hotel costs its fares too), one item per currency.
+ * `covered`: rides paid by a rail pass in use (`passCoverage`), left out of the fares.
  */
 export function dayMoney(
   day: Day,
@@ -158,6 +160,7 @@ export function dayMoney(
   dayPlaces: Place[],
   legs: Map<string, Leg>,
   travelers: number,
+  covered?: Map<string, string>,
 ): Pick<TripMoney, 'bookAhead' | 'itinerary'> {
   const bookAhead: MoneyItem[] = []
   const itinerary: MoneyItem[] = []
@@ -173,6 +176,7 @@ export function dayMoney(
     const next = route[i + 1]
     if (!next) return
     legs.get(legKey(stop.id, next.id))?.segments.forEach((s) => {
+      if (covered?.has(s.id)) return
       const cost = segmentCost(s, travelers)
       if (cost?.amount) fares[cost.currency] = (fares[cost.currency] ?? 0) + cost.amount
     })
@@ -183,16 +187,25 @@ export function dayMoney(
   return { bookAhead, itinerary }
 }
 
-/** Everything of the trip, split as in `TripMoney`. Only places in a day's order count. */
-export function tripMoney(days: Day[], places: Place[], legs: Leg[], expenses: Expense[], travelers: number): TripMoney {
+/**
+ * Everything of the trip, split as in `TripMoney`. Only places in a day's order count. Rail passes in use are paid
+ * before the trip (price per person × travelers) and the fares they cover leave the days.
+ */
+export function tripMoney(days: Day[], places: Place[], legs: Leg[], expenses: Expense[], travelers: number, passes?: RailPass[]): TripMoney {
   const legMap = new Map(legs.map((l) => [legKey(l.fromPlaceId, l.toPlaceId), l]))
   const money: TripMoney = { bookAhead: [], itinerary: [], spent: [] }
   const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date))
+  const { covered } = passCoverage(passes, dayRides(sorted, places, legMap))
   sorted.forEach((day, i) => {
-    const { bookAhead, itinerary } = dayMoney(day, i + 1, places.filter((p) => p.dayId === day.id), legMap, travelers)
+    const { bookAhead, itinerary } = dayMoney(day, i + 1, places.filter((p) => p.dayId === day.id), legMap, travelers, covered)
     money.bookAhead.push(...bookAhead)
     money.itinerary.push(...itinerary)
   })
+  for (const pass of passes ?? []) {
+    if (!pass.use) continue
+    const amount = pass.price && { ...pass.price, amount: pass.price.amount * travelers }
+    money.bookAhead.push({ id: pass.id, name: pass.name, category: 'transport', amount, icon: 'ticket', booked: !!pass.booked })
+  }
   const dayNumber = new Map(sorted.map((d, i) => [d.id, i + 1]))
   for (const e of expenses) {
     const item: MoneyItem = { id: e.id, name: e.description, category: e.category, amount: e.amount, icon: CATEGORY_ICON[e.category] }
