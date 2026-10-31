@@ -52,7 +52,7 @@ type MapProvider = 'google' | 'offline'
 const MAP_PROVIDER_KEY = 'tabi.mapProvider'
 
 type PendingAdd =
-  | { kind: 'google'; googlePlaceId: string }
+  | { kind: 'google'; googlePlaceId: string; lat?: number; lng?: number }
   | { kind: 'custom'; lat: number; lng: number; name?: string }
 
 export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId: string; hasGoogleKey: boolean }) {
@@ -121,7 +121,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
     }
     if (placeId) {
       event.stop() // Don't open Google's info window; offer to add it instead.
-      setPending({ kind: 'google', googlePlaceId: placeId })
+      setPending({ kind: 'google', googlePlaceId: placeId, ...latLng })
     } else if (latLng) {
       setPending({ kind: 'custom', ...latLng })
     }
@@ -134,6 +134,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   }
 
   const bases = (stays ? staysOn(stays, day.date) : []).flatMap((s) => (s.base ? [{ ...s.base, city: s.city }] : []))
+  // The spot tapped to add a place: marked "+" on the map while its card is open (User: no feedback before).
+  const pendingPoint = pending && !drawing && pending.lat != null && pending.lng != null ? { lat: pending.lat, lng: pending.lng } : undefined
   // Where the day can leave from (the morning's hotel) and go back to (tonight's), the same but on a travel day.
   const dayBaseStays = stays ? dayBases(stays, day.date) : []
   const morningBase = dayBaseStays[0]
@@ -214,6 +216,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                   focus={focus}
                   bases={bases}
                   route={route}
+                  pending={pendingPoint}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -236,6 +239,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 focus={focus}
                 bases={bases}
                 route={route}
+                pending={pendingPoint}
               />
             </ErrorBoundary>
           )}
@@ -672,10 +676,10 @@ function PendingAddCard({
   return (
     <div className="card pending-add">
       {pending.kind === 'google' ? (
-        <p>Add the place you tapped on the map to this day?</p>
+        <p>Add the place you tapped (+ on the map) to this day?</p>
       ) : (
         <label>
-          Add a custom pin here
+          Add a pin at the + on the map
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" autoFocus />
         </label>
       )}

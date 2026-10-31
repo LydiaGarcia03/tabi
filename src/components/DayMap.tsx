@@ -32,11 +32,13 @@ interface Props {
   route?: Place[]
   /** The Logbook: your GPS position, with a dashed straight line to where you're going. */
   you?: YouAreHere
+  /** Where the map was tapped to add a place, marked "+" until it is added or cancelled. */
+  pending?: LatLng
 }
 
 type Base = NonNullable<Stay['base']> & { city: string }
 
-export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, focus, bases = [], route, you }: Props) {
+export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClick, fallbackCenter, drawing, focus, bases = [], route, you, pending }: Props) {
   const dark = useIsDark()
   return (
     <div className="day-map">
@@ -74,6 +76,12 @@ export function DayMap({ places, legs, selectedPlaceId, onSelectPlace, onMapClic
         ))}
         <LegLines places={route ?? places} legs={legs} focus={focus} hiddenSegmentId={drawing?.segmentId} />
         {drawing && <DraftLayer drawing={drawing} />}
+        {pending && (
+          // The tapped spot (a place or an empty one), shown while the card below the map asks to add it.
+          <AdvancedMarker position={pending} title="The spot you tapped" zIndex={2500}>
+            <span className="map-pin pending-pin" dangerouslySetInnerHTML={{ __html: placePinSvg('+', { selected: true }) }} />
+          </AdvancedMarker>
+        )}
         {you && <YouLayer you={you} />}
         <FitToPlaces places={focus ? focus.points : [...places, ...bases]} focusKey={focus && `${focus.fromId}>${focus.toId}`} />
       </Map>

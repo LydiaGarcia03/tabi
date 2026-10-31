@@ -36,6 +36,8 @@ interface Props {
   you?: YouAreHere
   /** The Logbook: no OpenStreetMap / download details under the map (only a warning when a place is outside it). */
   compact?: boolean
+  /** Where the map was tapped to add a place, marked "+" until it is added or cancelled. */
+  pending?: LatLng
 }
 
 /** Where a place is drawn on the offline map, and why. */
@@ -185,6 +187,7 @@ function OfflineDayMap({
   bases = [],
   route,
   you,
+  pending,
 }: Omit<Props, 'tripId' | 'places'> & { places: Shown[] }) {
   const dark = useIsDark()
   const container = useRef<HTMLDivElement>(null)
@@ -362,6 +365,21 @@ function OfflineDayMap({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, youKey])
+
+  // The tapped spot, marked "+" while the card below the map asks to add it.
+  const pendingKey = pending && `${pending.lat},${pending.lng}`
+  useEffect(() => {
+    if (!map || !pending) return
+    const el = document.createElement('span')
+    el.className = 'map-pin pending-pin'
+    el.title = 'The spot you tapped'
+    el.innerHTML = placePinSvg('+', { selected: true })
+    const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([pending.lng, pending.lat]).addTo(map)
+    return () => {
+      marker.remove()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, pendingKey])
 
   // Fit the places (and bases), or the focused leg: when their set changes or a
   // leg is opened/closed, not on every edit.
