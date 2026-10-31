@@ -32,6 +32,7 @@ import { timeConflict } from '../planning/hours'
 import { clockTime, sunSlots, sunTimes } from '../planning/sun'
 import { utcOffsetAt } from '../data/countries'
 import { useClimate } from '../weather/climate'
+import { lateRide, type LateRide } from '../planning/lateRide'
 import { holidayKind, useTripHolidays, type DayHoliday } from '../holidays/holidays'
 import { InfoTip } from '../components/InfoTip'
 import { dayRides, passCoverage, PassCoverageContext } from '../planning/railPasses'
@@ -317,6 +318,11 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                         bases={dayBaseStays}
                         arrive={i > 0 ? legTimes(legs.get(legKey(listedRoute[i - 1].id, stop.id))?.segments).arrive : undefined}
                         leave={next ? legTimes(legs.get(key)?.segments).depart : undefined}
+                        late={
+                          i > 0
+                            ? lateRide(legs.get(legKey(listedRoute[i - 1].id, stop.id))?.segments, day.date, utcOffsetAt(stop, day.date, trip.countries))
+                            : null
+                        }
                       />
                     )
                   ) : (
@@ -425,6 +431,7 @@ function BaseStopRow({
   bases,
   arrive,
   leave,
+  late,
 }: {
   dayId: string
   stop: BaseStop
@@ -433,6 +440,8 @@ function BaseStopRow({
   /** ISO times from the suggested routes to and from it, when known. */
   arrive?: string
   leave?: string
+  /** The way back has a ride after 23:00 or ends after midnight (User's choice 4-B). */
+  late: LateRide | null
 }) {
   const times = [arrive && `Arrive at ${formatTime(arrive)}`, leave && `Leave at ${formatTime(leave)}`].filter(Boolean).join(' · ')
   return (
@@ -444,9 +453,17 @@ function BaseStopRow({
         {/* "From base Meander · Leave at 05:35"; on phones the name goes on a line of its own below. */}
         <span className="base-stop-label">
           {label} <span className="base-stop-name">{stop.base.name}</span>
-          {times && <span className="base-stop-time"> · {times}</span>}
+          {times && <span className={`base-stop-time${late ? ' late' : ''}`}> · {times}</span>}
         </span>
         <span className="base-stop-name-below muted small">{stop.base.name}</span>
+        {late && (
+          <span className="base-stop-late small">
+            <Icon name="moon" size={14} />
+            {late.afterMidnight
+              ? 'After midnight: most trains have stopped. Check the last train or plan a taxi.'
+              : `Late ride (leaves ${late.leaves}): check the last train.`}
+          </span>
+        )}
       </span>
       {bases.length > 1 && (
         // On a travel day: this morning's hotel or tonight's.

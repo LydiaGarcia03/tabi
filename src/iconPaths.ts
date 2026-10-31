@@ -75,6 +75,8 @@ export const ICON_PATHS = {
   drop: 'M12 3.5c3.4 4.3 5.8 7.4 5.8 10.3a5.8 5.8 0 01-11.6 0c0-2.9 2.4-6 5.8-10.3z',
   // Holidays (a day off): a small flag.
   flag: 'M5 21V4M5 4h12l-2.5 4.5L17 13H5',
+  // A late way back (after the last trains): a crescent moon.
+  moon: 'M19.5 14.5A7.5 7.5 0 119.5 4.5a6 6 0 0010 10z',
 } as const
 
 export type IconName = keyof typeof ICON_PATHS

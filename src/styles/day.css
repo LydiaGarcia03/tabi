@@ -579,6 +579,23 @@ button.option-select-button {
   width: auto;
 }
 
+/* A late way back (User's choice 4-B): the arrival in amber and a line under it. */
+.base-stop-time.late {
+  color: var(--alert);
+}
+
+.base-stop-late {
+  flex-basis: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--alert);
+}
+
+.base-stop-late > .icon {
+  margin-top: 2px;
+}
+
 .base-add {
   margin-left: 25px;
   padding: 2px 0 2px 22px;
