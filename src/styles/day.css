@@ -584,6 +584,80 @@ button.option-select-button {
   padding: 2px 0 2px 22px;
 }
 
+/* "+ From base" / "+ Back to base" (and "Back to base here" in a leg): a dashed pill like "+ Add the way there"
+   (a bare link looked messy, User). */
+.base-add button.link,
+.base-add-here button.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  margin: 6px 0;
+  padding: 3px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  font-size: 0.8rem;
+  text-decoration: none;
+  color: var(--accent-text);
+}
+
+.base-add button.link:hover,
+.base-add-here button.link:hover {
+  border-color: var(--accent-text);
+}
+
+/* "Sunrise 05:43" / "Sunset 18:14" among the places (User's choice 1-C from a mock, 2026-10-31), muted. Between two
+   places it sits on the leg's rail; at the start or the end it stands alone. */
+.sun-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 25px;
+  padding: 4px 0 4px 22px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sun-row.between {
+  border-left: 2px dashed var(--border);
+}
+
+.sun-row-line {
+  flex: 1;
+  border-top: 1px dashed currentColor;
+  opacity: 0.4;
+}
+
+/* The day's usual weather under its title: only the symbols and numbers. */
+.day-weather {
+  display: inline-flex;
+  gap: 10px;
+  width: max-content;
+  min-height: 0;
+  /* A detail under the title (User): small, tucked close to it. */
+  margin-top: -4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: default;
+}
+
+.day-weather span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.day-weather-info {
+  margin: 0;
+}
+
 .leg-item {
   margin-left: 25px;
   padding: 2px 0 2px 22px;

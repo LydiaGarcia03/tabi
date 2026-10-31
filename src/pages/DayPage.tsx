@@ -29,6 +29,9 @@ import { fetchPlace, type PlaceResult } from '../places/googlePlaces'
 import { useRefreshStalePlaces } from '../places/refresh'
 import { flightSources } from '../planning/flightSteps'
 import { timeConflict } from '../planning/hours'
+import { clockTime, sunSlots, sunTimes } from '../planning/sun'
+import { utcOffsetAt } from '../data/countries'
+import { useClimate } from '../weather/climate'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
 import { useDraft } from '../useDraft'
@@ -130,6 +133,19 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
   const route = dayRoute(day, places)
   const listedRoute = dayRoute(day, listed)
   const walking = dayWalking(route, legs)
+  // Sun and usual weather where the day is spent: its first place, else its city's base.
+  const dayPoint: { lat: number; lng: number } | undefined = places[0] ?? bases[0]
+  const sun = dayPoint && sunTimes(dayPoint, day.date, utcOffsetAt(dayPoint, day.date, trip.countries))
+  const sunAt = sun && !draggingId && listed.length > 0 ? sunSlots(listedRoute.map((s) => s.plannedTime), sun) : undefined
+  /** The sunrise / sunset rows that go before the stop at `index` (the stops' count = after the last one). */
+  const sunRows = (index: number) =>
+    sun &&
+    sunAt && (
+      <>
+        {sunAt.rise === index && <SunRow kind="rise" minutes={sun.rise} between={index > 0 && index < listedRoute.length} />}
+        {sunAt.set === index && <SunRow kind="set" minutes={sun.set} between={index > 0 && index < listedRoute.length} />}
+      </>
+    )
   const dayFlights = flightSources(tripExpenses ?? [], day.date)
   const usedFlights = new Set(
     route.slice(1).flatMap((p, i) => legs.get(legKey(route[i].id, p.id))?.segments.flatMap((s) => (s.booking ? [s.booking.id] : [])) ?? []),
@@ -223,6 +239,8 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
             number={index + 1}
             city={stays ? cityLabel(stays, day.date) : ''}
             hotelChange={!!stays && isHotelChange(stays, day.date)}
+            point={dayPoint}
+            online={online}
             places={places}
             legs={legs}
             travelers={travelers}
@@ -277,6 +295,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
               const placeIndex = stop.baseStop ? -1 : listed.indexOf(stop)
               return (
                 <Fragment key={stop.id}>
+                  {i === 0 && sunRows(0)}
                   {stop.baseStop ? (
                     // While dragging, base stops (between the old neighbours) are hidden like the legs.
                     !draggingId && (
@@ -305,6 +324,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                       dragging={stop.id === draggingId}
                     />
                   )}
+                  {next && sunRows(i + 1)}
                   {/* While dragging, the legs (made for the old neighbours) are hidden. */}
                   {next && !draggingId && (
                     <LegItem
@@ -341,6 +361,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                 </Fragment>
               )
             })}
+            {sunRows(listedRoute.length)}
             {!draggingId && places.length > 0 && nightBase && !listedRoute.at(-1)?.baseStop && (
               <li className="base-add">
                 <button type="button" className="link small" onClick={() => addBaseStop(day.id, 'end', nightBase)}>
@@ -441,11 +462,24 @@ function BaseStopRow({
   )
 }
 
+/** "Sunrise 05:43" / "Sunset 18:14": a thin line in the timeline, where it happens among the places. */
+function SunRow({ kind, minutes, between }: { kind: 'rise' | 'set'; minutes: number; between: boolean }) {
+  return (
+    <li className={`sun-row ${kind}${between ? ' between' : ''}`}>
+      <Icon name={kind === 'rise' ? 'sunrise' : 'sunset'} size={16} />
+      {kind === 'rise' ? 'Sunrise' : 'Sunset'} {clockTime(minutes)}
+      <span className="sun-row-line" aria-hidden="true" />
+    </li>
+  )
+}
+
 function DayHeader({
   day,
   number,
   city,
   hotelChange,
+  point,
+  online,
   places,
   legs,
   travelers,
@@ -457,6 +491,9 @@ function DayHeader({
   city: string
   /** Morning in one hotel of the city, night in another. */
   hotelChange: boolean
+  /** Where the day is spent, for its usual weather. */
+  point?: { lat: number; lng: number }
+  online: boolean
   places: Place[]
   legs: Map<string, Leg>
   travelers: number
@@ -465,6 +502,8 @@ function DayHeader({
 }) {
   const [title, setTitle] = useDraft(day.title, (value) => updateDay(day.id, { title: value.trim() }))
   const [shared, setShared] = useState('')
+  const climate = useClimate(point, day.date, online)
+  const [climateInfo, setClimateInfo] = useState(false)
 
   async function share() {
     try {
@@ -510,6 +549,26 @@ function DayHeader({
         placeholder="Add a title (e.g. Asakusa and Ueno)"
         aria-label="Day title"
       />
+      {climate && (
+        // Only the symbols (User): a mouse shows what they are on hover, a tap on a phone shows it below.
+        <button
+          type="button"
+          className="day-weather"
+          title="Usual weather on this date: average of the last 10 years"
+          aria-expanded={climateInfo}
+          onClick={() => {
+            if (matchMedia('(hover: none)').matches) setClimateInfo(!climateInfo)
+          }}
+        >
+          <span title="Usual low and high">
+            <Icon name="thermometer" size={13} /> {climate.min}–{climate.max} °C
+          </span>
+          <span title="Chance of rain">
+            <Icon name="drop" size={13} /> {climate.rain}%
+          </span>
+        </button>
+      )}
+      {climateInfo && <p className="muted small day-weather-info">Usual low and high, and chance of rain on this date: average of the last 10 years.</p>}
       {shared && <p className="muted small">{shared}</p>}
     </header>
   )

@@ -68,6 +68,11 @@ export const ICON_PATHS = {
   done: 'M12 21a9 9 0 100-18 9 9 0 000 18zM8 12.5l2.8 2.8L16 9.5',
   return: 'M9 14l-4-4 4-4M5 10h9.5a4.5 4.5 0 010 9H12',
   arrow: 'M5 12h14M13 6l6 6-6 6',
+  // A half sun on the horizon with an arrow going up / down.
+  sunrise: 'M3 19h18M7 19a5 5 0 0110 0M12 3v6M9.5 5.5L12 3l2.5 2.5M4.5 13.5l1.4 1M19.5 13.5l-1.4 1',
+  sunset: 'M3 19h18M7 19a5 5 0 0110 0M12 3v6M9.5 6.5L12 9l2.5-2.5M4.5 13.5l1.4 1M19.5 13.5l-1.4 1',
+  thermometer: 'M10 13.5V5a2 2 0 014 0v8.5a4 4 0 11-4 0zM12 9v6',
+  drop: 'M12 3.5c3.4 4.3 5.8 7.4 5.8 10.3a5.8 5.8 0 01-11.6 0c0-2.9 2.4-6 5.8-10.3z',
 } as const
 
 export type IconName = keyof typeof ICON_PATHS

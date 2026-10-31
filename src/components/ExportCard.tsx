@@ -42,9 +42,8 @@ export function ExportCard({ tripId, day }: Props) {
     }
   }
 
-  return (
-    <section className="card export-card">
-      <h2>{day ? 'Export this day' : 'Export & backup'}</h2>
+  const body = (
+    <>
       <p className="muted small">
         For offline maps, open the KML file with <strong>Organic Maps</strong> (free): pins, notes and the drawn routes
         become a list you can use without internet. Segments not drawn on the map are exported as text only.
@@ -81,6 +80,19 @@ export function ExportCard({ tripId, day }: Props) {
         </>
       )}
       {error && <p className="error">{error}</p>}
+    </>
+  )
+
+  // A day's export is rarely needed: folded at the end of the day page (User, 2026-10-31).
+  return day ? (
+    <details className="card disclosure export-card">
+      <summary>Export this day</summary>
+      {body}
+    </details>
+  ) : (
+    <section className="card export-card">
+      <h2>Export &amp; backup</h2>
+      {body}
     </section>
   )
 }

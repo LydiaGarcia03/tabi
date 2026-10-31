@@ -378,7 +378,7 @@ function LegEditor({
   return (
     <div className="leg-editor">
       {onAddBaseStop && (
-        <div className="row wrap">
+        <div className="row wrap base-add-here">
           <button type="button" className="link small" onClick={onAddBaseStop} title="Go back to the hotel between these two places">
             <Icon name="plus" size={14} /> <Icon name="home" size={15} /> Back to base here
           </button>
