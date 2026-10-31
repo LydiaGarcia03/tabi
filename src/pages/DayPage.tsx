@@ -1,6 +1,6 @@
 import { APILoadingStatus, useApiLoadingStatus, type MapMouseEvent } from '@vis.gl/react-google-maps'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Fragment, lazy, Suspense, useMemo, useState } from 'react'
+import { Fragment, lazy, Suspense, useContext, useMemo, useState } from 'react'
 import { dayMoney, itemsBudget, travelersOf, tripStarted } from '../budget'
 import { DayMap } from '../components/DayMap'
 import { DayMoney } from '../components/DayMoney'
@@ -541,12 +541,13 @@ function DayHeader({
 }) {
   const [title, setTitle] = useDraft(day.title, (value) => updateDay(day.id, { title: value.trim() }))
   const [shared, setShared] = useState('')
+  const passCovered = useContext(PassCoverageContext)
   const climate = useClimate(point, day.date, online)
   const [climateInfo, setClimateInfo] = useState(false)
 
   async function share() {
     try {
-      const result = await shareText(`Day ${number}`, dayText(day, number, places, legs, travelers))
+      const result = await shareText(`Day ${number}`, dayText(day, number, places, legs, trip, travelers, city, passCovered))
       setShared(result === 'copied' ? 'Copied to the clipboard.' : '')
     } catch {
       setShared('Could not share on this device.')
