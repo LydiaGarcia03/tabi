@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import { db } from '../db/db'
 import type { TripOption } from '../db/model'
 import { itineraryState } from './options/itinerary'
+import { isFavorite } from '../db/options'
 import { Icon } from './Icon'
 import { ItineraryTags } from './OptionDetails'
 import { OptionThumb } from './OptionPicker'
@@ -149,7 +150,7 @@ export function HotelOptionSelect({
               <OptionThumb option={h} photo={photos?.get(h.id)} />
               <span className="option-select-text">
                 <span className="option-select-name">
-                  {h.status === 'favorite' && (
+                  {isFavorite(h) && (
                     <span className="status-mark favorite" title="Favorite">
                       <Icon name="star" size={14} filled />
                     </span>

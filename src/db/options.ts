@@ -13,6 +13,24 @@ export async function updateOption(id: string, changes: Partial<Omit<TripOption,
   await db.options.update(id, changes)
 }
 
+/** The ★: its own flag, or the old 'favorite' status of options saved before it. */
+export const isFavorite = (option: Pick<TripOption, 'status' | 'favorite'>) => !!option.favorite || option.status === 'favorite'
+
+/**
+ * Status changes that keep the ★: choosing a favorite (or putting it in the itinerary) moves an old
+ * 'favorite' status into the flag.
+ */
+export const withStatus = (option: Pick<TripOption, 'status' | 'favorite'>, status: TripOption['status']) => ({
+  status,
+  favorite: isFavorite(option) || undefined,
+})
+
+/** ★ on / off, leaving chosen / in the itinerary as it is. */
+export async function toggleFavorite(option: TripOption): Promise<void> {
+  const on = !isFavorite(option)
+  await updateOption(option.id, { favorite: on || undefined, status: option.status === 'favorite' ? 'idea' : option.status })
+}
+
 export async function deleteOption(id: string): Promise<void> {
   await db.transaction('rw', db.options, db.photos, async () => {
     await db.photos.where('optionId').equals(id).delete()
@@ -37,7 +55,7 @@ export async function addOptionToDay(option: TripOption, dayId: string): Promise
     kind: option.kind === 'restaurant' || option.kind === 'shop' ? option.kind : 'place',
   })
   await db.places.update(placeId, { notes, openingHours: option.openingHours, bookAhead: option.bookAhead, inside: option.inside })
-  await updateOption(option.id, { status: 'chosen', placeId })
+  await updateOption(option.id, { ...withStatus(option, 'chosen'), placeId })
   return placeId
 }
 
@@ -61,6 +79,6 @@ export async function addOptionToTrip(option: TripOption, expense: Omit<Expense,
   const expenseId = crypto.randomUUID()
   await db.transaction('rw', db.expenses, db.options, async () => {
     await db.expenses.add({ ...expense, id: expenseId })
-    await db.options.update(option.id, { status: 'chosen', expenseId })
+    await db.options.update(option.id, { ...withStatus(option, 'chosen'), expenseId })
   })
 }

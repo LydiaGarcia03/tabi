@@ -149,7 +149,10 @@ export interface TripOption {
   id: string
   tripId: string
   kind: OptionKind
+  /** 'favorite' only in data saved before `favorite` (2026-11-02); read it with `isFavorite`. */
   status: OptionStatus
+  /** The ★, apart from the status: an option stays a favorite when it goes into the itinerary. */
+  favorite?: boolean
   name: string
   city?: string
   /** Hotel: per night; restaurant: per person; place: ticket; transport: per ticket. */

@@ -9,7 +9,7 @@ import { Stars } from '../Stars'
 import { CityTag } from '../TripLayout'
 import { formatDay } from '../../dates'
 import type { Day, OptionStatus, Stay, Trip, TripOption } from '../../db/model'
-import { updateOption } from '../../db/options'
+import { isFavorite, toggleFavorite, updateOption, withStatus } from '../../db/options'
 import { cityNights } from '../../db/stays'
 import { describePriced, optionPriced, pricedTotal, travelersOf } from '../../budget'
 import { formatMoney } from '../../format'
@@ -124,7 +124,14 @@ export function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds
   const chosen = option.status === 'chosen' || !!inPlan
   const columns = 6 + (group.kind === 'hotel' ? 1 : 0) + (isTransport ? 1 : 0)
 
-  const setStatus = (status: OptionStatus) => updateOption(option.id, { status: option.status === status ? 'idea' : status })
+  const favorite = isFavorite(option)
+  // Chosen / discarded on and off; the ★ is kept, except when discarding.
+  const setStatus = (status: OptionStatus) => {
+    const next = option.status === status ? 'idea' : status
+    return updateOption(option.id, next === 'discarded' ? { status: next, favorite: undefined } : withStatus(option, next))
+  }
+  // The row's tint: in the itinerary (or chosen) is green, even for a favorite.
+  const look = option.status === 'discarded' ? 'discarded' : chosen ? 'chosen' : favorite ? 'favorite' : 'idea'
   // A tap on the row opens the details; its photo, link, stars, buttons and folded blocks keep their own job,
   // and selecting text doesn't open anything.
   const openDetails = (e: MouseEvent) => {
@@ -134,18 +141,18 @@ export function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds
 
   return (
     <>
-      <tr className={`option-row status-${option.status}`} onClick={openDetails}>
+      <tr className={`option-row status-${look}`} onClick={openDetails}>
         <td className="option-name" data-label="Name">
           <div className="option-with-photo">
             <LeadPhoto images={photos.get(option.id) ?? []} name={option.name} />
             <div>
               <span className="option-title">
-                {option.status === 'favorite' && (
+                {favorite && (
                   <span className="status-mark favorite" title="Favorite">
                     <Icon name="star" size={15} filled />
                   </span>
                 )}
-                {option.status === 'chosen' && (
+                {chosen && (
                   <span className="status-mark chosen" title="Chosen">
                     <Icon name="check" size={15} weight={2.6} />
                   </span>
@@ -261,12 +268,12 @@ export function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds
         <td className="option-actions">
           <button
             type="button"
-            className={`icon-toggle${option.status === 'favorite' ? ' on' : ''}`}
+            className={`icon-toggle${favorite ? ' on' : ''}`}
             title="Favorite"
-            aria-pressed={option.status === 'favorite'}
-            onClick={() => setStatus('favorite')}
+            aria-pressed={favorite}
+            onClick={() => toggleFavorite(option)}
           >
-            <Icon name="star" filled={option.status === 'favorite'} />
+            <Icon name="star" filled={favorite} />
           </button>
           <button
             type="button"

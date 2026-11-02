@@ -3,7 +3,7 @@ import { Icon } from '../Icon'
 import { DaySelect } from '../DaySelect'
 import { daysBetween } from '../../dates'
 import type { Day, Stay, Trip, TripOption } from '../../db/model'
-import { addOptionToDay, addOptionToTrip, removeOptionFromItinerary, updateOption } from '../../db/options'
+import { addOptionToDay, addOptionToTrip, removeOptionFromItinerary, updateOption, withStatus } from '../../db/options'
 import { cityNights, stayNights, stayOfCity } from '../../db/stays'
 import { travelersOf } from '../../budget'
 import { formatMoney } from '../../format'
@@ -240,7 +240,7 @@ export function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored;
       )}
       {error && <span className="error small">{error}</span>}
       <div className="add-to-day-links">
-        <button type="button" className="link" onClick={() => updateOption(option.id, { status: 'chosen' }).then(onDone)}>
+        <button type="button" className="link" onClick={() => updateOption(option.id, withStatus(option, 'chosen')).then(onDone)}>
           Just mark as chosen
         </button>
         {option.lat != null && dayId && (

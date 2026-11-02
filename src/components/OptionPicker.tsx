@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { db } from '../db/db'
 import type { OptionKind, TripOption } from '../db/model'
-import { addOptionToDay } from '../db/options'
+import { addOptionToDay, isFavorite } from '../db/options'
 import { DAY_KINDS, KIND_ICON, KIND_PLURAL } from '../planning/optionKinds'
 import { Icon } from './Icon'
 import { BlobImage } from './Photos'
@@ -281,7 +281,7 @@ function OptionSelect({
                       <OptionThumb option={o} photo={photos.get(o.id)} />
                       <span className="option-select-text">
                         <span className="option-select-name">
-                          {o.status === 'favorite' && (
+                          {isFavorite(o) && (
                             <span className="status-mark favorite" title="Favorite">
                               <Icon name="star" size={14} filled />
                             </span>

@@ -11,6 +11,7 @@ import { describeWeek } from '../planning/hours'
 import { formatHours, JOURNEY_ICON, journeyCarriers } from '../planning/journeys'
 import { BOOK_AHEAD_LABEL, DAY_KINDS, PRICE_LABEL } from '../planning/optionKinds'
 import { BaggageBreakdown } from './AirlineGuide'
+import { isFavorite } from '../db/options'
 import { Icon, type IconName } from './Icon'
 import { JourneyItinerary, journeyChips, RouteChain } from './JourneyLegs'
 import { BlobImage, PhotoViewer } from './Photos'
@@ -98,7 +99,7 @@ export function OptionDetails({
           <ItineraryTags state={inPlan} />
         </p>
         <h3 className="option-details-title">
-          {option.status === 'favorite' && (
+          {isFavorite(option) && (
             <span className="status-mark favorite" title="Favorite">
               <Icon name="star" size={18} filled />
             </span>

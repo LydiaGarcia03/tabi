@@ -13,6 +13,7 @@ import { useMediaQuery } from '../useMediaQuery'
 import { useOnline } from '../useOnline'
 import { useCityHue } from '../cityColors'
 import { ErrorBoundary } from './ErrorBoundary'
+import { isFavorite } from '../db/options'
 import { Icon } from './Icon'
 import { formatKm, ItineraryTags, type ItineraryState } from './OptionDetails'
 import { BlobImage } from './Photos'
@@ -268,7 +269,7 @@ function OptionMapRow({
       <OptionThumb option={option} images={images} />
       <span className="options-map-text">
         <span className="options-map-name">
-          {option.status === 'favorite' && (
+          {isFavorite(option) && (
             <span className="status-mark favorite" title="Favorite">
               <Icon name="star" size={14} filled />
             </span>
