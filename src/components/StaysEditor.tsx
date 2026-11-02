@@ -8,7 +8,8 @@ import { addStay, baseIcon, cityGroups, cityNights, deleteStay, groupOf, homeOf,
 import { JOURNEY_LABEL, journeyDetails, journeysOnRoute } from '../planning/journeys'
 import { href } from '../router'
 import { JourneyForm } from './BookingForms'
-import { useCityHue } from '../cityColors'
+import { CityColorPicker } from './CityColorPicker'
+import { autoCityHues, pickedCityHue, useCityHue } from '../cityColors'
 import { HotelOptionSelect } from './HotelOptionSelect'
 import { Icon, type IconName } from './Icon'
 import { LocateSearch } from './LocateSearch'
@@ -565,6 +566,9 @@ function StayForm({
     group.length > 0 ? group.map((s) => ({ id: s.id, from: s.startDate, base: s.base })) : [{ from: '' }],
   )
   const [kind, setKind] = useState<StayKind>(stay?.kind ?? 'stay')
+  // The color picked for the city (none = automatic, the next one in visiting order).
+  const [hue, setHue] = useState<number | undefined>(stay ? pickedCityHue(stays, stay.city) : undefined)
+  const autoHue = autoCityHues([...stays.filter((s) => !group.some((g) => g.id === s.id)), { city, startDate }]).get(city.trim().toLowerCase()) ?? 0
   // Hotel changes only where you sleep.
   const shown = kind === 'stay' ? periods : periods.slice(0, 1)
   // Each move is after the previous one, within the city's days.
@@ -589,7 +593,7 @@ function StayForm({
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
-    const common = { city: city.trim(), kind: kind === 'stay' ? undefined : kind }
+    const common = { city: city.trim(), kind: kind === 'stay' ? undefined : kind, hue }
     for (const [i, p] of shown.entries()) {
       const values = { ...common, startDate: i === 0 ? startDate : p.from, endDate: periodEnd(i), base: p.base }
       if (p.id) await updateStay(p.id, values)
@@ -597,6 +601,8 @@ function StayForm({
     }
     // Hotels taken out.
     for (const s of group) if (!shown.some((p) => p.id === s.id)) await deleteStay(s.id)
+    // A city visited twice (Osaka at the start and at the end) keeps one color.
+    for (const s of others) if (s.city.trim().toLowerCase() === city.trim().toLowerCase() && s.hue !== hue) await updateStay(s.id, { hue })
     onDone()
   }
 
@@ -617,6 +623,10 @@ function StayForm({
         City
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Osaka" autoFocus />
       </label>
+      <div className="field">
+        <span className="field-label">Color</span>
+        <CityColorPicker hue={hue} autoHue={autoHue} onChange={setHue} />
+      </div>
       <div className="field">
         <span className="field-label">How you'll visit it</span>
         <div className="segmented" role="radiogroup" aria-label="How you'll visit it">

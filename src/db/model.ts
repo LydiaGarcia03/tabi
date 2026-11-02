@@ -97,6 +97,8 @@ export interface Stay {
   base?: StayBase
   /** How the city is visited (default "stay"). */
   kind?: StayKind
+  /** The city's color, picked in its form (one of `CITY_HUES`); none = automatic, by visiting order. */
+  hue?: number
 }
 
 /**

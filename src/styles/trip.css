@@ -818,3 +818,20 @@ a.check-body > .icon {
   align-items: center;
   gap: 4px;
 }
+
+/* CityColorPicker (city form): the line color picker's swatches in the city colors, the automatic one first
+   and set apart by a thin line. */
+.city-color {
+  background: hsl(var(--hue, 0) 55% 45%);
+}
+
+:root[data-theme='dark'] .city-color {
+  background: hsl(var(--hue, 0) 55% 60%);
+}
+
+.city-colors-gap {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--border);
+}
