@@ -89,7 +89,7 @@ export function DayMoney({
         <p className="day-money-info">
           <Icon name="info" size={16} />
           <span>
-            During the trip, log here what you spend each day. Tickets and reservations not included: they're paid before the trip.
+            During the trip, log here what you spend each day. Tickets and reservations not included as they're paid before the trip.
           </span>
         </p>
       )}
