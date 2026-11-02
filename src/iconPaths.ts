@@ -22,7 +22,9 @@ export const ICON_PATHS = {
   drawMap: 'M3 6l4-2 5 2 4-2v6M3 6v13l4-2 4 2M7 4v13M12 6v6.5M13.5 21h2.2l5.4-5.4a1.5 1.5 0 00-2.2-2.2l-5.4 5.4V21z',
   plus: 'M12 5v14M5 12h14',
   info: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 11v5.5M12 7.5h.01',
-  plusCircle: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 8v8M8 12h8',
+  /** The app tour's button (User's choice E from a mock, 2026-11-02). */
+  help: 'M12 21a9 9 0 100-18 9 9 0 000 18zM9.6 9.3a2.5 2.5 0 014.8 1c0 1.7-2.4 2.2-2.4 3.7M12 17h.01',
+  plusCircle:'M12 21a9 9 0 100-18 9 9 0 000 18zM12 8v8M8 12h8',
   minusCircle: 'M12 21a9 9 0 100-18 9 9 0 000 18zM8 12h8',
   calendar: 'M5 6h14v14H5zM5 10h14M9 4v4M15 4v4',
   pin: 'M12 21s-6-5.7-6-11a6 6 0 0112 0c0 5.3-6 11-6 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',

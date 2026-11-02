@@ -1,0 +1,269 @@
+/* The app tour (computers only, from 1100px: rendered by components/tour/Tour.tsx). */
+
+:root {
+  --tour-shade: rgb(30 22 14 / 0.38);
+}
+
+:root[data-theme='dark'] {
+  --tour-shade: rgb(0 0 0 / 0.55);
+}
+
+/* The help button at the bottom right of every page: paper color, a red "?" drawn as a line icon (User's choice E). */
+.tour-button {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 900;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.12);
+}
+
+.tour-button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+/* Over everything; clicks never reach the page under it. */
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+.tour-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--tour-shade);
+  /* Only darkened, no blur (User: even 1.5px was too blurred). */
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+
+/* Around the part explained: a red line sending out a ring. */
+.tour-ring {
+  position: absolute;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--accent);
+  animation: tour-pulse 1.6s infinite;
+  transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+
+@keyframes tour-pulse {
+  from {
+    box-shadow: 0 0 0 2px var(--accent), 0 0 0 2px rgb(181 51 46 / 0.5);
+  }
+  to {
+    box-shadow: 0 0 0 2px var(--accent), 0 0 0 14px rgb(181 51 46 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* The step's card, beside the part explained with an arrow pointing at it. */
+.tour-card {
+  position: absolute;
+  width: 320px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
+  outline: none;
+  transition: left 0.3s ease, top 0.3s ease;
+}
+
+.tour-card.centered {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tour-card h2 {
+  margin: 2px 0 6px;
+  font-size: 1rem;
+}
+
+.tour-card p {
+  margin: 0 0 12px;
+}
+
+/* One line per thing: its name in bold, then what it is. */
+.tour-points {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.tour-points li {
+  padding-left: 10px;
+  border-left: 2px solid var(--accent-soft);
+}
+
+/* Drawn like the option row's buttons it stands for. */
+.tour-point-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 2px;
+  vertical-align: -5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.tour-card > p.muted {
+  margin: 0;
+}
+
+.tour-card::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+
+.tour-card.centered::before {
+  display: none;
+}
+
+.tour-card.arrow-r::before {
+  left: -7px;
+  top: var(--arrow);
+}
+
+.tour-card.arrow-l::before {
+  right: -7px;
+  top: var(--arrow);
+}
+
+.tour-card.arrow-b::before {
+  top: -7px;
+  left: var(--arrow);
+}
+
+.tour-card.arrow-t::before {
+  bottom: -7px;
+  left: var(--arrow);
+}
+
+.tour-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-card-actions .tour-skip {
+  margin-right: auto;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+/* Welcome and end: a red band with 旅 faded in it, the medallion half over it. */
+.tour-modal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: center;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.3);
+}
+
+.tour-band {
+  position: relative;
+  height: 64px;
+  overflow: hidden;
+  background: var(--accent);
+}
+
+.tour-band span {
+  position: absolute;
+  right: -6px;
+  top: -14px;
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+  color: rgb(255 255 255 / 0.14);
+}
+
+.tour-medallion {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: -36px auto 6px;
+  border: 4px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.tour-modal-body {
+  padding: 0 26px 20px;
+}
+
+.tour-modal-body h2 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+
+.tour-modal-body > p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.tour-modal-body > p strong {
+  color: var(--text);
+}
+
+.tour-modal-body button.primary {
+  padding-inline: 22px;
+}
+
+.tour-later {
+  display: block;
+  margin: 12px auto 0;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.tour-end-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tour-modal-body > p.tour-replay {
+  margin: 12px 0 0;
+}
+
+@media print {
+  .tour-button,
+  .tour-layer {
+    display: none;
+  }
+}

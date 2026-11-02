@@ -7,3 +7,6 @@ export const PHONE = '(max-width: 599px)'
 
 /** Wide screens: two columns (Options with its map beside the list, the Logbook's day and place in focus). */
 export const WIDE = '(min-width: 900px)'
+
+/** Computers: the trip sidebar (and the app tour, made for this layout). */
+export const SIDEBAR = '(min-width: 1100px)'

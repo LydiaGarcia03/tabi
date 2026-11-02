@@ -8,10 +8,12 @@ import type { Trip } from '../db/model'
 import { createTrip } from '../db/trips'
 import { CountryPicker } from '../components/CountriesMoney'
 import { href, navigate } from '../router'
+import { takeNewTripRequest } from '../tour/tour'
 
 export function TripsPage() {
   const trips = useLiveQuery(() => db.trips.orderBy('startDate').toArray())
-  const [creating, setCreating] = useState(false)
+  // "Create my trip" at the end of the tour opens the form.
+  const [creating, setCreating] = useState(takeNewTripRequest)
 
   if (!trips) return null
 
