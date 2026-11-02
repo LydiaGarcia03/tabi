@@ -146,6 +146,33 @@ button.option-select-button {
   padding-left: 4px;
 }
 
+/* Open, the box becomes a field to filter the list (same size as the closed box). */
+.option-select-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.option-select-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  outline: none;
+  box-shadow: none;
+}
+
+.option-select-empty {
+  padding: 10px 12px 6px;
+}
+
 .option-select-list {
   position: absolute;
   z-index: 20;

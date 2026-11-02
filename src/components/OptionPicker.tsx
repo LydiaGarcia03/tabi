@@ -117,6 +117,23 @@ export function OptionPicker({ tripId, dayId, cities, onAdded }: Props) {
 
 const located = (o: TripOption) => o.lat != null && o.lng != null
 
+/** Lowercase without accents, so "senso" finds "Sensō-ji". */
+const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+/** The options whose name, type or city have every word typed. */
+function filterGroups(groups: [string, TripOption[]][], query: string): [string, TripOption[]][] {
+  const words = fold(query).split(/\s+/).filter(Boolean)
+  return groups
+    .map(([city, options]): [string, TripOption[]] => [
+      city,
+      options.filter((o) => {
+        const text = fold(`${o.name} ${o.category ?? ''} ${city}`)
+        return words.every((w) => text.includes(w))
+      }),
+    ])
+    .filter(([, options]) => options.length > 0)
+}
+
 /** The option's first photo, or its kind's icon when it has none. */
 export function OptionThumb({ option, photo }: { option: TripOption; photo?: Blob }) {
   return <span className="option-thumb">{photo ? <BlobImage image={photo} alt="" /> : <Icon name={KIND_ICON[option.kind]} size={18} />}</span>
@@ -124,7 +141,8 @@ export function OptionThumb({ option, photo }: { option: TripOption; photo?: Blo
 
 /**
  * A dropdown of options with their photo, name and type (a native <select>
- * can only hold text). Keyboard: ↑ ↓ to move, Enter to pick, Esc to close.
+ * can only hold text). Open, its box is a field: typing filters the list by name,
+ * type or city (User, 2026-11-02). Keyboard: ↑ ↓ to move, Enter to pick, Esc to close.
  */
 function OptionSelect({
   groups,
@@ -143,9 +161,12 @@ function OptionSelect({
 }) {
   const [expanded, setExpanded] = useState(false)
   const [active, setActive] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
   const root = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLUListElement>(null)
-  const pickable = groups.flatMap(([, options]) => options).filter(located)
+  const button = useRef<HTMLButtonElement>(null)
+  const shown = filterGroups(groups, query)
+  const pickable = shown.flatMap(([, options]) => options).filter(located)
 
   // A tap anywhere else closes the list.
   useDismiss(root, expanded, setExpanded)
@@ -156,25 +177,36 @@ function OptionSelect({
   }, [expanded, active])
 
   const show = () => {
-    setActive(selected?.id ?? pickable[0]?.id ?? null)
+    setQuery('')
+    setActive(selected?.id ?? groups.flatMap(([, options]) => options).find(located)?.id ?? null)
     setExpanded(true)
+  }
+  const close = () => {
+    setExpanded(false)
+    // Back on the box, so the keyboard can go on (Tab to Add).
+    requestAnimationFrame(() => button.current?.focus())
   }
   const pick = (o: TripOption) => {
     onPick(o)
-    setExpanded(false)
+    close()
+  }
+  const filter = (text: string) => {
+    setQuery(text)
+    // The first match is highlighted: Enter picks it.
+    setActive(filterGroups(groups, text).flatMap(([, options]) => options).find(located)?.id ?? null)
   }
 
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape' && expanded) {
       e.preventDefault()
-      setExpanded(false)
+      close()
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       if (!expanded) return show()
       const i = pickable.findIndex((o) => o.id === active)
       const next = pickable[Math.min(pickable.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))]
       if (next) setActive(next.id)
-    } else if ((e.key === 'Enter' || e.key === ' ') && expanded) {
+    } else if (e.key === 'Enter' && expanded) {
       e.preventDefault()
       const o = pickable.find((p) => p.id === active)
       if (o) pick(o)
@@ -183,29 +215,52 @@ function OptionSelect({
 
   return (
     <div className="option-select" ref={root}>
-      <button
-        type="button"
-        className="option-select-button"
-        aria-haspopup="listbox"
-        aria-expanded={expanded}
-        aria-activedescendant={expanded && active ? `option-select-${active}` : undefined}
-        onClick={() => (expanded ? setExpanded(false) : show())}
-        onKeyDown={onKeyDown}
-      >
-        {selected ? (
-          <>
-            <OptionThumb option={selected} photo={photos.get(selected.id)} />
-            <span className="option-select-name">{selected.name}</span>
-            {selected.category && <span className="option-select-type">{selected.category}</span>}
-          </>
-        ) : (
-          <span className="option-select-name muted">{placeholder}</span>
-        )}
-        <Icon name={expanded ? 'up' : 'down'} size={18} />
-      </button>
+      {expanded ? (
+        <div className="option-select-search">
+          <Icon name="search" size={16} />
+          <input
+            type="text"
+            role="combobox"
+            aria-label="Filter the options"
+            aria-expanded="true"
+            aria-controls="option-select-list"
+            aria-activedescendant={active ? `option-select-${active}` : undefined}
+            placeholder="Type to filter…"
+            value={query}
+            autoFocus
+            onChange={(e) => filter(e.target.value)}
+            onKeyDown={onKeyDown}
+          />
+          <button type="button" className="ghost icon-button" aria-label="Close the list" onClick={close}>
+            <Icon name="up" size={18} />
+          </button>
+        </div>
+      ) : (
+        <button
+          ref={button}
+          type="button"
+          className="option-select-button"
+          aria-haspopup="listbox"
+          aria-expanded={false}
+          onClick={show}
+          onKeyDown={onKeyDown}
+        >
+          {selected ? (
+            <>
+              <OptionThumb option={selected} photo={photos.get(selected.id)} />
+              <span className="option-select-name">{selected.name}</span>
+              {selected.category && <span className="option-select-type">{selected.category}</span>}
+            </>
+          ) : (
+            <span className="option-select-name muted">{placeholder}</span>
+          )}
+          <Icon name="down" size={18} />
+        </button>
+      )}
       {expanded && (
-        <ul className="option-select-list" role="listbox" ref={list}>
-          {groups.map(([city, options]) => (
+        <ul className="option-select-list" id="option-select-list" role="listbox" ref={list}>
+          {shown.length === 0 && <li className="option-select-empty muted small">Nothing matches “{query.trim()}”.</li>}
+          {shown.map(([city, options]) => (
             <li key={city} role="presentation">
               <span className="option-select-city">{city}</span>
               <ul role="group" aria-label={city}>
