@@ -382,10 +382,13 @@ function OfflineDayMap({
   }, [map, pendingKey])
 
   // Fit the places (and bases), or the focused leg: when their set changes or a
-  // leg is opened/closed, not on every edit.
+  // leg is opened, not on every edit. Closing a leg leaves the map where it is (as the Google map).
   const fitKey = focusKey ?? [...places.map((p) => `${p.id}:${p.lat},${p.lng}`), ...bases.map((b) => `${b.lat},${b.lng}`)].sort().join('|')
+  const wasFocused = useRef(false)
   useEffect(() => {
-    if (!map) return
+    const closed = wasFocused.current && !focusKey
+    wasFocused.current = !!focusKey
+    if (closed || !map) return
     const points = focus ? focus.points : [...places, ...bases]
     if (points.length === 0) return
     if (points.length === 1) {

@@ -1,5 +1,5 @@
 import { AdvancedMarker, Map, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { legKey } from '../db/legs'
 import { baseMarkerSvg } from '../db/stays'
 import type { Leg, Place, Stay } from '../db/model'
@@ -271,16 +271,20 @@ function undefinedLine(map: google.maps.Map, path: LatLng[]) {
   })
 }
 
-/** Fits the map to the places (and bases) whenever their set changes (not on edits). */
 /**
  * Fits the places, or the focused leg (`focusKey`): refits when the set of
- * places changes or a leg is opened/closed, not on every edit of the leg.
+ * places changes or a leg is opened, not on every edit of the leg. Closing a leg
+ * leaves the map where it is (User, 2026-11-02: fitting the whole day again could
+ * jump from a day trip to the hotel in a faraway city).
  */
 function FitToPlaces({ places, focusKey }: { places: (LatLng & { id?: string })[]; focusKey?: string }) {
   const map = useMap(DAY_MAP_ID)
   const key = focusKey ?? places.map((p) => `${p.id ?? ''}:${p.lat},${p.lng}`).sort().join('|')
+  const wasFocused = useRef(false)
   useEffect(() => {
-    if (!map || places.length === 0) return
+    const closed = wasFocused.current && !focusKey
+    wasFocused.current = !!focusKey
+    if (closed || !map || places.length === 0) return
     if (places.length === 1) {
       map.panTo({ lat: places[0].lat, lng: places[0].lng })
       return
