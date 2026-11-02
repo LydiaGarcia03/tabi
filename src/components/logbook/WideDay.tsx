@@ -3,6 +3,7 @@ import { hoursText } from '../../export/itinerary'
 import { distanceKm } from '../../geo'
 import { compassDirection, formatDistance, type Position } from '../../location'
 import type { Place } from '../../db/model'
+import { floorLabel } from '../../places/floors'
 import { Icon } from '../Icon'
 import { DriverCardButton } from '../DriverCard'
 import { StopCard, type Stop } from './StopCard'
@@ -17,7 +18,10 @@ export function WideDay({
   focus,
   onFocus,
   here,
-  nearest,
+  target,
+  targetKicker,
+  passing,
+  guideChoice,
   onToggleVisited,
   date,
   travelers,
@@ -35,8 +39,14 @@ export function WideDay({
   focus: Stop
   onFocus: (placeId: string) => void
   here?: Stop
-  /** Only while following. */
-  nearest?: Stop
+  /** The place you're guided to (next in order, or nearest). Only while following. */
+  target?: Stop
+  /** Its card's title: "Next · 2 of 5" / "Nearest". */
+  targetKicker?: string
+  /** Guiding in order: a later place you're at. Only while following. */
+  passing?: Stop
+  /** "Next in order | Nearest", above the day's list (User's choice 2C, 2026-11-01). */
+  guideChoice: ReactNode
   /** A row swiped (dragged) to the right: visited / not visited. */
   onToggleVisited: (place: Place) => void
   date: string
@@ -47,18 +57,22 @@ export function WideDay({
 }) {
   const index = stops.indexOf(focus)
   const visitedCount = stops.filter((s) => s.place.visited).length
-  const kicker = focus === here ? undefined : focus === nearest ? 'Nearest' : `Place ${focus.number} of ${stops.length}`
+  const kicker = focus === here ? undefined : focus === target ? targetKicker : `Place ${focus.number} of ${stops.length}`
   return (
     <div className="logbook-columns">
       <section className="card logbook-day">
-        <p className="logbook-kicker">
-          The day · {stops.length} {stops.length === 1 ? 'place' : 'places'}
-          {visitedCount > 0 && ` · ${visitedCount} visited`}
-        </p>
+        <div className="logbook-day-head">
+          <p className="logbook-kicker">
+            The day · {stops.length} {stops.length === 1 ? 'place' : 'places'}
+            {visitedCount > 0 && ` · ${visitedCount} visited`}
+          </p>
+          {guideChoice}
+        </div>
         <ol className="logbook-list logbook-rows">
           {stops.map((stop) => {
             const m = position ? distanceKm(position, stop.place) * 1000 : null
             const hours = hoursText(stop.place, date)
+            const floor = stop.place.inside && floorLabel(stop.place.inside.floor)
             return (
               <SwipeRow
                 key={stop.place.id}
@@ -70,8 +84,8 @@ export function WideDay({
                   <span className="logbook-number">{stop.place.visited ? <Icon name="check" size={14} /> : <span>{stop.number}</span>}</span>
                   <span className="logbook-name">
                     <span>{stop.place.name}</span>
-                    {(stop.place.plannedTime || hours) && (
-                      <span className="muted small">{[stop.place.plannedTime, hours].filter(Boolean).join(' · ')}</span>
+                    {(stop.place.plannedTime || hours || floor) && (
+                      <span className="muted small">{[stop.place.plannedTime, floor, hours].filter(Boolean).join(' · ')}</span>
                     )}
                   </span>
                   {m != null && (
@@ -98,6 +112,7 @@ export function WideDay({
           radius={radius}
           here={focus === here}
           kicker={kicker}
+          passing={focus === target && passing ? { stop: passing, onOpen: () => onFocus(passing.place.id) } : undefined}
           onPrev={index > 0 ? () => onFocus(stops[index - 1].place.id) : undefined}
           onNext={index < stops.length - 1 ? () => onFocus(stops[index + 1].place.id) : undefined}
           withNext

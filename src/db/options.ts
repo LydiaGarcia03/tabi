@@ -36,7 +36,7 @@ export async function addOptionToDay(option: TripOption, dayId: string): Promise
     people: option.people,
     kind: option.kind === 'restaurant' || option.kind === 'shop' ? option.kind : 'place',
   })
-  await db.places.update(placeId, { notes, openingHours: option.openingHours, bookAhead: option.bookAhead })
+  await db.places.update(placeId, { notes, openingHours: option.openingHours, bookAhead: option.bookAhead, inside: option.inside })
   await updateOption(option.id, { status: 'chosen', placeId })
   return placeId
 }

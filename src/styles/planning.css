@@ -151,16 +151,115 @@ label.check input {
   padding: 0 4px;
 }
 
-.open-days {
-  display: flex;
-  flex-wrap: wrap;
+/* Without its box: inside the place editor, beside the door icon. */
+.hours-editor.bare {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.hours-mode-short {
+  display: none;
+}
+
+/* Phones: the three choices on one line, with short labels ("Every day", "By day"). */
+@media (max-width: 599px) {
+  .hours-mode {
+    display: grid;
+    grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  }
+
+  .hours-mode button {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .hours-mode-long {
+    display: none;
+  }
+
+  .hours-mode-short {
+    display: inline;
+  }
+
+  .hours-days li {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .hours-days li > .day-toggle {
+    width: 46px;
+  }
+
+  .hours-editor .hours-times input {
+    width: 3.4em;
+  }
+
+  .hours-editor .hours-range {
+    gap: 4px;
+  }
+
+  .hours-mode button {
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .hours-editor .hours-range .icon-button {
+    width: 28px;
+    min-width: 28px;
+  }
+}
+
+/* "Open on" inside the choice's box, before its three buttons; the seven days on the line under it. */
+.hours-mode {
   align-items: center;
-  gap: 4px;
+}
+
+.hours-mode-label {
+  flex: none;
+  padding: 0 4px 0 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* The place editor is narrow beside the map: with "Open on" before them, the choices take the short labels. */
+.hours-editor.bare .hours-mode {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  max-width: 360px;
+}
+
+.hours-editor.bare .hours-mode button {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.hours-editor.bare .hours-mode-long {
+  display: none;
+}
+
+.hours-editor.bare .hours-mode-short {
+  display: inline;
+}
+
+.open-days {
   margin: 10px 0;
 }
 
-.open-days > span {
-  margin-right: 4px;
+.hours-editor.bare .open-days {
+  margin: 0;
+}
+
+/* The seven days on one line, also on phones. */
+.open-week {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 420px;
 }
 
 /* Closed day: muted and struck through; open day: highlighted. */
@@ -172,6 +271,11 @@ button.day-toggle {
   text-decoration: line-through;
 }
 
+.open-week button.day-toggle {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 button.day-toggle.active {
   background: var(--accent-soft);
   border-color: var(--accent);
@@ -179,69 +283,93 @@ button.day-toggle.active {
   text-decoration: none;
 }
 
+/* One line per range, one under the other. */
 .hours-ranges {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  justify-items: start;
   gap: 6px;
   min-width: 0;
 }
 
-/* "All day" next to the closing time: small, like the day toggles. */
-.hours-editor label.check.all-day {
-  font-size: 0.85rem;
-  gap: 6px;
-  margin: 0 0 0 4px;
-  flex: none;
-}
-
-.hours-range input:disabled {
-  opacity: 0.5;
-}
-
-.hours-editor label.check.all-day input {
-  width: 16px;
-  height: 16px;
-}
-
 .hours-range {
   display: inline-flex;
-  /* "All day" drops under the two times on narrow phones (they ran off a 360–393 px screen). */
+  /* With Android's bigger font sizes, "24h" and "+" drop under the times instead of running off the screen. */
   flex-wrap: wrap;
-  max-width: 100%;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
 }
 
-.hours-range input {
-  padding: 6px 8px;
-}
-
-.hours-ranges > button.link {
-  padding: 2px 0;
-  font-size: 0.85rem;
-}
-
-/* Per day: the day's ranges side by side, wrapping on narrow screens. */
-.hours-ranges.compact {
-  flex-direction: row;
-  flex-wrap: wrap;
+/* "🕐 09:00 – 17:00" in one box. */
+.hours-times {
+  display: inline-flex;
   align-items: center;
-  gap: 4px 10px;
+  gap: 2px;
+  min-height: 36px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
-.hours-ranges.compact .hours-range {
-  gap: 4px;
+.hours-times:focus-within {
+  border-color: var(--accent);
 }
 
-.hours-ranges.compact input {
-  padding: 4px 6px;
+.hours-times > .icon {
+  flex: none;
+  margin-right: 2px;
+  color: var(--muted);
 }
 
-.hours-ranges.compact .icon-button {
+.hours-times input {
+  width: 4.4em;
+  min-height: 34px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  outline: none;
+}
+
+/* Typed (or picked by a tap on phones): the box's own clock replaces Chrome's. */
+.hours-times input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.hours-times.all-day {
+  padding-right: 12px;
+  font-size: 0.9rem;
+}
+
+.hours-dash {
+  color: var(--muted);
+}
+
+/* "24h": a small pill, like the day toggles. */
+button.hours-24 {
   min-height: 32px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+button.hours-24.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.hours-range .icon-button {
+  width: 32px;
   min-width: 32px;
+  min-height: 32px;
   padding: 0;
+  color: var(--muted);
 }
 
 .hours-days {
@@ -249,19 +377,35 @@ button.day-toggle.active {
   margin: 10px 0;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: 6px;
+}
+
+.hours-editor.bare .hours-days {
+  margin: 0;
 }
 
 .hours-days li {
-  display: flex;
-  align-items: center;
-  gap: 4px 10px;
-  min-height: 36px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
 }
 
 .hours-days li > .day-toggle {
   width: 52px;
-  flex: none;
+  margin-top: 2px;
+}
+
+.hours-closed {
+  align-self: center;
+}
+
+.hours-note {
+  width: 100%;
+}
+
+.hours-editor:not(.bare) .hours-note {
+  margin-top: 8px;
 }
 
 .list-toolbar {

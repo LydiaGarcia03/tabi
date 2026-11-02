@@ -10,6 +10,10 @@ export const ICON_PATHS = {
   edit: 'M4 20h4L18.5 9.5a2.1 2.1 0 00-3-3L5 17v3zM13.5 8.5l2 2',
   book: 'M6 4h11a2 2 0 012 2v14H8a2 2 0 01-2-2V4zM6 18a2 2 0 012-2h11M10 8h5',
   layers: 'M12 4l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 16l8 4 8-4',
+  // The way to a floor inside a building ("How to get there").
+  stairs: 'M3 20h5v-4h4v-4h4V8h5',
+  // People going to a place (the place editor's count).
+  people: 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2.5 20a6.5 6.5 0 0113 0M16 4.3a3.5 3.5 0 010 6.4M18 14a6.5 6.5 0 013.5 6',
   search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
   settings: 'M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4',
   share: 'M12 15V4M8 8l4-4 4 4M5 13v6a1 1 0 001 1h12a1 1 0 001-1v-6',

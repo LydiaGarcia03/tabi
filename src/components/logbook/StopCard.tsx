@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
+import { DriverCardContext } from '../../places/localNames'
+import { floorJapanese, floorLabel, floorWay } from '../../places/floors'
 import { describePlaceCost } from '../../budget'
 import type { RouteStop } from '../../db/baseStops'
 import type { Leg, Place } from '../../db/model'
@@ -89,7 +91,10 @@ export function StopCard({
   onNext,
   withNext = here,
   onShowWay,
+  passing,
 }: {
+  /** Guiding in order: you're at a later place of the day (one line says so, with a tap to open it). */
+  passing?: { stop: Stop; onOpen: () => void }
   stop: Stop
   date: string
   travelers: number
@@ -97,7 +102,7 @@ export function StopCard({
   error: string
   radius: number
   here?: boolean
-  /** Replaces "Nearest" (wide screens: "Place 2 of 10"). */
+  /** Replaces "Nearest" ("Next · 2 of 10"; wide screens: "Place 2 of 10"). */
   kicker?: string
   /** Wide screens: ‹ › to the place before / after. */
   onPrev?: () => void
@@ -113,6 +118,7 @@ export function StopCard({
   // Always, also where you are (User, 2026-10-28): inside a 150 m arrival distance the entrance can still be anywhere.
   const heading = useHeading(m != null) ?? 0
   return (
+    // "here": a green border that pulses like the GPS dot while you're at the place (User's choice A, 2026-11-01).
     <section className={`card logbook-stop${here ? ' here' : ''}`}>
       <div className="logbook-stop-head">
         <p className="logbook-kicker">
@@ -154,6 +160,22 @@ export function StopCard({
           </span>
         </div>
       )}
+      {stop.place.inside && <InsideLine place={stop.place} />}
+      {passing && (
+        <p className="logbook-passing small">
+          <Icon name="pin" size={14} />
+          <span>
+            You're at{' '}
+            <strong>
+              {passing.stop.number} {passing.stop.place.name}
+            </strong>{' '}
+            (later in the day) ·{' '}
+            <button type="button" className="link" onClick={passing.onOpen}>
+              Open it
+            </button>
+          </span>
+        </p>
+      )}
       {onShowWay && (
         <button type="button" className="link logbook-show-way" onClick={onShowWay}>
           <Icon name="map" size={16} /> Show map
@@ -163,6 +185,31 @@ export function StopCard({
     </section>
   )
 }
+/**
+ * Where it is inside its building (User's choice 2B, made smaller, 2026-11-01): "Go up to 9F 9階 · Daimaru, North
+ * wing", the way under it. Japanese floor names only on Japan trips. Arriving under it changes nothing else: this
+ * line under the name is the reminder (User, 2026-11-01; an "In the building · not there yet" state was dropped).
+ */
+function InsideLine({ place }: { place: Place }) {
+  const { countries } = useContext(DriverCardContext)
+  const inside = place.inside!
+  const label = floorLabel(inside.floor)
+  const ja = countries.includes('JP') ? floorJapanese(inside.floor) : undefined
+  const way = floorWay(inside.floor)
+  return (
+    <div className="logbook-inside small">
+      <Icon name="layers" size={16} />
+      <span>
+        {way === 'up' ? 'Go up to ' : way === 'down' ? 'Go down to ' : 'Floor '}
+        <strong>{label}</strong>
+        {ja && <span className="muted"> {ja}</span>}
+        {inside.building && ` · ${inside.building}`}
+        {inside.way && <span className="logbook-inside-way muted">{inside.way}</span>}
+      </span>
+    </div>
+  )
+}
+
 /**
  * The place's number and name; for a place added from an option the whole line opens its details and photos,
  * with a › at the end (User's choice 1A from a mock, 2026-10-28).

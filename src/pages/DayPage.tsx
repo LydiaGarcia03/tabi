@@ -335,7 +335,6 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                       place={stop}
                       index={placeIndex}
                       count={places.length}
-                      days={days}
                       currency={trip.baseCurrency}
                       currencies={currencyChoices(trip)}
                       travelers={travelers}

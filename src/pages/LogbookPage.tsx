@@ -22,6 +22,7 @@ import { distanceKm } from '../geo'
 import { compassDirection, formatDistance, useWakeLock, useWatchPosition } from '../location'
 import { href } from '../router'
 import { loadJson, saveJson } from '../settings'
+import { floorLabel } from '../places/floors'
 import { DayPicker } from '../components/logbook/DayPicker'
 import { GpsStatus, StopCard, StopDetails, type Stop } from '../components/logbook/StopCard'
 import { OfflineMapWarning } from '../components/logbook/OfflineMapWarning'
@@ -39,9 +40,17 @@ interface LogbookSettings {
   /** "Arrived" when this close to a place, in metres. */
   radius: number
   keepScreenOn: boolean
+  /** Which place the card guides you to: the day's next one in order (default) or the nearest one. */
+  guide: Guide
 }
 
-const DEFAULTS: LogbookSettings = { radius: 150, keepScreenOn: true }
+type Guide = 'order' | 'nearest'
+const GUIDES: { value: Guide; label: string }[] = [
+  { value: 'order', label: 'Next in order' },
+  { value: 'nearest', label: 'Nearest' },
+]
+
+const DEFAULTS: LogbookSettings = { radius: 150, keepScreenOn: true, guide: 'order' }
 
 
 /**
@@ -60,6 +69,8 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
   const [tracking, setTracking] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showWay, setShowWay] = useState(false)
+  // Phones: "Open it" on a later place you're at (in order) shows its details in a sheet.
+  const [openPassing, setOpenPassing] = useState(false)
   // The swipe hint shows until the first swipe.
   const [swipeLearned, setSwipeLearned] = useState(() => !!loadJson<boolean>(SWIPE_LEARNED_KEY))
   // Wide screens (User's choice A from a mock, 2026-10-27): the day on the left, one place in focus on the right.
@@ -101,7 +112,30 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
   // Places ticked as visited are skipped: two places close together no longer fight over "You're at".
   const sorted = position ? stops.filter((s) => !s.place.visited).sort((a, b) => metres(a.place)! - metres(b.place)!) : []
   const nearest = sorted[0]
-  const here = nearest && metres(nearest.place)! <= settings.radius ? nearest : undefined
+  const inReach = (stop: Stop | undefined) => (stop && metres(stop.place)! <= settings.radius ? stop : undefined)
+  // The place the card guides you to (User's choice, 2026-11-01: in a mall's car park a later shop right above
+  // was nearer than the next one): the first not visited in the day's order, or the nearest one.
+  const target = settings.guide === 'order' ? (position ? stops.find((s) => !s.place.visited) : undefined) : nearest
+  const here = inReach(target)
+  // In order, being at a later place doesn't take over the card: one line says so (choice 3B).
+  const passing = settings.guide === 'order' && nearest !== target ? inReach(nearest) : undefined
+  const targetKicker = target && (settings.guide === 'order' ? `Next · ${target.number} of ${stops.length}` : 'Nearest')
+  const guideChoice = (
+    <div className="segmented logbook-guide" role="radiogroup" aria-label="Guide me to">
+      {GUIDES.map((g) => (
+        <button
+          key={g.value}
+          type="button"
+          role="radio"
+          aria-checked={settings.guide === g.value}
+          className={settings.guide === g.value ? 'active' : ''}
+          onClick={() => setSettings({ guide: g.value })}
+        >
+          {g.label}
+        </button>
+      ))}
+    </div>
+  )
 
   useArrivalBuzz(here?.place.id)
   // A place clicked stays in focus until you arrive somewhere else or change day (then that place is in focus).
@@ -142,9 +176,9 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
       withSteps={withSteps}
     />
   )
-  const card = here ?? nearest
+  const card = target
   const cardWay = card && wayOf(card, card === here)
-  const wideFocus = stops.find((s) => s.place.id === focusId) ?? here ?? nearest ?? stops[0]
+  const wideFocus = stops.find((s) => s.place.id === focusId) ?? target ?? stops[0]
   const wideWay = wideFocus && wayOf(wideFocus, wideFocus === here)
   // Tonight's hotel (or station), with its driver card, at the end of the day's list.
   const nightBase = day ? dayBases(stays, day.date).at(-1) : undefined
@@ -239,7 +273,10 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
           wayMap={wideWay && wayMap(wideWay)}
           onFocus={setFocusId}
           here={here}
-          nearest={tracking ? nearest : undefined}
+          target={tracking ? target : undefined}
+          targetKicker={targetKicker}
+          passing={tracking ? passing : undefined}
+          guideChoice={guideChoice}
           onToggleVisited={toggleVisited}
           date={day!.date}
           travelers={travelers}
@@ -250,7 +287,7 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
         />
       ) : (
         <>
-          {tracking && !nearest && (
+          {tracking && !target && (
             <section className="card logbook-stop">
               <div className="logbook-stop-head">
                 <p className="logbook-kicker">{position && !error ? 'All visited' : 'Finding you'}</p>
@@ -268,6 +305,8 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
               error={error}
               radius={settings.radius}
               here={card === here}
+              kicker={targetKicker}
+              passing={passing && { stop: passing, onOpen: () => setOpenPassing(true) }}
               onShowWay={cardWay ? () => setShowWay(true) : undefined}
             />
           )}
@@ -293,7 +332,11 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
                         <PlaceThumb place={stop.place} />
                         <span className="logbook-name">
                           <span>{stop.place.name}</span>
-                          {stop.place.plannedTime && <span className="muted small">{stop.place.plannedTime}</span>}
+                          {(stop.place.plannedTime || stop.place.inside) && (
+                            <span className="muted small">
+                              {[stop.place.plannedTime, stop.place.inside && floorLabel(stop.place.inside.floor)].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
                         </span>
                         {m != null && (
                           <span className="logbook-distance">
@@ -320,9 +363,24 @@ export function LogbookPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
         </Sheet>
       )}
 
+      {openPassing && passing && (
+        <Sheet title={`${passing.number} ${passing.place.name}`} bottom onClose={() => setOpenPassing(false)}>
+          <StopDetails stop={passing} date={day!.date} travelers={travelers} />
+        </Sheet>
+      )}
+
       {showSettings && (
         <Sheet title="Logbook settings" bottom onClose={() => setShowSettings(false)}>
           <div className="logbook-settings">
+            <div>
+              <p className="field-label">Guide me to</p>
+              {guideChoice}
+              <p className="muted small logbook-guide-note">
+                {settings.guide === 'order'
+                  ? "Next in order: the day's first place not ticked visited."
+                  : 'Nearest: the closest place not ticked visited, whatever its order.'}
+              </p>
+            </div>
             <div>
               <p className="field-label">Arrived when closer than</p>
               <div className="segmented logbook-radius" role="radiogroup" aria-label="Arrival distance">

@@ -9,6 +9,7 @@ import { legKey, legTimes } from '../db/legs'
 import type { Day, Leg, Place, Trip } from '../db/model'
 import { formatMoney, formatTime } from '../format'
 import { directionsStopsUrl } from '../googleMapsLinks'
+import { floorLabel } from '../places/floors'
 
 /** Google Maps directions take an origin, a destination and at most 9 stops in between. */
 const STOPS_PER_LINK = 11
@@ -70,7 +71,7 @@ export function dayText(
       .filter((stop) => !stop.baseStop)
       .map((place) => {
         const kind = mealOf(place) ?? (place.kind === 'restaurant' ? placeType(place)?.toLowerCase() : undefined)
-        const tags = [kind, bookTag(place)].filter(Boolean)
+        const tags = [place.inside && floorLabel(place.inside.floor), kind, bookTag(place)].filter(Boolean)
         return `${place.plannedTime ? `${place.plannedTime} ` : ''}${[place.name, ...tags].join(' · ')}`
       }),
   )

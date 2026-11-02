@@ -445,6 +445,22 @@ button.option-select-button {
   font-weight: 700;
 }
 
+/* "9F" beside a place's name (inside a building). */
+.floor-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
 .place-meta {
   display: flex;
   flex-wrap: wrap;
@@ -475,41 +491,403 @@ button.option-select-button {
   transform: rotate(180deg);
 }
 
-.place-editor {
-  padding: 0 12px 12px 52px;
-  display: grid;
-  gap: 2px;
+/* The kind's icon before the name on the card. */
+.place-kind {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--accent-text);
 }
 
-.place-editor > p {
+/* The open card (User's choice B, 2026-11-01): one line per group, each starting with the closed card's icon. */
+.place-editor {
+  padding: 0 12px 12px 12px;
+  display: grid;
+}
+
+.place-editor input,
+.place-editor select {
+  min-height: 36px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+.place-editor textarea {
+  font-size: 0.95rem;
+}
+
+.pe-line {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 9px 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+/* Centered on the line's first row of fields (38 px tall; the hours' choice is 45 px). */
+.pe-line > .icon {
+  justify-self: center;
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.pe-line:has(> .hours-editor) > .icon {
+  margin-top: 14px;
+}
+
+/* No labels on top here: the forms' label spacing would push the fields below their icon. */
+.place-editor label {
   margin: 0;
 }
 
-/* "See option details" (a place added from an option). */
-.place-option-link {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.9rem;
+/* The checkbox lined up with the fields above it. */
+.place-editor label.check input {
+  margin: 0;
 }
 
-.place-option-link .muted {
+.place-editor .place-option-link {
+  justify-self: start;
+}
+
+.pe-line-top,
+.pe-line-end {
+  border-top: 0;
+}
+
+.pe-line-top {
+  padding-top: 0;
+}
+
+.pe-line-end {
+  padding: 2px 0 0;
+}
+
+.pe-stack {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pe-stack > p {
+  margin: -2px 0 0;
+}
+
+.pe-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pe-row > * {
+  min-width: 0;
+}
+
+/* A field with its icon or unit inside the same box ("Arrive 07:00", "45 min", "500 | JPY", "Floor 9"). */
+.pill-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 0 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
   font-weight: 400;
 }
 
-.place-actions {
-  margin-top: 10px;
+.pill-field:focus-within {
+  border-color: var(--accent);
 }
 
-/* Icon only, at the end of the line, so "Tap again to delete" fits on the same line. */
-.place-maps-link {
-  margin-left: auto;
+.place-editor .pill-field input,
+.place-editor .pill-field select {
+  min-height: 34px;
+  border: 0;
+  background-color: transparent;
+  color: var(--text);
+  outline: none;
 }
 
-@media (max-width: 480px) {
-  .place-editor {
-    padding-left: 12px;
+.place-editor .pill-field input {
+  padding-left: 0;
+}
+
+.place-editor .pill-field select {
+  width: auto;
+  padding: 0 26px 0 8px;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background-position: right 8px center;
+  font-weight: 600;
+}
+
+.pill-unit {
+  padding-right: 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.pill-field > .pill-unit:first-child {
+  padding-right: 0;
+}
+
+.pill-currency {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-left: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.place-editor .pill-number {
+  width: 3.4em;
+  padding-right: 4px;
+  text-align: center;
+}
+
+.pill-field > .icon {
+  flex: none;
+}
+
+/* Name, with the kind as an icon button inside the same box. */
+.pe-name {
+  display: flex;
+  align-items: stretch;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.pe-name:focus-within {
+  border-color: var(--accent);
+}
+
+.place-editor .pe-name > input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-weight: 700;
+  outline: none;
+}
+
+.kind-picker {
+  position: relative;
+  display: flex;
+}
+
+button.kind-picker-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 0;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: transparent;
+  color: var(--accent-text);
+}
+
+.kind-picker-button > .icon:last-child {
+  color: var(--muted);
+}
+
+.kind-picker-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 190px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.kind-picker-menu button {
+  display: grid;
+  grid-template-columns: 22px 1fr 16px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-weight: 500;
+}
+
+.kind-picker-menu button:hover {
+  background: var(--surface-2);
+}
+
+.kind-picker-menu button > .icon {
+  color: var(--accent-text);
+}
+
+.kind-picker-menu button > .icon:last-child {
+  visibility: hidden;
+}
+
+.kind-picker-menu button.chosen {
+  font-weight: 700;
+}
+
+.kind-picker-menu button.chosen > .icon:last-child {
+  visibility: visible;
+}
+
+/* "Arrive 07:00 · 45 min · until 07:45", never split. */
+.pe-when {
+  flex-wrap: nowrap;
+}
+
+.pe-when input[type='time'] {
+  width: 5.6em;
+  padding-right: 6px;
+}
+
+.pe-until {
+  white-space: nowrap;
+}
+
+.pe-until b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.pe-address {
+  flex: 1 1 12em;
+}
+
+button.pe-change {
+  min-height: 0;
+  padding: 0 0 0 4px;
+  font-size: inherit;
+}
+
+.floor-pill input {
+  width: 3.2em;
+  padding-right: 4px;
+  text-align: center;
+}
+
+.inside-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inside-pills .pill-field {
+  flex: 1 1 13em;
+  padding-right: 10px;
+}
+
+.inside-pills input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.pe-cost input {
+  width: 5.5em;
+}
+
+.pe-price-is {
+  padding: 3px;
+}
+
+.pe-price-is button {
+  min-height: 30px;
+  padding: 2px 10px;
+  font-size: 0.85rem;
+}
+
+.place-footer {
+  margin-top: 4px;
+}
+
+.place-footer-spacer {
+  flex: 1;
+}
+
+/* Not the leg footer's phone order (which puts its maps link after "Edit route"). */
+.place-footer .leg-footer-maps {
+  order: 0;
+}
+
+.leg-footer button.link:disabled {
+  opacity: 0.4;
+}
+
+.leg-footer button.link.place-delete:hover,
+.leg-footer button.link.place-delete.confirm {
+  color: var(--error);
+}
+
+/* Phones: a narrower icon column; the time picker opens by a tap, so Chrome's clock is left out. */
+@media (max-width: 599px) {
+  .pe-line {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .pe-when {
+    gap: 6px;
+  }
+
+  .pe-when .pill-field {
+    padding-left: 8px;
+  }
+
+  .pe-when input[type='time'] {
+    width: 3.6em;
+  }
+
+  .pe-when input[type='time']::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+
+  .place-footer-wide {
+    display: none;
+  }
+
+  /* "Google Maps · ↑ ↓ · Delete" on one line. */
+  .place-footer {
+    gap: 10px 14px;
+  }
+
+  .place-footer button.link {
+    padding: 4px 2px;
+  }
+
+  /* The hours take the whole width (a day's line needs it on 360 px phones); the door sits beside the choice. */
+  .pe-line:has(> .hours-editor) > .icon {
+    grid-row: 1;
+    grid-column: 1;
+    z-index: 1;
+  }
+
+  .pe-line > .hours-editor {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .pe-line > .hours-editor > .hours-mode {
+    margin-left: 30px;
   }
 }
 

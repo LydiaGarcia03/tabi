@@ -28,6 +28,8 @@ import { OpeningHoursEditor } from './OpeningHoursEditor'
 import { PhotoPicker } from './Photos'
 import { Stars } from './Stars'
 import { currencyChoices } from '../money/currencies'
+import { cleanInside, toInsideDraft } from '../places/floors'
+import { FloorField, InsideMore } from './InsideFields'
 
 interface Props {
   trip: Trip
@@ -99,6 +101,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
   const [hours, setHours] = useState(option?.hours ?? '')
   const [openingHours, setOpeningHours] = useState(option?.openingHours)
   const [bookAhead, setBookAhead] = useState(option?.bookAhead != null)
+  const [inside, setInside] = useState(() => toInsideDraft(option?.inside))
   const [link, setLink] = useState(option?.link ?? '')
   const [notes, setNotes] = useState(option?.notes ?? '')
   const [location, setLocation] = useState(
@@ -168,6 +171,7 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
       hours: (hasHours && hours.trim()) || undefined,
       openingHours: hasHours ? openingHours : undefined,
       bookAhead: bookAhead ? bookAheadKind : undefined,
+      inside: hasHours ? cleanInside(inside) : undefined,
       link: link.trim() || undefined,
       notes: notes.trim() || undefined,
       lat: isTransport ? undefined : location?.lat,
@@ -280,8 +284,10 @@ export function OptionForm({ trip, cities, option, defaults, onDone }: Props) {
               />
             </label>
           )}
+          <FloorField value={inside} onChange={setInside} />
         </div>
       )}
+      {hasHours && <InsideMore value={inside} onChange={setInside} />}
       {hasHours && money(price) && (forGroup || travelers > 1 || peopleGoing != null) && (
         <p className="muted small">
           In the budget: {describePriced({ price: money(price), forGroup, people: peopleGoing }, travelers)}

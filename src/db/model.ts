@@ -168,6 +168,8 @@ export interface TripOption {
   openingHours?: OpeningHours
   /** Restaurants: a reservation is needed; places: a ticket must be bought ahead. Copied to the place. */
   bookAhead?: BookAhead
+  /** Restaurants, places, shops inside a building: floor and how to get there. Copied to the place. */
+  inside?: Inside
   link?: string
   notes?: string
   lat?: number
@@ -288,6 +290,21 @@ export interface Place {
   booked?: boolean
   /** Ticked in the Logbook during the trip (a row swiped right): skipped when looking for where you are. */
   visited?: boolean
+  /** Inside a building (a mall, a tower): its floor, typed by the user. */
+  inside?: Inside
+}
+
+/**
+ * Where a place is inside a building, typed by the user (Google has no floors). Only kept with a floor:
+ * the building and the way up are asked once a floor is typed.
+ */
+export interface Inside {
+  /** As typed: "9", "9F", "B1", "9-10"… shown by `floorLabel`. */
+  floor: string
+  /** "Daimaru Shinsaibashi, North wing". */
+  building?: string
+  /** "Lifts behind the cosmetics hall". */
+  way?: string
 }
 
 /** A place of a day: a sight, a restaurant, a shop (like the options it can come from) or anything else. */

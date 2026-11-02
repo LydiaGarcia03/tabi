@@ -25,6 +25,14 @@ export const KIND_ICON: Record<OptionKind, IconName> = {
   transport: 'plane',
 }
 
+/** Icon of a place's kind: before its name on the day's cards and as the kind choice in its editor. */
+export const PLACE_KIND_ICON: Record<PlaceKind, IconName> = {
+  place: 'binoculars',
+  restaurant: 'food',
+  shop: 'bag',
+  other: 'sparkle',
+}
+
 export const KIND_PLURAL: Record<OptionKind, string> = {
   hotel: 'Hotels',
   restaurant: 'Restaurants',

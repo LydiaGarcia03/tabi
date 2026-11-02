@@ -145,8 +145,25 @@ button.logbook-day-button {
   gap: 8px;
 }
 
+/* You're at the place: the green border pulses like the GPS dot while you're there (User's choice A, 2026-11-01). */
 .logbook-stop.here {
   border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+  animation: arrived-pulse 1.8s ease-out infinite;
+}
+
+@keyframes arrived-pulse {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--ok) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logbook-stop.here {
+    animation: none;
+  }
 }
 
 .logbook-stop.here .logbook-stop-head .logbook-kicker {
@@ -191,7 +208,6 @@ button.logbook-gps {
 .logbook-gps.rough .logbook-gps-dot {
   --dot: var(--alert);
 }
-
 .logbook-gps-dot::after {
   content: '';
   position: absolute;
@@ -253,7 +269,6 @@ button.logbook-gps {
 .gps-help .rough {
   color: var(--alert);
 }
-
 .logbook-nearest {
   display: flex;
   align-items: center;
@@ -529,6 +544,81 @@ button.logbook-gps {
   padding-left: 0;
   padding-right: 0;
   white-space: nowrap;
+}
+
+/* "Guide me to: Next in order | Nearest" — full width in the phone's settings sheet, compact above the wide day's list. */
+.logbook-settings .logbook-guide {
+  display: flex;
+}
+
+.logbook-settings .logbook-guide button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.logbook-guide-note {
+  margin: 6px 0 0;
+}
+
+.logbook-day-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.logbook-day-head .logbook-guide button {
+  padding: 3px 10px;
+  min-height: 0;
+  font-size: 0.8rem;
+}
+
+/* Inside a building: "Go up to 9F 9階 · Daimaru", the way under it (2B, smaller). */
+.logbook-inside {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 5px 8px;
+  border-left: 3px solid var(--saved);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--saved) 10%, transparent);
+}
+
+.logbook-inside > .icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--saved);
+}
+
+.logbook-inside-way {
+  display: block;
+}
+
+/* Guiding in order and you're at a later place (User's choice 3B). */
+.logbook-passing {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--alert);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--alert) 12%, transparent);
+}
+
+.logbook-passing > .icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--alert);
+}
+
+.logbook-passing .link {
+  padding: 0;
+  min-height: 0;
+  font: inherit;
+  font-weight: 600;
 }
 
 .logbook-offline {

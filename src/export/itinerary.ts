@@ -13,6 +13,7 @@ import { translateExit } from '../i18n/japaneseNames'
 import { drawnPath } from '../mapLines'
 import { describeWindow, weekdayOf, windowFor } from '../planning/hours'
 import { BOOK_AHEAD_LABEL, BOOKED_LABEL } from '../planning/optionKinds'
+import { floorLabel } from '../places/floors'
 
 export interface ItineraryPoint {
   name: string
@@ -90,6 +91,7 @@ function placeDescription(
   if (place.plannedTime) parts.push(`Time: ${place.plannedTime}`)
   const hours = hoursText(place, day.date)
   if (hours) parts.push(hours)
+  if (place.inside) parts.push(`Floor: ${floorLabel(place.inside.floor)}`)
   if (place.address) parts.push(place.address)
   if (place.cost) parts.push(`Cost: ${describePlaceCost(place, travelers)}`)
   if (place.bookAhead) parts.push(place.booked ? BOOKED_LABEL[place.bookAhead] : BOOK_AHEAD_LABEL[place.bookAhead])
