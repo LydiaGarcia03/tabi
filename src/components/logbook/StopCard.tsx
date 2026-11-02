@@ -1,7 +1,9 @@
 import { useContext, useEffect, useState } from 'react'
 import { DriverCardContext } from '../../places/localNames'
 import { floorJapanese, floorLabel, floorWay } from '../../places/floors'
-import { describePlaceCost } from '../../budget'
+import { placeCost } from '../../budget'
+import { formatMoney } from '../../format'
+import { DEFAULT_VISIT_MINUTES, formatMinutes, toMinutes } from '../../planning/hours'
 import type { RouteStop } from '../../db/baseStops'
 import type { Leg, Place } from '../../db/model'
 import { baseIcon } from '../../db/stays'
@@ -41,7 +43,8 @@ export function GpsStatus({ position, error, radius }: { position: Position | nu
     <>
       <button
         type="button"
-        className={`logbook-gps small${tooRough || stale ? ' rough' : ''}${stale ? ' stale' : ''}`}
+        // Red when rougher than the arrival distance (arrivals may be missed: User, 2026-11-01); amber when only stale.
+        className={`logbook-gps small${tooRough ? ' bad' : stale ? ' rough' : ''}${stale ? ' stale' : ''}`}
         aria-label={`GPS precision ±${metres} m: what is this?`}
         onClick={() => setOpen(true)}
       >
@@ -55,7 +58,7 @@ export function GpsStatus({ position, error, radius }: { position: Position | nu
               Your position is somewhere within <strong>{metres} m</strong> of where the phone puts you. GPS works without
               internet.
             </p>
-            <p className={tooRough || stale ? 'rough' : 'good'}>
+            <p className={tooRough ? 'bad' : stale ? 'rough' : 'good'}>
               {stale
                 ? `Not updated for ${age} s.`
                 : tooRough
@@ -241,10 +244,13 @@ function StopTitle({ stop }: { stop: Stop }) {
 /** Everything useful on the spot: time, hours, cost, notes, and (unless withNext is false) the way to the next place. */
 export function StopDetails({ stop, date, travelers, withNext = true }: { stop: Stop; date: string; travelers: number; withNext?: boolean }) {
   const { place, next, leg } = stop
+  // "Arrive at 09:00 until 09:45 · Open 09:00–17:00 · ¥1,000" (User, 2026-11-01): the cost as the total only.
+  const until = place.plannedTime && formatMinutes(toMinutes(place.plannedTime) + (place.visitMinutes ?? DEFAULT_VISIT_MINUTES))
+  const cost = placeCost(place, travelers)
   const facts = [
-    place.plannedTime && `Arrive at ${place.plannedTime}`,
+    place.plannedTime && `Arrive at ${place.plannedTime} until ${until}`,
     hoursText(place, date),
-    describePlaceCost(place, travelers),
+    cost && formatMoney(cost),
   ].filter(Boolean)
   return (
     <div className="logbook-details">

@@ -208,6 +208,12 @@ button.logbook-gps {
 .logbook-gps.rough .logbook-gps-dot {
   --dot: var(--alert);
 }
+
+/* Rougher than the arrival distance: red. */
+.logbook-gps.bad .logbook-gps-dot {
+  --dot: var(--error);
+}
+
 .logbook-gps-dot::after {
   content: '';
   position: absolute;
@@ -269,6 +275,11 @@ button.logbook-gps {
 .gps-help .rough {
   color: var(--alert);
 }
+
+.gps-help .bad {
+  color: var(--error);
+}
+
 .logbook-nearest {
   display: flex;
   align-items: center;
