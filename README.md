@@ -86,14 +86,24 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 
 ### And also
 
-- 🌍 **Made for Japan, ready for anywhere** — Japan gets the extras (NAVITIME routes, station names in English), but any trip works just as well: pick the countries, and their currencies come with today's rate, place searches look there first and Google suggests the public transport.
-- 🏙️ **Cities** — split the trip by city (stays, day trips, stopovers), with a base hotel or station for each.
-- ✈️ **Transport between cities** — flights with connections, shinkansen, buses; fares compared side by side, plus a flight planner and an airline baggage guide (Brazil → Japan, inside Brazil and Japan, and the biggest airlines of the Americas).
+- 🌍 **Made for Japan, ready for anywhere** — pick the trip's countries: their currencies come with today's rate, place searches look there first, Google suggests the public transport, and their public holidays show on the days.
+- 🏙️ **Cities** — split the trip by city (stays, day trips, stopovers), with a base hotel or station for each, hotel changes inside a city, and a color of your choice.
+- ✈️ **Transport between cities** — flights with connections, trains, buses, ferries; fares compared side by side, plus a flight planner and an airline baggage guide (Brazil → Japan, inside Brazil and Japan, and the biggest airlines of the Americas).
 - ✅ **Checklist** — what the itinerary still needs booked (hotels, flights, tickets, tables), plus your own reminders.
-- 🌏 **Japanese names in English** — station and line names translated from Wikidata, with the Japanese as written on the signs right under them.
+- ☀️ **Day helpers** — sunrise and sunset in the day's timeline, the usual weather for that date, a warning when the way back relies on a late train, and the floor of places inside buildings.
+- 🚕 **Driver card** — a place's address in the local language, big on the screen, to show a taxi driver.
 - 🔗 **Open in Google Maps** — quick links for any place or leg when you're online.
 - 🔄 **Sync between devices** — optional, through your own Google Drive (trips, photos and settings).
-- 🌗 **Light & dark mode**, share or print a day, JSON backup to move a trip between PC and phone.
+- 🧭 **App tour** — on a computer, a guided tour of the app on an example trip.
+- 🌗 **Light & dark mode**, share a day (formatted for WhatsApp) or print it, JSON backup to move a trip between devices.
+
+### Extras for Japan
+
+The app was born for a trip to Japan, so Japan trips get a few more things:
+
+- 🚇 **Public transport by NAVITIME** — door-to-door routes with lines, times, fares, train types and the stations on the way (Google has no transit routes there).
+- 🈂️ **Station and line names in English** — official names from Wikidata, with the Japanese as written on the signs right under them.
+- 🎫 **Rail passes** — see what a JR or regional pass covers on your days and whether it saves money, and how much to load on your IC card (Suica).
 
 ## 🧭 How it works
 
@@ -102,6 +112,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 | Planning (online) | Google Maps Platform | Best place data (attractions, hotels, hours) |
 | Route suggestions | Google Routes (car, walking, public transport outside Japan) · NAVITIME (public transport in Japan) | Google's Routes API returns no public-transit routes in Japan; NAVITIME is a Japanese routing provider |
 | Exchange rates | Frankfurter (European Central Bank rates) | Free, no key; only fills in a rate you can change |
+| Usual weather · holidays | Open-Meteo archive · date-holidays | Free, no key; fetched once, then kept on the device |
 | During the trip (offline) | Tabi (PWA) + OpenStreetMap / Organic Maps | Google Maps can't show custom transit/walking routes offline |
 
 **All trip data lives on your device.** There is no backend server and no account to create. Optionally, sign in with Google to keep your devices in sync through a hidden app folder in your own Google Drive.
@@ -113,6 +124,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 - [NAVITIME Route (totalnavi)](https://rapidapi.com/navitimejapan-navitimejapan/api/navitime-route-totalnavi) via RapidAPI — public-transit routing
 - [MapLibre GL JS](https://maplibre.org/) + [OpenFreeMap](https://openfreemap.org/) — offline map
 - [Frankfurter](https://frankfurter.dev/) — today's exchange rates (European Central Bank)
+- [Open-Meteo](https://open-meteo.com/) — usual weather (historical archive) · [date-holidays](https://github.com/commenthol/date-holidays) — public holidays, generated into static files
 - [Dexie](https://dexie.org/) — local storage (IndexedDB)
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) — installable, offline-ready app
 - GitHub Pages + GitHub Actions — hosting and deployment
@@ -181,6 +193,7 @@ Tabi is designed to run at **zero cost**:
 - **NAVITIME via RapidAPI** — Basic plan: $0, 500 requests/month with a hard limit (requests are blocked, never billed). Only called on an explicit tap.
 - **Offline map** — OpenFreeMap tiles (free, no key), downloaded within its limits.
 - **Exchange rates** — Frankfurter (free, no key, no account).
+- **Weather and holidays** — Open-Meteo's archive (free, no key) and holiday files served by the app itself.
 - **Sync** — Google Drive API (free, no billing) in the user's own Drive storage.
 - **Hosting** — GitHub Pages (free for public repositories).
 
@@ -189,13 +202,15 @@ Tabi is designed to run at **zero cost**:
 - [x] **Transit spike** — compare Google and NAVITIME transit routes in Tokyo (NAVITIME wins)
 - [x] **Core planner** — trips, days, place search, pins, notes
 - [x] **Legs** — step editor, suggested routes and hand-drawn steps on the map, read as a station timeline
-- [x] **Budget** — costs and totals in two currencies
+- [x] **Budget** — costs and totals per day and per trip
 - [x] **Offline & export** — PWA, KML/GPX for Organic Maps, JSON backup
 - [x] **Polish** — redesign, mobile UX, dark mode, share and print a day
 - [x] **Opening hours & optimized order** — hours and visit time per place, best visiting order for a day
 - [x] **Planning workspace** — wide desktop layout, cities, options board with a map, budget by money, checklist
 - [x] **Transport between cities & airline guide** — flights, shinkansen and more; compare airlines by baggage and comfort
 - [x] **Countries & currencies** — trips anywhere: the countries' currencies with today's rate, place search by country, routes by car and Google public transport outside Japan
+- [x] **Trip helpers** — sunrise and sunset, usual weather, public holidays, rail passes, late-train warning, driver card
+- [x] **App tour** — a guided tour on an example trip (computers)
 - [ ] **Logbook & offline map** — follow the day by GPS (compass, the way on the map, places ticked as visited), in-app OpenStreetMap map that works without internet *(testing on the phone offline)*
 
 ## 📜 Data and attribution
