@@ -77,8 +77,12 @@ export function PhotoViewer({ images, start, name, onClose }: { images: Blob[]; 
         e.stopPropagation()
         onClose()
       }}
-      // A tap outside the photo (on the dark backdrop) closes it.
-      onClick={(e) => e.target === e.currentTarget && dialog.current?.close()}
+      // A tap outside the photo (on the dark backdrop) closes it. Clicks stop here: through the portal they would
+      // reach the opener's tree (an option row opening its details behind the photos).
+      onClick={(e) => {
+        e.stopPropagation()
+        if (e.target === e.currentTarget) dialog.current?.close()
+      }}
       onKeyDown={(e) => {
         if (e.key === 'ArrowLeft') step(-1)
         if (e.key === 'ArrowRight') step(1)

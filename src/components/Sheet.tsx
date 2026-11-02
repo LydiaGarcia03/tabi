@@ -58,8 +58,12 @@ export function Sheet({ title, onClose, bottom, children }: { title: string; onC
         e.preventDefault()
         onClose()
       }}
+      // Clicks stop here, so nothing behind the sheet reacts (it may sit inside a clickable row or card).
       // A tap on the backdrop lands on the dialog itself.
-      onClick={bottom ? (e) => e.target === e.currentTarget && onClose() : undefined}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (bottom && e.target === e.currentTarget) onClose()
+      }}
     >
       <header className="sheet-bar" {...(bottom ? pullDown : {})}>
         {bottom && <span className="sheet-handle" aria-hidden="true" />}
