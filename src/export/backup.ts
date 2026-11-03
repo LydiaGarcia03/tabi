@@ -3,6 +3,7 @@
 
 import { db } from '../db/db'
 import { upgradeExpense, upgradeOption, upgradePlace } from '../db/migrations'
+import { repairOptionLinks } from '../db/options'
 import type { OptionPhoto } from '../db/model'
 import type { TripData } from '../db/tripData'
 
@@ -122,6 +123,8 @@ export async function importBackup(data: TripData, mode: 'replace' | 'copy'): Pr
     await db.options.bulkAdd(saved.options)
     await db.photos.bulkAdd(saved.photos)
   })
+  // A backup (or a Drive copy) made before 1.11.8 may carry options ticked for places deleted since.
+  await repairOptionLinks()
   return saved.trip.id
 }
 

@@ -72,6 +72,34 @@ export async function removeOptionFromItinerary(option: TripOption): Promise<voi
 }
 
 /**
+ * Mends options left pointing at a place that no longer exists (before 1.11.8, deleting a place from a day didn't
+ * touch its option, so it kept ✓ without being in the itinerary). If the same place is in the trip again (same Google
+ * place, else same name) and no other option has it, the option is linked to it (✓ + "In the itinerary"); otherwise
+ * ✓ is unticked. Run once when the app starts; does nothing when everything is consistent.
+ */
+export async function repairOptionLinks(): Promise<void> {
+  await db.transaction('rw', db.options, db.places, async () => {
+    const options = await db.options.toArray()
+    const places = await db.places.toArray()
+    const alive = new Set(places.map((p) => p.id))
+    const linked = new Set(options.map((o) => o.placeId).filter((id) => id && alive.has(id)))
+    for (const option of options) {
+      if (!option.placeId || alive.has(option.placeId)) continue
+      const sameTrip = places.filter((p) => p.tripId === option.tripId && !linked.has(p.id))
+      const match =
+        (option.googlePlaceId && sameTrip.find((p) => p.googlePlaceId === option.googlePlaceId)) ||
+        sameTrip.find((p) => p.name.trim() === option.name.trim())
+      if (match) {
+        linked.add(match.id)
+        await db.options.update(option.id, { ...withStatus(option, 'chosen'), placeId: match.id })
+      } else {
+        await db.options.update(option.id, { placeId: undefined, status: option.status === 'chosen' ? 'idea' : option.status })
+      }
+    }
+  })
+}
+
+/**
  * Puts a hotel or transport option into the itinerary as a trip-wide expense (a stay or journey,
  * counted in the budget) and marks it chosen. Not booked: that is a check the user ticks later.
  */

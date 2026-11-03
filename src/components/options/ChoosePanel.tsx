@@ -3,7 +3,7 @@ import { Icon } from '../Icon'
 import { DaySelect } from '../DaySelect'
 import { daysBetween } from '../../dates'
 import type { Day, Stay, Trip, TripOption } from '../../db/model'
-import { addOptionToDay, addOptionToTrip, removeOptionFromItinerary, updateOption, withStatus } from '../../db/options'
+import { addOptionToDay, addOptionToTrip, removeOptionFromItinerary } from '../../db/options'
 import { cityNights, stayNights, stayOfCity } from '../../db/stays'
 import { travelersOf } from '../../budget'
 import { formatMoney } from '../../format'
@@ -239,16 +239,14 @@ export function ChoosePanel({ item, trip, stays, days, onDone }: { item: Scored;
         </div>
       )}
       {error && <span className="error small">{error}</span>}
-      <div className="add-to-day-links">
-        <button type="button" className="link" onClick={() => updateOption(option.id, withStatus(option, 'chosen')).then(onDone)}>
-          Just mark as chosen
-        </button>
-        {option.lat != null && dayId && (
+      {/* No "Just mark as chosen": ✓ always means in the itinerary (User's rule, 2026-11-03). */}
+      {option.lat != null && dayId && (
+        <div className="add-to-day-links">
           <a className="muted" href={href({ page: 'day', tripId: trip.id, dayId })}>
             Open that day
           </a>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

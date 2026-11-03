@@ -106,7 +106,7 @@ export async function updatePlace(id: string, changes: Partial<Omit<Place, 'id' 
 }
 
 export async function deletePlace(id: string): Promise<void> {
-  await db.transaction('rw', db.days, db.places, db.legs, async () => {
+  await db.transaction('rw', [db.days, db.places, db.legs, db.options], async () => {
     const place = await db.places.get(id)
     if (!place) return
     const day = await db.days.get(place.dayId)
@@ -114,6 +114,15 @@ export async function deletePlace(id: string): Promise<void> {
     await db.legs.where('fromPlaceId').equals(id).delete()
     await db.legs.where('toPlaceId').equals(id).delete()
     await db.places.delete(id)
+    // The option it came from leaves the itinerary too: ✓ unticked, no "In the itinerary" (User's rule, 2026-11-03).
+    await db.options
+      .where('tripId')
+      .equals(place.tripId)
+      .filter((o) => o.placeId === id)
+      .modify((o) => {
+        delete o.placeId
+        if (o.status === 'chosen') o.status = 'idea'
+      })
   })
 }
 
