@@ -24,6 +24,8 @@ import { useDraft } from '../useDraft'
 import { useOnline } from '../useOnline'
 import { DaysTitle } from '../components/DaysTitle'
 import { useTripHolidays } from '../holidays/holidays'
+import { TimeOffCard } from '../components/TimeOff'
+import { useTimeOff } from '../planning/useTimeOff'
 type OverviewView = 'days' | 'cities' | 'checklist' | 'more'
 
 /** Phones: the itinerary page's tabs (User's choice A from a mock, 2026-10-27). */
@@ -49,6 +51,8 @@ export function TripPage({ tripId }: { tripId: string }) {
   // TripLayout computes them too, for its sidebar (the country files are fetched once, shared).
   const holidays = useTripHolidays(trip, days, places, stays, online)
   const travelers = trip ? travelersOf(trip) : 1
+  // Beside the trip's dates: "· 13 vacation days" (Time off, User 2026-11-02).
+  const timeOff = useTimeOff(trip, expenses).count
 
   const overview = useMemo(() => {
     if (!days || !places || !legs || !expenses) return null
@@ -89,7 +93,7 @@ export function TripPage({ tripId }: { tripId: string }) {
 
   return (
     <TripLayout trip={trip} active="itinerary">
-      <TripHeader key={trip.id} trip={trip} dayCount={days.length} />
+      <TripHeader key={trip.id} trip={trip} dayCount={days.length} vacation={timeOff?.vacation} />
 
       {/* Phones only: the days and the rest of the plan as a segmented control (User's choice B1 from a mock: unlike the
           bottom bar, which changes page); no title, the top bar has the trip's name and dates. */}
@@ -158,6 +162,11 @@ export function TripPage({ tripId }: { tripId: string }) {
             <span className="muted small">Needed for the trip: booked ahead + estimated</span>
           </a>
 
+          {/* Phones: in the More tab. */}
+          <div className="overview-part" data-tab="more">
+            <TimeOffCard trip={trip} expenses={expenses ?? []} />
+          </div>
+
           <div className="overview-part" data-tab="checklist">
           <Checklist
             trip={trip}
@@ -186,7 +195,7 @@ export function TripPage({ tripId }: { tripId: string }) {
   )
 }
 
-function TripHeader({ trip, dayCount }: { trip: Trip; dayCount: number }) {
+function TripHeader({ trip, dayCount, vacation }: { trip: Trip; dayCount: number; vacation?: number }) {
   const [name, setName] = useDraft(trip.name, (value) => updateTrip(trip.id, { name: value.trim() || trip.name }))
   return (
     <header className="hero trip-hero">
@@ -194,6 +203,7 @@ function TripHeader({ trip, dayCount }: { trip: Trip; dayCount: number }) {
       <p className="hero-meta">
         <Icon name="calendar" size={16} /> {formatDate(trip.startDate)} – {formatDate(trip.endDate)} · {dayCount}{' '}
         {dayCount === 1 ? 'day' : 'days'}
+        {vacation != null && ` · ${vacation} vacation ${vacation === 1 ? 'day' : 'days'}`}
       </p>
     </header>
   )

@@ -835,3 +835,228 @@ a.check-body > .icon {
   margin: 0 4px;
   background: var(--border);
 }
+
+/* --- Time off (User's picks from mocks, 2026-11-02: P1 card + A2 sheet) ------------------------------------------ */
+
+.time-off-card {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.time-off-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.time-off-number {
+  font-size: 1.3rem;
+  color: var(--accent-text);
+}
+
+.time-off-warn {
+  color: var(--alert);
+}
+
+.time-off-warn.strong {
+  font-weight: 700;
+}
+
+.time-off-sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0 16px;
+}
+
+.time-off-receipt {
+  display: grid;
+  font-size: 0.9rem;
+}
+
+.time-off-receipt > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.time-off-receipt > div:first-child {
+  border-top: none;
+}
+
+.time-off-receipt > .total {
+  border-top: 2px solid var(--text);
+  font-weight: 800;
+}
+
+.time-off-receipt > .total .num {
+  color: var(--accent-text);
+}
+
+.time-off-alert {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--alert);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--alert) 10%, var(--surface));
+}
+
+.time-off-alert strong {
+  color: var(--alert);
+}
+
+/* The calendar: two months side by side when there's room. */
+.time-off-months {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 16px;
+}
+
+.time-off-month h4 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+}
+
+.time-off-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.time-off-grid .dow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+
+.time-off-grid .day {
+  position: relative;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.time-off-grid .day.away {
+  background: color-mix(in srgb, var(--saved) 16%, var(--surface));
+}
+
+.time-off-grid .day.needed,
+.time-off-grid .day.approved {
+  color: #fff;
+  font-weight: 700;
+}
+
+.time-off-grid .day.needed {
+  background: var(--accent);
+}
+
+.time-off-grid .day.approved {
+  background: var(--ok);
+}
+
+.time-off-grid .day.holiday::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cat-food);
+}
+
+.time-off-grid .day.away.holiday {
+  box-shadow: inset 0 0 0 2px var(--cat-food);
+}
+
+.time-off-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.time-off-legend i {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 4px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.time-off-legend i.needed {
+  background: var(--accent);
+}
+
+.time-off-legend i.approved {
+  background: var(--ok);
+}
+
+.time-off-legend i.away {
+  background: color-mix(in srgb, var(--saved) 16%, var(--surface));
+  border: 1px solid var(--border);
+}
+
+.time-off-legend i.holiday {
+  border-radius: 50%;
+  background: var(--cat-food);
+}
+
+.time-off-foot {
+  margin: 0;
+}
+
+.time-off-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.time-off-settings .field-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.time-off-settings select {
+  min-width: 0;
+}
+
+.time-off-numbers label,
+.time-off-period label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.time-off-numbers input {
+  width: 8em;
+}
+
+.time-off-period input {
+  min-width: 0;
+}
+
+.time-off-clt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.time-off-clt input {
+  margin-top: 3px;
+  flex: none;
+}
+
+.time-off-settings > .primary {
+  justify-self: start;
+}

@@ -35,6 +35,30 @@ export interface Trip {
   travelers?: number
   /** Rail passes compared with the fares of the days (Japan trips). */
   railPasses?: RailPass[]
+  /** How many vacation days the trip takes (Itinerary → Time off). */
+  timeOff?: TimeOff
+}
+
+/**
+ * Time off (User's picks from mocks, 2026-11-02: A2 = the calendar + the count as a short sum, P1 = a card opening
+ * it in a sheet, P3's "· 13 vacation days" beside the trip's dates). Unindexed, synced and backed up with the trip.
+ */
+export interface TimeOff {
+  /** Work calendar: the company's country (ISO code) and region, whose holidays don't use vacation days. */
+  country?: string
+  region?: string
+  /** Working weekdays, 0 = Sunday (default Monday–Friday). */
+  workDays?: number[]
+  /** Vacation days a year, and already used this year (for "left this year"). */
+  perYear?: number
+  used?: number
+  /** Vacation already approved: the trip's days inside them are covered. */
+  approved?: { from: string; to: string }[]
+  /** Leaving and coming back home ("YYYY-MM-DD"); absent = from the flights from and to home, else the trip's dates. */
+  leave?: string
+  back?: string
+  /** Brazilian labor rules: vacation counted in calendar days, and the start / minimum length checks. */
+  clt?: boolean
 }
 
 /**

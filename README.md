@@ -92,6 +92,7 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 - ✅ **Checklist** — what the itinerary still needs booked (hotels, flights, tickets, tables), plus your own reminders.
 - ☀️ **Day helpers** — sunrise and sunset in the day's timeline, the usual weather for that date, a warning when the way back relies on a late train, and the floor of places inside buildings.
 - 🚕 **Driver card** — a place's address in the local language, big on the screen, to show a taxi driver.
+- 🏖️ **Time off** — how many vacation days the trip takes, flight days included, with your work calendar's holidays (where your company is), approved vacation and Brazil's CLT rules.
 - 🔗 **Open in Google Maps** — quick links for any place or leg when you're online.
 - 🔄 **Sync between devices** — optional, through your own Google Drive (trips, photos and settings).
 - 🧭 **App tour** — on a computer, a guided tour of the app on an example trip.
@@ -211,6 +212,7 @@ Tabi is designed to run at **zero cost**:
 - [x] **Countries & currencies** — trips anywhere: the countries' currencies with today's rate, place search by country, routes by car and Google public transport outside Japan
 - [x] **Trip helpers** — sunrise and sunset, usual weather, public holidays, rail passes, late-train warning, driver card
 - [x] **App tour** — a guided tour on an example trip (computers)
+- [x] **Time off** — vacation days the trip takes, with the work calendar's holidays and the CLT rules
 - [ ] **Logbook & offline map** — follow the day by GPS (compass, the way on the map, places ticked as visited), in-app OpenStreetMap map that works without internet *(testing on the phone offline)*
 
 ## 📜 Data and attribution

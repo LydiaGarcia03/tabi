@@ -171,3 +171,36 @@ export function holidayKind(holiday: DayHoliday, trip: Trip): string {
   const kind = holiday.regions ? `Regional holiday · ${holiday.regions.join(', ')}` : 'National holiday'
   return (trip.countries ?? []).length > 1 ? `${kind} · ${countryName(holiday.country)}` : kind
 }
+
+/** A work calendar's days off (Time off): national ones and, with a region, its regional ones; with its regions to pick. */
+export interface WorkHolidays {
+  /** Date → its name. */
+  dates: Map<string, string>
+  /** [code, name], by name. */
+  regions: [string, string][]
+}
+
+/** The holidays of a work calendar (the company's country and region); the country's file is fetched once while online. */
+export function useWorkHolidays(country: string | undefined, region: string | undefined, online: boolean): WorkHolidays | undefined {
+  const [, setLoaded] = useState(0)
+  useEffect(() => {
+    if (!online || !country) return
+    let alive = true
+    void fetchOnce(country).then(() => {
+      if (alive) setLoaded((n) => n + 1)
+    })
+    return () => {
+      alive = false
+    }
+  }, [country, online])
+  const file = country ? storedFile(country) : undefined
+  return useMemo(() => {
+    if (!file) return undefined
+    const dates = new Map<string, string>(file.national)
+    if (region) for (const [date, name, codes] of file.regional) if (codes.includes(region) && !dates.has(date)) dates.set(date, name)
+    const regions = Object.entries(file.regions)
+      .map(([code, names]): [string, string] => [code, names[0] ?? code])
+      .sort((a, b) => a[1].localeCompare(b[1]))
+    return { dates, regions }
+  }, [file, region])
+}
