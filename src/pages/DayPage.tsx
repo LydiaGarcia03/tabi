@@ -270,7 +270,7 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
               <OptimizePanel day={day} places={places} legs={legs} onClose={() => setOptimizing(false)} />
             ) : (
               <div className="row between list-toolbar">
-                <span className="muted small">
+                <span className="muted small list-facts">
                   {places.length} places
                   {walking.meters > 0 && (
                     <span title={walking.estimated ? 'Some walks only have their minutes: estimated at 4.5 km/h' : undefined}>
@@ -279,14 +279,15 @@ export function DayPage({ tripId, dayId, hasGoogleKey }: { tripId: string; dayId
                       {formatDistance(walking.meters)} on foot
                     </span>
                   )}
+                  {/* On phones on a line of its own, under the places and the walking (User, 2026-11-03). */}
                   {conflicts > 0 && (
-                    <span className="warning">
-                      {' '}
-                      · {conflicts} opening-hours {conflicts === 1 ? 'conflict' : 'conflicts'}
+                    <span className="warning list-conflicts">
+                      <span className="list-conflicts-sep"> · </span>
+                      {conflicts} opening-hours {conflicts === 1 ? 'conflict' : 'conflicts'}
                     </span>
                   )}
                 </span>
-                <button type="button" className="ghost" onClick={() => setOptimizing(true)}>
+                <button type="button" className="ghost list-optimize" onClick={() => setOptimizing(true)}>
                   <Icon name="sparkle" /> Optimize order
                 </button>
               </div>
