@@ -143,8 +143,12 @@ export interface MoneyItem {
   uses?: number
   /** A flight's fare as "¥29,500 × 2". */
   detail?: string
-  /** The day's date (fares). */
+  /** The day's date (places, fares), a journey's date, a hotel's check-in. */
   date?: string
+  /** What needs booking, in its order of importance (User, 2026-11-02): flights, other transport, hotels, tickets. */
+  booking?: 'flight' | 'transport' | 'hotel' | 'ticket'
+  /** A trip-wide cost (hotel, journey): the expense to edit. */
+  expenseId?: string
 }
 
 export interface TripMoney {
@@ -177,8 +181,8 @@ export function dayMoney(
   route.forEach((stop, i) => {
     if (!stop.baseStop) {
       const category = PLACE_KIND_CATEGORY[stop.kind ?? 'place']
-      const item: MoneyItem = { id: stop.id, name: stop.name, day: number, category, amount: placeCost(stop, travelers), icon: CATEGORY_ICON[category] }
-      if (stop.bookAhead) bookAhead.push({ ...item, booked: !!stop.booked })
+      const item: MoneyItem = { id: stop.id, name: stop.name, day: number, date: day.date, category, amount: placeCost(stop, travelers), icon: CATEGORY_ICON[category] }
+      if (stop.bookAhead) bookAhead.push({ ...item, booked: !!stop.booked, booking: 'ticket' })
       else if (item.amount?.amount) itinerary.push(item)
     }
     const next = route[i + 1]
@@ -224,7 +228,7 @@ export function tripMoney(days: Day[], places: Place[], legs: Leg[], expenses: E
   for (const pass of passes ?? []) {
     if (!pass.use) continue
     const amount = pass.price && { ...pass.price, amount: pass.price.amount * travelers }
-    money.bookAhead.push({ id: pass.id, name: pass.name, category: 'transport', amount, icon: 'ticket', booked: !!pass.booked })
+    money.bookAhead.push({ id: pass.id, name: pass.name, category: 'transport', amount, icon: 'ticket', booked: !!pass.booked, booking: 'transport' })
   }
   const dayNumber = new Map(sorted.map((d, i) => [d.id, i + 1]))
   for (const e of expenses) {
@@ -233,7 +237,15 @@ export function tripMoney(days: Day[], places: Place[], legs: Leg[], expenses: E
       if (dayNumber.has(e.dayId)) money.spent.push({ ...item, day: dayNumber.get(e.dayId) })
     } else if (expenseNeedsBooking(e)) {
       const icon = e.hotel ? 'home' : JOURNEY_ICON[e.journey!.mode]
-      money.bookAhead.push({ ...item, name: e.hotel?.name ?? journeyTitle(e.journey!), icon, booked: !!e.booked })
+      money.bookAhead.push({
+        ...item,
+        name: e.hotel?.name ?? journeyTitle(e.journey!),
+        icon,
+        booked: !!e.booked,
+        booking: e.hotel ? 'hotel' : e.journey?.mode === 'flight' ? 'flight' : 'transport',
+        date: e.hotel?.checkIn ?? e.journey?.date,
+        expenseId: e.id,
+      })
     } else {
       money.itinerary.push(
         e.journey ? { ...item, name: journeyTitle(e.journey), icon: JOURNEY_ICON[e.journey.mode], mode: e.journey.mode, uses: 1 } : item,
@@ -241,6 +253,14 @@ export function tripMoney(days: Day[], places: Place[], legs: Leg[], expenses: E
     }
   }
   return money
+}
+
+const BOOKING_ORDER = ['flight', 'transport', 'hotel', 'ticket']
+
+/** What needs booking in its order of importance, each kind by date (undated last). */
+export function byBookingOrder(a: MoneyItem, b: MoneyItem): number {
+  const rank = (i: MoneyItem) => BOOKING_ORDER.indexOf(i.booking ?? 'ticket')
+  return rank(a) - rank(b) || (a.date ?? '9999').localeCompare(b.date ?? '9999')
 }
 
 /** Items added up per category and currency. */

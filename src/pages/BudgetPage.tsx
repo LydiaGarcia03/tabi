@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { categoryMoney, travelersOf, tripMoney, tripStarted } from '../budget'
 import { TripLayout } from '../components/TripLayout'
-import { BookAheadCard, EstimatesCard, TripCostsLink, TripMoneyCard } from '../components/TripMoney'
+import { BookAheadCard, EstimatesCard, TripMoneyCard } from '../components/TripMoney'
 import { db } from '../db/db'
 import { legKey } from '../db/legs'
 import { dayRides, icCardFares, otherCompanies, passCoverage } from '../planning/railPasses'
@@ -21,6 +21,7 @@ export function BudgetPage({ tripId }: { tripId: string }) {
   const places = useLiveQuery(() => db.places.where('tripId').equals(tripId).toArray(), [tripId])
   const legs = useLiveQuery(() => db.legs.where('tripId').equals(tripId).toArray(), [tripId])
   const expenses = useLiveQuery(() => db.expenses.where('tripId').equals(tripId).toArray(), [tripId])
+  const stays = useLiveQuery(() => db.stays.where('tripId').equals(tripId).toArray(), [tripId])
 
   const money = useMemo(() => {
     if (!trip || !days || !places || !legs || !expenses) return null
@@ -42,8 +43,8 @@ export function BudgetPage({ tripId }: { tripId: string }) {
   if (!money || !expenses) return null
 
   const started = tripStarted(trip)
-  const estimates = <EstimatesCard trip={trip} categories={money.categories} started={started} />
-  const bookAhead = <BookAheadCard trip={trip} items={money.all.bookAhead} />
+  const estimates = <EstimatesCard trip={trip} categories={money.categories} started={started} stays={stays ?? []} />
+  const bookAhead = <BookAheadCard trip={trip} items={money.all.bookAhead} expenses={expenses} />
 
   return (
     <TripLayout trip={trip} active="budget">
@@ -58,7 +59,6 @@ export function BudgetPage({ tripId }: { tripId: string }) {
           {bookAhead}
           {/* Only for trips to Japan (User). */}
           {trip.countries?.includes('JP') && days && <RailPassesCard trip={trip} days={days} reports={money.passes} companies={money.companies} icCard={money.icCard} />}
-          <TripCostsLink trip={trip} expenses={expenses.filter((e) => !e.dayId)} />
         </div>
         <div className="section budget-estimates">{estimates}</div>
       </div>

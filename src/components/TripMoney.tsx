@@ -4,20 +4,23 @@ import {
   CATEGORY_ICON,
   CATEGORY_LABEL,
   displayAmount,
+  byBookingOrder,
   itemAmount,
   sumItems,
   type CategoryMoney,
   type MoneyItem,
   type TripMoney,
 } from '../budget'
-import type { Estimate, Expense, ExpenseCategory, Trip } from '../db/model'
+import type { Estimate, Expense, ExpenseCategory, Stay, Trip } from '../db/model'
 import { updateTrip } from '../db/trips'
 import { formatDay } from '../dates'
+import { dayCity } from '../db/stays'
 import { formatMoney, MODE_ICON, MODE_LABEL } from '../format'
 import type { SegmentMode } from '../routing/types'
 import { href } from '../router'
 import { useDraft } from '../useDraft'
-import { ExpenseList } from './ExpenseList'
+import { HotelForm, JourneyForm, type BookingValues } from './BookingForms'
+import { updateExpense } from '../db/expenses'
 import { CategorySelect } from './CategorySelect'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -32,11 +35,7 @@ const useMoney = (trip: Trip) => (amount: number) => formatMoney({ amount, curre
 const compact = (amount: number, currency: string) =>
   new Intl.NumberFormat('en', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(amount)
 
-/** "R$3,564": no cents, for short summaries. */
-const wholeMoney = (amount: number, currency: string) =>
-  new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
-
-const categoryColor =(category: ExpenseCategory) => `var(--cat-${category})`
+const categoryColor = (category: ExpenseCategory) => `var(--cat-${category})`
 
 const share = (amount: number, of: number) => `${of > 0 ? Math.max(0, Math.min(100, (amount / of) * 100)) : 0}%`
 
@@ -207,23 +206,35 @@ function SavedEdit({ trip, onDone }: { trip: Trip; onDone: () => void }) {
  * "Book before the trip" (2B): the checklist's items with their prices — how many are booked, paid vs still to
  * book, the ones left (with their category's icon), and the paid ones behind "Show the N paid".
  */
-export function BookAheadCard({ trip, items }: { trip: Trip; items: MoneyItem[] }) {
+export function BookAheadCard({ trip, items, expenses }: { trip: Trip; items: MoneyItem[]; expenses: Expense[] }) {
   const [showPaid, setShowPaid] = useState(false)
+  const [editing, setEditing] = useState<Expense | null>(null)
   const show = useMoney(trip)
-  const booked = items.filter((i) => i.booked)
-  const left = items.filter((i) => !i.booked)
+  const sorted = [...items].sort(byBookingOrder)
+  const booked = sorted.filter((i) => i.booked)
+  const left = sorted.filter((i) => !i.booked)
   const paid = sumItems(booked, trip)
   const toBook = sumItems(left, trip)
   const amount = (item: MoneyItem) => {
     const value = itemAmount(item, trip)
     return !item.amount ? '—' : value != null ? show(value) : formatMoney(item.amount)
   }
+  // A hotel or journey opens its form (they used to be edited in "Hotels, transport & other trip costs", removed
+  // 2026-11-02: User found it repeated this card).
+  const expenseOf = (item: MoneyItem) => (item.expenseId ? expenses.find((e) => e.id === item.expenseId) : undefined)
   const row = (item: MoneyItem) => (
     <li key={item.id} className={item.booked ? 'paid' : undefined}>
-      <span className="money-item-name">
-        <Icon name={item.icon} size={16} />
-        <span>{item.name}</span>
-      </span>
+      {expenseOf(item) ? (
+        <button type="button" className="money-item-name money-item-edit" onClick={() => setEditing(expenseOf(item)!)}>
+          <Icon name={item.icon} size={16} />
+          <span>{item.name}</span>
+        </button>
+      ) : (
+        <span className="money-item-name">
+          <Icon name={item.icon} size={16} />
+          <span>{item.name}</span>
+        </span>
+      )}
       <span className={`num${item.booked ? ' ok-text' : ''}`}>
         {amount(item)}
         {item.booked && <Icon name="check" size={14} />}
@@ -274,6 +285,24 @@ export function BookAheadCard({ trip, items }: { trip: Trip; items: MoneyItem[] 
           </ul>
         </>
       )}
+      {editing && (
+        <Sheet title={editing.hotel ? 'Hotel' : 'Transport'} onClose={() => setEditing(null)}>
+          <div className="trip-costs-sheet">
+            {(() => {
+              const props = {
+                trip,
+                expense: editing,
+                onCancel: () => setEditing(null),
+                onSave: async (values: BookingValues) => {
+                  await updateExpense(editing.id, { hotel: undefined, journey: undefined, ...values })
+                  setEditing(null)
+                },
+              }
+              return editing.hotel ? <HotelForm {...props} /> : <JourneyForm {...props} />
+            })()}
+          </div>
+        </Sheet>
+      )}
     </section>
   )
 }
@@ -322,10 +351,10 @@ function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip
         const unfolded = open === mode
         return (
           <Fragment key={mode}>
-            <tr className="transport-kind">
+            <tr className="estimate-group">
               <td>
-                <button type="button" className="transport-kind-name" aria-expanded={unfolded} onClick={() => setOpen(unfolded ? null : mode)}>
-                  <span className="transport-tri">
+                <button type="button" className="estimate-group-name" aria-expanded={unfolded} onClick={() => setOpen(unfolded ? null : mode)}>
+                  <span className="estimate-group-tri">
                     <Icon name={unfolded ? 'down' : 'forward'} size={13} />
                   </span>
                   <Icon name={MODE_ICON[mode]} size={15} /> {MODE_LABEL[mode]}
@@ -337,7 +366,7 @@ function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip
             {unfolded &&
               (flight
                 ? list.map((item) => (
-                    <tr key={item.id} className="transport-sub">
+                    <tr key={item.id} className="estimate-group-sub">
                       <td>
                         {item.name} <span className="muted">· {dayText(item)}</span>
                       </td>
@@ -346,7 +375,7 @@ function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip
                     </tr>
                   ))
                 : byDay(list).map((g) => (
-                    <tr key={g.key} className="transport-sub">
+                    <tr key={g.key} className="estimate-group-sub">
                       <td className="muted">{g.label}</td>
                       <td className="num muted">{g.uses}</td>
                       <td className="num muted">{g.sum != null ? show(g.sum) : g.list.map(amount).join(' + ')}</td>
@@ -371,10 +400,68 @@ function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip
 }
 
 /**
+ * Food and Shopping in "Estimates" (User, 2026-11-02): one row per city (in the trip's order) with how many places
+ * and their estimate; a tap opens its restaurants / shops with the day and estimate. The city of a day is `dayCity` (a day trip's
+ * city alone; a travel day "Osaka → Okinawa").
+ */
+function CityRows({ items, trip, stays, amount }: { items: MoneyItem[]; trip: Trip; stays: Stay[]; amount: (item: MoneyItem) => string }) {
+  const [open, setOpen] = useState<string | null>(null)
+  const show = useMoney(trip)
+  const cities = new Map<string, MoneyItem[]>()
+  const ordered = [...items].sort((a, b) => (a.day ?? 1e9) - (b.day ?? 1e9))
+  for (const item of ordered) {
+    const city = (item.date && dayCity(stays, item.date)) || (item.day ? 'No city' : 'Trip')
+    cities.set(city, [...(cities.get(city) ?? []), item])
+  }
+  return (
+    <>
+      {[...cities].map(([city, list]) => {
+        const unfolded = open === city
+        const sum = sumItems(list, trip)
+        return (
+          <Fragment key={city}>
+            <tr className="estimate-group">
+              <td>
+                <button type="button" className="estimate-group-name" aria-expanded={unfolded} onClick={() => setOpen(unfolded ? null : city)}>
+                  <span className="estimate-group-tri">
+                    <Icon name={unfolded ? 'down' : 'forward'} size={13} />
+                  </span>
+                  {city} <span className="muted">· {list.length}</span>
+                </button>
+              </td>
+              <td />
+              <td className="num">{sum != null ? show(sum) : '—'}</td>
+            </tr>
+            {unfolded &&
+              list.map((item) => (
+                <tr key={item.id} className="estimate-group-sub">
+                  <td>{item.name}</td>
+                  <td className="muted">{dayText(item)}</td>
+                  <td className="num">{amount(item)}</td>
+                </tr>
+              ))}
+          </Fragment>
+        )
+      })}
+    </>
+  )
+}
+
+/**
  * "Estimates" (3C) before the trip, "Estimated vs spent" (5A) from its first day: one row per category; its name
  * opens the category's sheet, the chevron unfolds a small table of what is in it (or of what was spent).
  */
-export function EstimatesCard({ trip, categories, started }: { trip: Trip; categories: CategoryMoney[] | null; started: boolean }) {
+export function EstimatesCard({
+  trip,
+  categories,
+  started,
+  stays,
+}: {
+  trip: Trip
+  categories: CategoryMoney[] | null
+  started: boolean
+  stays: Stay[]
+}) {
   const [open, setOpen] = useState<ExpenseCategory | null>(null)
   const [sheet, setSheet] = useState<ExpenseCategory | 'new' | null>(null)
   const show = useMoney(trip)
@@ -405,6 +492,7 @@ export function EstimatesCard({ trip, categories, started }: { trip: Trip; categ
               const over = c.spent > c.estimate
               const unfolded = open === c.category
               const transportKinds = !started && c.category === 'transport'
+              const foodCities = !started && (c.category === 'food' || c.category === 'shopping')
               return (
                 <li key={c.category} className="estimate-cat" style={{ ['--cat' as string]: categoryColor(c.category) }}>
                   <div className="estimate-cat-head">
@@ -476,7 +564,7 @@ export function EstimatesCard({ trip, categories, started }: { trip: Trip; categ
                     </>
                   )}
                   {unfolded && (
-                    <table className="estimate-table">
+                    <table className={`estimate-table${transportKinds ? ' grouped by-kind' : foodCities ? ' grouped' : ''}`}>
                       <thead>
                         <tr>
                           <th>{started ? 'Spent' : CATEGORY_LABEL[c.category]}</th>
@@ -496,6 +584,8 @@ export function EstimatesCard({ trip, categories, started }: { trip: Trip; categ
                           : [
                               ...(transportKinds
                                 ? [<TransportRows key="transport" items={c.items} trip={trip} amount={amount} />]
+                                : foodCities
+                                  ? [<CityRows key="cities" items={c.items} trip={trip} stays={stays} amount={amount} />]
                                 : c.items.map((item) => (
                                     <tr key={item.id}>
                                       <td>{item.name}</td>
@@ -702,49 +792,5 @@ function EstimateSheet({
         </div>
       </form>
     </Sheet>
-  )
-}
-
-/**
- * The trip-wide costs (hotels, transport between cities, others), as a row like the cards around it (a bare link
- * looked lost on the PC); a tap opens them in a sheet to add or edit.
- */
-export function TripCostsLink({ trip, expenses }: { trip: Trip; expenses: Expense[] }) {
-  const [open, setOpen] = useState(false)
-  // Each group with its total, readable without opening it (User's choice D from a mock, 2026-11-02).
-  const groups = (
-    [
-      ['Hotels', expenses.filter((e) => e.hotel)],
-      ['Transport', expenses.filter((e) => e.journey)],
-      ['Other', expenses.filter((e) => !e.hotel && !e.journey)],
-    ] as const
-  )
-    .filter(([, list]) => list.length > 0)
-    .map(([label, list]) => {
-      const sum = sumItems(list, trip)
-      return sum != null ? `${label} ${wholeMoney(sum, trip.displayCurrency)}` : `${label} ${list.length}`
-    })
-  return (
-    <>
-      <button type="button" className="card trip-costs-link" onClick={() => setOpen(true)}>
-        <Icon name="home" size={18} />
-        <span className="trip-costs-text">
-          <strong>Hotels, transport &amp; other trip costs</strong>
-          <span className="muted small">{groups.length ? groups.join(' · ') : 'Add hotels, flights and other costs'}</span>
-        </span>
-        <Icon name="forward" size={16} />
-      </button>
-      {open && (
-        <Sheet title="Hotels, transport & other trip costs" onClose={() => setOpen(false)}>
-          <div className="trip-costs-sheet">
-            <p className="muted small">
-              Costs not tied to one day. Hotels and flights (and transport marked "Booking needed") are booked before the trip; the
-              rest counts as an estimate.
-            </p>
-            <ExpenseList trip={trip} expenses={expenses} />
-          </div>
-        </Sheet>
-      )}
-    </>
   )
 }

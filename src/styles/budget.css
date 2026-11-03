@@ -60,10 +60,6 @@
   .budget-grid.started .book-ahead {
     order: 3;
   }
-
-  .budget-grid .trip-costs-link {
-    order: 4;
-  }
 }
 
 .money-head {
@@ -298,40 +294,22 @@
   outline-offset: 2px;
 }
 
-.trip-costs-link {
+/* A hotel or journey in "Book before the trip": its name opens its form. */
+.money-item-edit {
   all: unset;
-  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: 8px;
+  min-width: 0;
   cursor: pointer;
 }
 
-.trip-costs-link > .icon {
-  flex: none;
-  color: var(--muted);
-}
-
-.trip-costs-link:hover {
-  border-color: var(--muted);
-}
-
-.trip-costs-link:focus-visible {
+.money-item-edit:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.trip-costs-text {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-}
-
+/* The hotel / journey form in a sheet. */
 .trip-costs-sheet {
   display: grid;
   gap: 10px;
@@ -513,15 +491,14 @@ button.estimate-chip.add {
   color: var(--accent-text);
 }
 
-/* Transport by kind (E2): the kind's row opens its days (flights: each flight). */
-.transport-kind td {
-  font-weight: 600;
-}
-
-.transport-kind-name {
+/* Groups in an estimate's table — Transport by kind (E2; opens its days, flights each flight), Food by city
+   (opens its restaurants). Rows as tight as a plain table: the group's button drops the buttons' height and
+   weight; no hover (User). */
+.estimate-group-name {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-height: 0;
   padding: 0;
   border: 0;
   background: none;
@@ -530,17 +507,55 @@ button.estimate-chip.add {
   cursor: pointer;
 }
 
-.transport-tri {
+.estimate-group-name:hover:not(:disabled) {
+  border-color: transparent;
+}
+
+.estimate-group-tri {
   display: inline-flex;
   width: 14px;
   color: var(--muted);
 }
 
-.estimate-table tr.transport-sub td {
+/* Fixed columns: opening a group must not move them (User). */
+.estimate-table.grouped {
+  table-layout: fixed;
+}
+
+.estimate-table.grouped th:nth-child(2) {
+  width: 7.5em;
+}
+
+/* Room for "R$12,345.67". */
+.estimate-table.grouped th:nth-child(3) {
+  width: 9.5em;
+}
+
+/* Transport's Uses: centered in a wider column, away from the estimate. */
+.estimate-table.by-kind th:nth-child(2) {
+  width: 12em;
+}
+
+@media (max-width: 599px) {
+  .estimate-table.by-kind th:nth-child(2) {
+    width: 4.5em;
+  }
+}
+
+.estimate-table.by-kind th:nth-child(2),
+.estimate-table.by-kind td:nth-child(2) {
+  text-align: center;
+}
+
+.estimate-table.grouped td:first-child {
+  overflow-wrap: anywhere;
+}
+
+.estimate-table tr.estimate-group-sub td {
   border-top-style: dashed;
 }
 
-.estimate-table tr.transport-sub td:first-child {
+.estimate-table tr.estimate-group-sub td:first-child {
   padding-left: 29px;
 }
 
