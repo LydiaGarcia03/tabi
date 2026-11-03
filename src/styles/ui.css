@@ -299,8 +299,9 @@ a {
   width: 100%;
 }
 
+/* 1520px (was 1440, User 2026-11-03: a little more room on big screens). */
 .shell.wide {
-  --page-width: 1440px;
+  --page-width: 1520px;
 }
 
 .page {

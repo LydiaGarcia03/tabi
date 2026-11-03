@@ -16,6 +16,7 @@ import { stayOfCity } from '../db/stays'
 import { compareOptions, DEFAULT_WEIGHTS, type Group, type Weights } from '../planning/compare'
 import { journeyCarriers } from '../planning/journeys'
 import { KIND_ICON, KIND_PLURAL, KIND_SINGULAR, OPTION_KINDS } from '../planning/optionKinds'
+import { matchesSearch, SearchWordsContext, searchWords } from '../planning/optionSearch'
 import { loadJson, saveJson } from '../settings'
 import { useMediaQuery } from '../useMediaQuery'
 import { useOnline } from '../useOnline'
@@ -55,6 +56,14 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
   const [kind, setKind] = useState<OptionKind | 'all'>('all')
   const [city, setCity] = useState('')
   const [showDiscarded, setShowDiscarded] = useState(false)
+  // The search (User's choice G from a mock, 2026-11-03): a magnifier opens a line under the filters.
+  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState('')
+  const words = useMemo(() => searchWords(query), [query])
+  const closeSearch = () => {
+    setSearching(false)
+    setQuery('')
+  }
   // An option's details (read-only) or its form; `back`: the form was opened from the details and returns to them.
   const [open, setOpen] = useState<{ id: string; edit: boolean; back?: boolean } | 'new' | null>(null)
   const [planning, setPlanning] = useState(false)
@@ -92,17 +101,25 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
         (showDiscarded || o.status !== 'discarded'),
     )
     const order = (g: Group) => `${OPTION_KINDS.indexOf(g.kind)}|${stayOfCity(stays, g.city)?.startDate ?? '9999'}|${g.city}`
-    return compareOptions(shown, trip, stays, weights).sort((a, b) => order(a).localeCompare(order(b)))
-  }, [trip, options, stays, kind, city, showDiscarded, weights])
+    // The search only hides rows: scores and badges stay those of the whole group.
+    return compareOptions(shown, trip, stays, weights)
+      .sort((a, b) => order(a).localeCompare(order(b)))
+      .map((g) => (words.length ? { ...g, items: g.items.filter((i) => matchesSearch(i.option, words)) } : g))
+      .filter((g) => g.items.length > 0)
+  }, [trip, options, stays, kind, city, showDiscarded, weights, words])
 
   if (trip === undefined || !options || !stays || !days || !placeIds || !expenseIds || !bookedIds || !photos) return null
   if (!trip) return <NotFound />
 
   // Same city filter as the list, so the tab counts match what each tab shows.
-  const inCity = (o: TripOption) => !city || (o.city ?? '').trim().toLowerCase() === city.toLowerCase()
+  // While searching, the tabs count what matches: you see where the results are, even on another tab.
+  const inCity = (o: TripOption) => (!city || (o.city ?? '').trim().toLowerCase() === city.toLowerCase()) && matchesSearch(o, words)
   const counts = Object.fromEntries(
     OPTION_KINDS.map((k) => [k, options.filter((o) => o.kind === k && o.status !== 'discarded' && inCity(o)).length]),
   )
+  const found = groups.reduce((sum, g) => sum + g.items.length, 0)
+  // A kind with nothing matching is faded while searching.
+  const none = (k: OptionKind) => (words.length > 0 && counts[k] === 0 ? ' none' : '')
   // Discarded ones the current filters would show: on phones, "N discarded hidden · Show" at the end of the list.
   const discarded = options.filter((o) => o.status === 'discarded' && (kind === 'all' || o.kind === kind) && inCity(o)).length
   const context = {
@@ -156,17 +173,65 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
     </button>
   )
 
+  const searchToggle = (
+    <button
+      type="button"
+      className={`options-search-toggle${searching ? ' on' : ''}`}
+      aria-pressed={searching}
+      aria-label="Search options"
+      title={searching ? 'Close the search' : 'Search options'}
+      onClick={() => (searching ? closeSearch() : setSearching(true))}
+    >
+      <Icon name="search" size={16} />
+    </button>
+  )
+  // Under the filters, in the same box (a thin rule between them).
+  const searchRow = searching && (
+    <div className="options-search-row">
+      <label className="options-search-field">
+        <Icon name="search" size={16} />
+        <input
+          type="search"
+          autoFocus
+          value={query}
+          placeholder={phone ? 'Search options' : 'Search options: name, type, city, notes'}
+          aria-label="Search options"
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault()
+              closeSearch()
+            }
+          }}
+        />
+        <button type="button" className="ghost icon-button" aria-label="Close the search" title="Close the search" onClick={closeSearch}>
+          <Icon name="close" size={14} />
+        </button>
+      </label>
+      {words.length > 0 && !phone && (
+        <span className="muted small options-search-count">
+          <strong>{found}</strong> {found === 1 ? 'result' : 'results'}
+          {city && ` in ${city}`}
+        </span>
+      )}
+    </div>
+  )
+
   return (
     <TripLayout trip={trip} active="options">
       {/* Phones: no title (the bottom bar says where you are); city, map and add on one line, the kinds as tabs below. */}
       {phone ? (
         <div className="options-phone-bar">
-          <div className="options-phone-top">
-            <CityFilter city={city} cities={cities} onChange={setCity} />
-            {mapToggle}
-            <button type="button" className="primary options-add" aria-label="Add option" title="Add option" onClick={() => setOpen('new')}>
-              <Icon name="plus" size={20} />
-            </button>
+          <div className="options-searchbox">
+            <div className="options-phone-top">
+              <CityFilter city={city} cities={cities} onChange={setCity} />
+              {mapToggle}
+              {searchToggle}
+              <button type="button" className="primary options-add" aria-label="Add option" title="Add option" onClick={() => setOpen('new')}>
+                <Icon name="plus" size={20} />
+              </button>
+            </div>
+            {searchRow}
           </div>
           <div className="options-tabs" role="tablist" aria-label="Kind">
             <button type="button" role="tab" aria-selected={kind === 'all'} className={kind === 'all' ? 'active' : ''} onClick={() => setKind('all')}>
@@ -181,7 +246,7 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
                 aria-selected={kind === k}
                 aria-label={KIND_PLURAL[k]}
                 title={KIND_PLURAL[k]}
-                className={kind === k ? 'active' : ''}
+                className={`${kind === k ? 'active' : ''}${none(k)}`}
                 onClick={() => setKind(k)}
               >
                 <Icon name={KIND_ICON[k]} size={20} />
@@ -254,6 +319,7 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
       )}
 
       {!phone && (
+        <div className="options-searchbox">
         <div className="options-toolbar">
           {/* Kinds and city on one line (the city at its right end); the map and discarded switches after them. */}
           <div className="options-filters">
@@ -271,7 +337,7 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
                     aria-selected={kind === k}
                     aria-label={KIND_PLURAL[k]}
                     title={KIND_PLURAL[k]}
-                    className={kind === k ? 'active' : ''}
+                    className={`${kind === k ? 'active' : ''}${none(k)}`}
                     onClick={() => setKind(k)}
                   >
                     <Icon name={KIND_ICON[k]} size={16} /> <span className="kind-label">{KIND_PLURAL[k]}</span>{' '}
@@ -284,9 +350,14 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
                 Show discarded
               </label>
             </span>
-            <CityFilter city={city} cities={cities} onChange={setCity} />
+            <span className="options-filters-end">
+              {searchToggle}
+              <CityFilter city={city} cities={cities} onChange={setCity} />
+            </span>
           </div>
           <div className="row wrap options-switches">{mapToggle}</div>
+        </div>
+        {searchRow}
         </div>
       )}
 
@@ -318,16 +389,30 @@ export function OptionsPage({ tripId, hasGoogleKey }: { tripId: string; hasGoogl
         />
       )}
 
-      {groups.length === 0 && (
-        <section className="empty-state">
-          <p>Nothing here yet.</p>
-          <p className="muted small">Add the hotels, restaurants and places you're considering to compare them.</p>
-        </section>
-      )}
+      {groups.length === 0 &&
+        (words.length > 0 ? (
+          <section className="empty-state">
+            <p>Nothing matches “{query.trim()}”{kind !== 'all' && ` in ${KIND_PLURAL[kind].toLowerCase()}`}.</p>
+            {kind !== 'all' && OPTION_KINDS.some((k) => counts[k] > 0) && (
+              <p className="muted small">
+                {OPTION_KINDS.filter((k) => counts[k] > 0)
+                  .map((k) => `${counts[k]} in ${KIND_PLURAL[k]}`)
+                  .join(' · ')}
+              </p>
+            )}
+          </section>
+        ) : (
+          <section className="empty-state">
+            <p>Nothing here yet.</p>
+            <p className="muted small">Add the hotels, restaurants and places you're considering to compare them.</p>
+          </section>
+        ))}
 
-      {listGroups.map((group) => (
-        <OptionGroup key={group.key} group={group} {...context} />
-      ))}
+      <SearchWordsContext.Provider value={words}>
+        {listGroups.map((group) => (
+          <OptionGroup key={group.key} group={group} {...context} />
+        ))}
+      </SearchWordsContext.Provider>
 
       {phone && (showDiscarded || discarded > 0) && (
         <p className="discarded-toggle">

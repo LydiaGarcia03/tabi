@@ -19,6 +19,7 @@ import { describeWeek } from '../../planning/hours'
 import { formatHours, JOURNEY_ICON, journeyCarriers } from '../../planning/journeys'
 import { BOOK_AHEAD_LABEL, DAY_KINDS, KIND_ICON, KIND_PLURAL } from '../../planning/optionKinds'
 import { ChoosePanel, TakeOutPanel } from './ChoosePanel'
+import { SearchMark } from './SearchMark'
 
 export interface Context {
   trip: Trip
@@ -164,12 +165,12 @@ export function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds
                 )}
                 {option.link ? (
                   <a href={option.link} target="_blank" rel="noreferrer">
-                    {journey ? <RouteChain journey={journey} /> : option.name}
+                    {journey ? <RouteChain journey={journey} /> : <SearchMark text={option.name} />}
                   </a>
                 ) : journey ? (
                   <RouteChain journey={journey} />
                 ) : (
-                  option.name
+                  <SearchMark text={option.name} />
                 )}
               </span>
               {journey ? (
@@ -187,8 +188,9 @@ export function OptionRow({ item, group, trip, stays, days, placeIds, expenseIds
                 </span>
               ) : (
                 <span className="muted small">
+                  {option.category && <SearchMark text={option.category} />}
+                  {option.category && (option.openingHours || option.hours || option.bookAhead) && ' · '}
                   {[
-                    option.category,
                     option.openingHours && describeWeek(option.openingHours),
                     option.hours,
                     option.bookAhead && BOOK_AHEAD_LABEL[option.bookAhead],

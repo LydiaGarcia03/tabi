@@ -154,6 +154,129 @@ input[type='checkbox'].toggle:focus-visible {
   gap: 10px;
 }
 
+.options-filters-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The filters and the search as one box (User's choice G from a mock, 2026-11-03): the magnifier opens
+   the search as the box's lower half, a thin rule between them. */
+.options-searchbox {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+button.options-search-toggle {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+button.options-search-toggle:hover:not(:disabled) {
+  color: var(--accent-text);
+}
+
+button.options-search-toggle.on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.options-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px -8px 0;
+  padding: 8px 8px 0;
+  border-top: 1px solid var(--border);
+  animation: options-search-in 0.15s ease-out;
+}
+
+@keyframes options-search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .options-search-row {
+    animation: none;
+  }
+}
+
+.options-search-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding-left: 6px;
+  color: var(--muted);
+}
+
+.options-search-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 34px;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.options-search-field input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Chrome's own ✕ in type="search": ours closes the search too. */
+.options-search-field input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.options-search-field button.icon-button {
+  flex: none;
+  min-height: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.options-search-count {
+  flex: none;
+  white-space: nowrap;
+}
+
+.options-search-count strong {
+  color: var(--text);
+}
+
+/* A kind with nothing matching the search, faded. */
+.options-filters .segmented button.none,
+.options-tabs button.none {
+  opacity: 0.45;
+}
+
+/* Words found, in the rows. */
+mark.search-mark {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: inherit;
+}
+
 /* City filter: looks like the kinds bar beside it (same background, height and corners), a pin before the name;
    in the city's tag color once one is chosen. The select stays native (the phone's own picker). */
 .city-filter {
