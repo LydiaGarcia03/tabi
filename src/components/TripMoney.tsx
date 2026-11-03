@@ -32,7 +32,11 @@ const useMoney = (trip: Trip) => (amount: number) => formatMoney({ amount, curre
 const compact = (amount: number, currency: string) =>
   new Intl.NumberFormat('en', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(amount)
 
-const categoryColor = (category: ExpenseCategory) => `var(--cat-${category})`
+/** "R$3,564": no cents, for short summaries. */
+const wholeMoney = (amount: number, currency: string) =>
+  new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
+
+const categoryColor =(category: ExpenseCategory) => `var(--cat-${category})`
 
 const share = (amount: number, of: number) => `${of > 0 ? Math.max(0, Math.min(100, (amount / of) * 100)) : 0}%`
 
@@ -707,14 +711,26 @@ function EstimateSheet({
  */
 export function TripCostsLink({ trip, expenses }: { trip: Trip; expenses: Expense[] }) {
   const [open, setOpen] = useState(false)
-  const n = expenses.length
+  // Each group with its total, readable without opening it (User's choice D from a mock, 2026-11-02).
+  const groups = (
+    [
+      ['Hotels', expenses.filter((e) => e.hotel)],
+      ['Transport', expenses.filter((e) => e.journey)],
+      ['Other', expenses.filter((e) => !e.hotel && !e.journey)],
+    ] as const
+  )
+    .filter(([, list]) => list.length > 0)
+    .map(([label, list]) => {
+      const sum = sumItems(list, trip)
+      return sum != null ? `${label} ${wholeMoney(sum, trip.displayCurrency)}` : `${label} ${list.length}`
+    })
   return (
     <>
       <button type="button" className="card trip-costs-link" onClick={() => setOpen(true)}>
         <Icon name="home" size={18} />
         <span className="trip-costs-text">
           <strong>Hotels, transport &amp; other trip costs</strong>
-          <span className="muted small">{n ? `${n} ${n === 1 ? 'cost' : 'costs'} · add or edit` : 'Add hotels, flights and other costs'}</span>
+          <span className="muted small">{groups.length ? groups.join(' · ') : 'Add hotels, flights and other costs'}</span>
         </span>
         <Icon name="forward" size={16} />
       </button>
