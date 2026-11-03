@@ -103,7 +103,7 @@ The app was born for a trip to Japan, so Japan trips get a few more things:
 
 - 🚇 **Public transport by NAVITIME** — door-to-door routes with lines, times, fares, train types and the stations on the way (Google has no transit routes there).
 - 🈂️ **Station and line names in English** — official names from Wikidata, with the Japanese as written on the signs right under them.
-- 🎫 **Rail passes** — see what a JR or regional pass covers on your days and whether it saves money, and how much to load on your IC card (Suica).
+- 🎫 **Rail passes** — see what a JR or regional pass covers on your days and whether it saves money, and how much to load on your IC card.
 
 ## 🧭 How it works
 

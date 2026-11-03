@@ -12,7 +12,7 @@ import type { IconName } from './iconPaths'
 import { expenseNeedsBooking, JOURNEY_ICON, journeyTitle } from './planning/journeys'
 import { dayRides, passCoverage } from './planning/railPasses'
 import { rateOf } from './money/currencies'
-import type { Money } from './routing/types'
+import type { Money, SegmentMode } from './routing/types'
 
 /** Amount per currency code, e.g. { JPY: 12300, BRL: 200 }. */
 export type Totals = Record<string, number>
@@ -138,6 +138,13 @@ export interface MoneyItem {
   icon: IconName
   /** Only for what needs booking: ticked "Booked" (paid). */
   booked?: boolean
+  /** Transport in the itinerary: its kind of transport, and how many rides the item adds up. */
+  mode?: SegmentMode
+  uses?: number
+  /** A flight's fare as "¥29,500 × 2". */
+  detail?: string
+  /** The day's date (fares). */
+  date?: string
 }
 
 export interface TripMoney {
@@ -164,7 +171,8 @@ export function dayMoney(
 ): Pick<TripMoney, 'bookAhead' | 'itinerary'> {
   const bookAhead: MoneyItem[] = []
   const itinerary: MoneyItem[] = []
-  const fares: Totals = {}
+  // The day's fares per kind of transport and currency, with how many rides; flights one by one.
+  const fares = new Map<string, { mode: SegmentMode; amount: Money; uses: number }>()
   const route = dayRoute(day, orderPlaces(day, dayPlaces))
   route.forEach((stop, i) => {
     if (!stop.baseStop) {
@@ -178,11 +186,23 @@ export function dayMoney(
     legs.get(legKey(stop.id, next.id))?.segments.forEach((s) => {
       if (covered?.has(s.id)) return
       const cost = segmentCost(s, travelers)
-      if (cost?.amount) fares[cost.currency] = (fares[cost.currency] ?? 0) + cost.amount
+      if (!cost?.amount) return
+      if (s.mode === 'flight') {
+        const name = s.fromName && s.toName ? `${s.fromName} → ${s.toName}` : 'Flight'
+        const detail = travelers > 1 && s.fare ? `${formatMoney(s.fare)} × ${travelers}` : undefined
+        itinerary.push({ id: `fare-${s.id}`, name, day: number, date: day.date, category: 'transport', amount: cost, icon: 'plane', mode: 'flight', uses: 1, detail })
+        return
+      }
+      const key = `${s.mode}|${cost.currency}`
+      const sum = fares.get(key)
+      if (sum) {
+        sum.amount.amount += cost.amount
+        sum.uses++
+      } else fares.set(key, { mode: s.mode, amount: { ...cost }, uses: 1 })
     })
   })
-  for (const [currency, amount] of Object.entries(fares)) {
-    itinerary.push({ id: `fares-${day.id}-${currency}`, name: 'Fares', day: number, category: 'transport', amount: { amount, currency }, icon: 'train' })
+  for (const [key, { mode, amount, uses }] of fares) {
+    itinerary.push({ id: `fares-${day.id}-${key}`, name: 'Fares', day: number, date: day.date, category: 'transport', amount, icon: 'train', mode, uses })
   }
   return { bookAhead, itinerary }
 }
@@ -215,7 +235,9 @@ export function tripMoney(days: Day[], places: Place[], legs: Leg[], expenses: E
       const icon = e.hotel ? 'home' : JOURNEY_ICON[e.journey!.mode]
       money.bookAhead.push({ ...item, name: e.hotel?.name ?? journeyTitle(e.journey!), icon, booked: !!e.booked })
     } else {
-      money.itinerary.push(e.journey ? { ...item, name: journeyTitle(e.journey), icon: JOURNEY_ICON[e.journey.mode] } : item)
+      money.itinerary.push(
+        e.journey ? { ...item, name: journeyTitle(e.journey), icon: JOURNEY_ICON[e.journey.mode], mode: e.journey.mode, uses: 1 } : item,
+      )
     }
   }
   return money

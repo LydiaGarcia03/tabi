@@ -513,6 +513,37 @@ button.estimate-chip.add {
   color: var(--accent-text);
 }
 
+/* Transport by kind (E2): the kind's row opens its days (flights: each flight). */
+.transport-kind td {
+  font-weight: 600;
+}
+
+.transport-kind-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.transport-tri {
+  display: inline-flex;
+  width: 14px;
+  color: var(--muted);
+}
+
+.estimate-table tr.transport-sub td {
+  border-top-style: dashed;
+}
+
+.estimate-table tr.transport-sub td:first-child {
+  padding-left: 29px;
+}
+
 .estimate-add {
   justify-self: start;
   display: inline-flex;
@@ -988,7 +1019,7 @@ button.estimate-currency {
   margin-top: 4px;
 }
 
-/* "Load on your IC card (Suica): ≈ ¥X per person", at the end of the card. */
+/* "Load on your IC card: ≈ ¥X per person", at the end of the card. */
 .ic-card {
   display: flex;
   align-items: center;

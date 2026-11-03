@@ -104,7 +104,7 @@ export function RailPassesCard({
         <p className="ic-card small">
           <Icon name="wallet" size={16} />
           <span>
-            Load on your IC card (Suica): <strong>≈ {formatMoney({ amount: icCard, currency: 'JPY' })}</strong>{' '}
+            Load on your IC card: <strong>≈ {formatMoney({ amount: icCard, currency: 'JPY' })}</strong>{' '}
             <span className="muted">per person</span>
           </span>
           <InfoTip label="About the IC card" align="end">

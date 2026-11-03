@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { Fragment, useState, type FormEvent } from 'react'
 import {
   CATEGORIES,
   CATEGORY_ICON,
@@ -12,7 +12,9 @@ import {
 } from '../budget'
 import type { Estimate, Expense, ExpenseCategory, Trip } from '../db/model'
 import { updateTrip } from '../db/trips'
-import { formatMoney } from '../format'
+import { formatDay } from '../dates'
+import { formatMoney, MODE_ICON, MODE_LABEL } from '../format'
+import type { SegmentMode } from '../routing/types'
 import { href } from '../router'
 import { useDraft } from '../useDraft'
 import { ExpenseList } from './ExpenseList'
@@ -275,15 +277,94 @@ export function BookAheadCard({ trip, items }: { trip: Trip; items: MoneyItem[] 
 /** How a category's itinerary items read in a chip: "9 restaurants", "fares on 5 days", "2 in the itinerary". */
 function itinerarySummary(category: ExpenseCategory, items: MoneyItem[]): string {
   const n = items.length
-  if (category === 'transport' && items.every((i) => i.name === 'Fares')) {
-    const days = new Set(items.map((i) => i.day)).size
-    return `fares on ${days} ${days === 1 ? 'day' : 'days'}`
+  if (category === 'transport' && items.every((i) => i.mode)) {
+    const rides = items.reduce((sum, i) => sum + (i.uses ?? 1), 0)
+    return `${rides} ${rides === 1 ? 'ride' : 'rides'}`
   }
   const noun = { food: 'restaurant', shopping: 'shop', activities: 'place' }[category as string]
   return noun ? `${n} ${noun}${n === 1 ? '' : 's'}` : `${n} in the itinerary`
 }
 
 const dayText = (item: { day?: number }) => (item.day ? `Day ${item.day}` : 'Trip')
+
+/**
+ * Transport in "Estimates" (User's choice E2 from a mock, 2026-11-02): one row per kind of transport with how many
+ * rides and its estimate, biggest first; a tap opens it by day (never the lines: irrelevant for a budget), flights
+ * one by one with their route. Items with no kind (a free-form cost) stay plain rows.
+ */
+function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip; amount: (item: MoneyItem) => string }) {
+  const [open, setOpen] = useState<SegmentMode | null>(null)
+  const show = useMoney(trip)
+  const kinds = new Map<SegmentMode, MoneyItem[]>()
+  for (const item of items) if (item.mode) kinds.set(item.mode, [...(kinds.get(item.mode) ?? []), item])
+  const rows = [...kinds].map(([mode, list]) => ({ mode, list, sum: sumItems(list, trip), uses: list.reduce((n, i) => n + (i.uses ?? 1), 0) }))
+  rows.sort((a, b) => (b.sum ?? 0) - (a.sum ?? 0))
+
+  /** The kind's items by day (a trip-wide journey by its name), added up. */
+  const byDay = (list: MoneyItem[]) => {
+    const groups = new Map<string, { label: string; list: MoneyItem[] }>()
+    for (const item of list) {
+      const key = item.day ? `d${item.day}` : item.id
+      const label = item.day ? `Day ${item.day}${item.date ? ` · ${formatDay(item.date)}` : ''}` : item.name
+      groups.set(key, { label, list: [...(groups.get(key)?.list ?? []), item] })
+    }
+    return [...groups].map(([key, g]) => ({ key, ...g, uses: g.list.reduce((n, i) => n + (i.uses ?? 1), 0), sum: sumItems(g.list, trip) }))
+  }
+
+  return (
+    <>
+      {rows.map(({ mode, list, sum, uses }) => {
+        const flight = mode === 'flight'
+        const unfolded = open === mode
+        return (
+          <Fragment key={mode}>
+            <tr className="transport-kind">
+              <td>
+                <button type="button" className="transport-kind-name" aria-expanded={unfolded} onClick={() => setOpen(unfolded ? null : mode)}>
+                  <span className="transport-tri">
+                    <Icon name={unfolded ? 'down' : 'forward'} size={13} />
+                  </span>
+                  <Icon name={MODE_ICON[mode]} size={15} /> {MODE_LABEL[mode]}
+                </button>
+              </td>
+              <td className="num">{uses}</td>
+              <td className="num">{sum != null ? show(sum) : '—'}</td>
+            </tr>
+            {unfolded &&
+              (flight
+                ? list.map((item) => (
+                    <tr key={item.id} className="transport-sub">
+                      <td>
+                        {item.name} <span className="muted">· {dayText(item)}</span>
+                      </td>
+                      <td className="num muted">{item.detail ?? ''}</td>
+                      <td className="num muted">{amount(item)}</td>
+                    </tr>
+                  ))
+                : byDay(list).map((g) => (
+                    <tr key={g.key} className="transport-sub">
+                      <td className="muted">{g.label}</td>
+                      <td className="num muted">{g.uses}</td>
+                      <td className="num muted">{g.sum != null ? show(g.sum) : g.list.map(amount).join(' + ')}</td>
+                    </tr>
+                  )))}
+          </Fragment>
+        )
+      })}
+      {items
+        .filter((item) => !item.mode)
+        .map((item) => (
+          <tr key={item.id}>
+            <td>
+              {item.name} <span className="muted">· {dayText(item)}</span>
+            </td>
+            <td />
+            <td className="num">{amount(item)}</td>
+          </tr>
+        ))}
+    </>
+  )
+}
 
 /**
  * "Estimates" (3C) before the trip, "Estimated vs spent" (5A) from its first day: one row per category; its name
@@ -319,6 +400,7 @@ export function EstimatesCard({ trip, categories, started }: { trip: Trip; categ
             {categories.map((c) => {
               const over = c.spent > c.estimate
               const unfolded = open === c.category
+              const transportKinds = !started && c.category === 'transport'
               return (
                 <li key={c.category} className="estimate-cat" style={{ ['--cat' as string]: categoryColor(c.category) }}>
                   <div className="estimate-cat-head">
@@ -394,7 +476,7 @@ export function EstimatesCard({ trip, categories, started }: { trip: Trip; categ
                       <thead>
                         <tr>
                           <th>{started ? 'Spent' : CATEGORY_LABEL[c.category]}</th>
-                          <th>Day</th>
+                          {transportKinds ? <th className="num">Uses</th> : <th>Day</th>}
                           <th className="num">{started ? 'Amount' : 'Estimate'}</th>
                         </tr>
                       </thead>
@@ -408,13 +490,15 @@ export function EstimatesCard({ trip, categories, started }: { trip: Trip; categ
                               </tr>
                             ))
                           : [
-                              ...c.items.map((item) => (
-                                <tr key={item.id}>
-                                  <td>{item.name}</td>
-                                  <td className="muted">{dayText(item)}</td>
-                                  <td className="num">{amount(item)}</td>
-                                </tr>
-                              )),
+                              ...(transportKinds
+                                ? [<TransportRows key="transport" items={c.items} trip={trip} amount={amount} />]
+                                : c.items.map((item) => (
+                                    <tr key={item.id}>
+                                      <td>{item.name}</td>
+                                      <td className="muted">{dayText(item)}</td>
+                                      <td className="num">{amount(item)}</td>
+                                    </tr>
+                                  ))),
                               ...c.additional.map((e) => (
                                 <tr key={e.id} className="additional">
                                   <td>
