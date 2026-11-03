@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { MAX_PHOTOS, resizeImage } from '../db/photos'
 import { useReorder } from '../useReorder'
@@ -40,30 +40,164 @@ const blobId = (image: Blob) => {
 
 /** Swipe farther than this (px) to go to the next/previous photo. */
 const SWIPE = 50
+/** Zoom limits: a double tap goes to TAP_ZOOM, pinching or the wheel up to MAX_ZOOM. */
+const MAX_ZOOM = 4
+const TAP_ZOOM = 2.5
+/** Two taps closer than this (ms, px) are a double tap. */
+const DOUBLE_TAP_MS = 300
+const DOUBLE_TAP_PX = 30
+
+type Point = { x: number; y: number }
+/** The photo's zoom: scale and offset (px) from the stage's center. */
+type View = { s: number; x: number; y: number }
+const NO_ZOOM: View = { s: 1, x: 0, y: 0 }
+type Gesture =
+  | { kind: 'swipe'; from: number }
+  | { kind: 'pan'; from: Point; start: View }
+  | { kind: 'pinch'; dist: number; mid: Point; start: View }
+
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
+const middle = (a: Point, b: Point) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
 
 /**
  * All the photos of an option, big, one at a time: swipe or the side arrows
  * (← → keys) to move, the row below to jump to one. Full screen on phones.
+ * Zoom: pinch or double tap (phones), the wheel or a double click (PC), + − 0 keys;
+ * once zoomed, dragging moves the photo instead of changing it.
  * Rendered on <body> so no table or card around the opener can get in the way.
  */
 export function PhotoViewer({ images, start, name, onClose }: { images: Blob[]; start: number; name: string; onClose: () => void }) {
   const [index, setIndex] = useState(start)
   const [dragX, setDragX] = useState(0)
-  const dragFrom = useRef<number | null>(null)
+  const [view, setViewState] = useState(NO_ZOOM)
+  const [moving, setMoving] = useState(false)
+  const viewRef = useRef(view)
+  const stage = useRef<HTMLDivElement>(null)
+  const pointers = useRef(new Map<number, Point>())
+  const gesture = useRef<Gesture | null>(null)
+  const tap = useRef<{ at: Point; moved: boolean } | null>(null)
+  const lastTap = useRef<{ time: number; at: Point } | null>(null)
   const dialog = useRef<HTMLDialogElement>(null)
   const many = images.length > 1
-  const step = (delta: number) => setIndex((i) => (i + delta + images.length) % images.length)
+  const zoomed = view.s > 1
+
+  const setView = (next: View) => {
+    viewRef.current = next
+    setViewState(next)
+  }
+  const step = (delta: number) => {
+    setIndex((i) => (i + delta + images.length) % images.length)
+    setView(NO_ZOOM)
+  }
+
+  /** A pointer's position from the stage's center. */
+  const local = (clientX: number, clientY: number): Point => {
+    const rect = stage.current!.getBoundingClientRect()
+    return { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 }
+  }
+
+  /** Keeps the scale within limits and the zoomed photo covering the stage (no empty side to drag into). */
+  const clamp = (v: View): View => {
+    const s = Math.min(MAX_ZOOM, Math.max(1, v.s))
+    const box = stage.current
+    const img = box?.querySelector('img')
+    if (s === 1 || !box || !img) return NO_ZOOM
+    const maxX = Math.max(0, (img.offsetWidth * s - box.clientWidth) / 2)
+    const maxY = Math.max(0, (img.offsetHeight * s - box.clientHeight) / 2)
+    return { s, x: Math.min(maxX, Math.max(-maxX, v.x)), y: Math.min(maxY, Math.max(-maxY, v.y)) }
+  }
+
+  /** Zooms to `scale` keeping the photo's point under `at` where it is. */
+  const zoomAt = (at: Point, scale: number): View => {
+    const v = viewRef.current
+    const s = Math.min(MAX_ZOOM, Math.max(1, scale))
+    const k = s / v.s
+    return clamp({ s, x: at.x - k * (at.x - v.x), y: at.y - k * (at.y - v.y) })
+  }
 
   useEffect(() => {
     const element = dialog.current
     if (element && !element.open) element.showModal()
   }, [])
 
-  const endDrag = () => {
-    if (dragFrom.current === null) return
-    dragFrom.current = null
-    if (many && Math.abs(dragX) > SWIPE) step(dragX < 0 ? 1 : -1)
+  // The wheel zooms around the mouse. React's wheel listener is passive (can't stop the page's scroll), so it's added here.
+  useEffect(() => {
+    const element = stage.current
+    if (!element) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      setView(zoomAt(local(e.clientX, e.clientY), viewRef.current.s * Math.exp(-e.deltaY * 0.002)))
+    }
+    element.addEventListener('wheel', onWheel, { passive: false })
+    return () => element.removeEventListener('wheel', onWheel)
+    // Once is enough: zoomAt and local only read refs.
+  }, [])
+
+  const startPinch = () => {
+    const [a, b] = [...pointers.current.values()]
+    gesture.current = { kind: 'pinch', dist: Math.max(1, distance(a, b)), mid: middle(a, b), start: viewRef.current }
+    tap.current = null
     setDragX(0)
+  }
+
+  const pointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const at = local(e.clientX, e.clientY)
+    pointers.current.set(e.pointerId, at)
+    if (pointers.current.size === 1) {
+      tap.current = { at, moved: false }
+      gesture.current = viewRef.current.s > 1 ? { kind: 'pan', from: at, start: viewRef.current } : many ? { kind: 'swipe', from: at.x } : null
+    } else if (pointers.current.size === 2) startPinch()
+    setMoving(true)
+  }
+
+  const pointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(e.pointerId)) return
+    const at = local(e.clientX, e.clientY)
+    pointers.current.set(e.pointerId, at)
+    if (tap.current && distance(at, tap.current.at) > 8) tap.current.moved = true
+    const g = gesture.current
+    if (!g) return
+    if (g.kind === 'swipe') setDragX(at.x - g.from)
+    else if (g.kind === 'pan') setView(clamp({ ...g.start, x: g.start.x + at.x - g.from.x, y: g.start.y + at.y - g.from.y }))
+    else if (pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()]
+      const mid = middle(a, b)
+      const s = Math.min(MAX_ZOOM, Math.max(1, (g.start.s * distance(a, b)) / g.dist))
+      // The photo's point that was under the fingers' middle stays under it (pinching also pans).
+      const qx = (g.mid.x - g.start.x) / g.start.s
+      const qy = (g.mid.y - g.start.y) / g.start.s
+      setView(clamp({ s, x: mid.x - s * qx, y: mid.y - s * qy }))
+    }
+  }
+
+  const pointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.delete(e.pointerId)) return
+    const g = gesture.current
+    if (g?.kind === 'swipe') {
+      if (Math.abs(dragX) > SWIPE) step(dragX < 0 ? 1 : -1)
+      setDragX(0)
+      gesture.current = null
+    }
+    if (pointers.current.size === 1) {
+      // One finger left after a pinch: it keeps moving the photo.
+      const from = [...pointers.current.values()][0]
+      gesture.current = viewRef.current.s > 1 ? { kind: 'pan', from, start: viewRef.current } : null
+      return
+    }
+    if (pointers.current.size > 0) return
+    gesture.current = null
+    setMoving(false)
+    const t = tap.current
+    tap.current = null
+    if (!t || t.moved || e.type === 'pointercancel') return
+    const now = performance.now()
+    const last = lastTap.current
+    if (last && now - last.time < DOUBLE_TAP_MS && distance(last.at, t.at) < DOUBLE_TAP_PX) {
+      lastTap.current = null
+      setView(viewRef.current.s > 1 ? NO_ZOOM : zoomAt(t.at, TAP_ZOOM))
+    } else lastTap.current = { time: now, at: t.at }
   }
 
   return createPortal(
@@ -86,6 +220,9 @@ export function PhotoViewer({ images, start, name, onClose }: { images: Blob[]; 
       onKeyDown={(e) => {
         if (e.key === 'ArrowLeft') step(-1)
         if (e.key === 'ArrowRight') step(1)
+        if (e.key === '+' || e.key === '=') setView(zoomAt({ x: 0, y: 0 }, viewRef.current.s * 1.5))
+        if (e.key === '-') setView(zoomAt({ x: 0, y: 0 }, viewRef.current.s / 1.5))
+        if (e.key === '0') setView(NO_ZOOM)
       }}
     >
       <header className="photo-viewer-head">
@@ -95,17 +232,17 @@ export function PhotoViewer({ images, start, name, onClose }: { images: Blob[]; 
         </button>
       </header>
       <div
-        className="photo-viewer-stage"
-        onPointerDown={(e) => {
-          if (!many || (e.target as HTMLElement).closest('button')) return
-          dragFrom.current = e.clientX
-          e.currentTarget.setPointerCapture(e.pointerId)
-        }}
-        onPointerMove={(e) => dragFrom.current !== null && setDragX(e.clientX - dragFrom.current)}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        ref={stage}
+        className={`photo-viewer-stage${zoomed ? ' zoomed' : ''}`}
+        onPointerDown={pointerDown}
+        onPointerMove={pointerMove}
+        onPointerUp={pointerUp}
+        onPointerCancel={pointerUp}
       >
-        <div className={`photo-viewer-photo${dragX ? ' dragging' : ''}`} style={{ transform: `translateX(${dragX}px)` }}>
+        <div
+          className={`photo-viewer-photo${dragX || moving ? ' dragging' : ''}`}
+          style={{ transform: `translate(${dragX + view.x}px, ${view.y}px) scale(${view.s})` }}
+        >
           <BlobImage key={index} image={images[index]} alt={`${name}, photo ${index + 1}`} draggable={false} />
         </div>
         {many && (
@@ -131,7 +268,10 @@ export function PhotoViewer({ images, start, name, onClose }: { images: Blob[]; 
               className={i === index ? 'active' : ''}
               aria-current={i === index}
               aria-label={`Photo ${i + 1}`}
-              onClick={() => setIndex(i)}
+              onClick={() => {
+                setIndex(i)
+                setView(NO_ZOOM)
+              }}
             >
               <BlobImage image={image} alt="" />
             </button>

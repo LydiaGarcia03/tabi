@@ -435,9 +435,19 @@ dialog.photo-viewer::backdrop {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  /* Horizontal swipes are ours; the page keeps vertical gestures. */
-  touch-action: pan-y;
+  /* Every gesture is ours: swipes change the photo, pinches and drags zoom and move it. */
+  touch-action: none;
   user-select: none;
+}
+
+@media (hover: hover) {
+  .photo-viewer-stage {
+    cursor: zoom-in;
+  }
+
+  .photo-viewer-stage.zoomed {
+    cursor: grab;
+  }
 }
 
 .photo-viewer-photo {
