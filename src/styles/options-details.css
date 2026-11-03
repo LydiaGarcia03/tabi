@@ -388,6 +388,60 @@ button.photo-add {
   margin: 4px 0 0;
 }
 
+/* "Photos (2/3)" on the left, a small "HD" switch with its "i" on the right. */
+.photo-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.photo-picker-hd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* A small square "HD" button: outlined = off, filled = on (like WhatsApp's). */
+button.photo-hd-button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 0;
+  height: 22px;
+  padding: 0 5px;
+  border: 1.5px solid var(--muted);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* Hover and on in the app's accent, so it reads as a button. */
+button.photo-hd-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+button.photo-hd-button.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+button.photo-hd-button.on:hover {
+  opacity: 0.85;
+}
+
 /* The carousel: name and ✕ on top, the photo (swipe / side arrows), every photo below. */
 dialog.photo-viewer {
   width: min(96vw, 1100px);

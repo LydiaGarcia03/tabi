@@ -23,8 +23,16 @@ export async function setOptionPhotos(option: Pick<TripOption, 'id' | 'tripId'>,
   })
 }
 
-/** Shrinks an image file to at most MAX_SIDE pixels and re-encodes it as JPEG. */
-export async function resizeImage(file: Blob): Promise<Blob> {
+/** Formats kept as they are in HD (every browser shows them); others are re-encoded as JPEG. */
+const KEPT_AS_IS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const HD_QUALITY = 0.92
+
+/**
+ * Shrinks an image file to at most MAX_SIDE pixels and re-encodes it as JPEG.
+ * `hd` keeps its original size (maps, menus with small letters): the file itself
+ * when the browser shows its format, else a full-size JPEG.
+ */
+export async function resizeImage(file: Blob, hd = false): Promise<Blob> {
   const url = URL.createObjectURL(file)
   try {
     const img = new Image()
@@ -32,8 +40,9 @@ export async function resizeImage(file: Blob): Promise<Blob> {
     await img.decode().catch(() => {
       throw new Error("Couldn't read this image. Try a JPEG or PNG.")
     })
+    if (hd && KEPT_AS_IS.includes(file.type)) return file
     // Browsers apply the photo's EXIF rotation to <img> and to drawImage.
-    const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight))
+    const scale = hd ? 1 : Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight))
     const canvas = document.createElement('canvas')
     canvas.width = Math.round(img.naturalWidth * scale)
     canvas.height = Math.round(img.naturalHeight * scale)
@@ -42,7 +51,7 @@ export async function resizeImage(file: Blob): Promise<Blob> {
     ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', QUALITY))
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', hd ? HD_QUALITY : QUALITY))
     if (!blob) throw new Error("Couldn't process this image.")
     return blob
   } finally {

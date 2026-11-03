@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { MAX_PHOTOS, resizeImage } from '../db/photos'
 import { useReorder } from '../useReorder'
 import { Icon } from './Icon'
+import { InfoTip } from './InfoTip'
 
 /** Shows a stored image through a temporary URL, released when no longer shown. */
 export function BlobImage({ image, alt, draggable }: { image: Blob; alt: string; draggable?: boolean }) {
@@ -292,6 +293,8 @@ export function PhotoPicker({ images, name, onChange }: { images: Blob[]; name: 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [viewing, setViewing] = useState<number | null>(null)
+  // HD: photos added while it's on keep their original size (nothing else is kept to switch later).
+  const [hd, setHd] = useState(false)
   const room = MAX_PHOTOS - images.length
 
   async function add(files: File[]) {
@@ -301,7 +304,7 @@ export function PhotoPicker({ images, name, onChange }: { images: Blob[]; name: 
     if (picked.length > room) setError(`Up to ${MAX_PHOTOS} photos: only the first ${room} were added.`)
     setBusy(true)
     try {
-      const resized = await Promise.all(picked.slice(0, room).map(resizeImage))
+      const resized = await Promise.all(picked.slice(0, room).map((file) => resizeImage(file, hd)))
       onChange([...images, ...resized])
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -342,9 +345,26 @@ export function PhotoPicker({ images, name, onChange }: { images: Blob[]; name: 
         void add([...e.dataTransfer.files])
       }}
     >
-      <span className="field-label">
-        Photos ({images.length}/{MAX_PHOTOS})
-      </span>
+      <div className="photo-picker-head">
+        <span className="field-label">
+          Photos ({images.length}/{MAX_PHOTOS})
+        </span>
+        <span className="photo-picker-hd">
+          <button
+            type="button"
+            className={`photo-hd-button${hd ? ' on' : ''}`}
+            aria-pressed={hd}
+            title={hd ? 'HD on: photos added keep their original quality' : 'HD off: photos added are made smaller'}
+            onClick={() => setHd(!hd)}
+          >
+            HD
+          </button>
+          <InfoTip label="About HD" align="end">
+            Photos added with HD on keep their original quality (maps, menus with small letters). They take more room on the
+            device, in Google Drive and in backups.
+          </InfoTip>
+        </span>
+      </div>
       <div className="photo-picker-list" ref={listRef}>
         {order.map((id, i) => {
           const image = byId.get(id)
