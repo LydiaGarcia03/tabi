@@ -108,8 +108,23 @@ export function RailPassesCard({
             <span className="muted">per person</span>
           </span>
           <InfoTip label="About the IC card" align="end">
-            The fares of your days' trains, subways and buses that no pass in use covers. The shinkansen, taxis and flights are
-            left out: they're usually paid apart.
+            {/* One point per line, the name in bold (User: a run-on text was hard to read). */}
+            <span className="tip-lines">
+              <span>
+                <strong>What's in this amount:</strong> your days' trains, subways and buses that no pass in use covers.
+              </span>
+              <span>
+                <strong>Not in it:</strong> the shinkansen, taxis and flights, usually paid apart.
+              </span>
+              <span>
+                <strong>Which card:</strong> any IC card (Suica, ICOCA, PASMO…) works in every big city of Japan, with the same
+                balance.
+              </span>
+              <span>
+                <strong>Good to know:</strong> one ride can't start in one region and end in another, and some rural lines and
+                buses don't take IC cards.
+              </span>
+            </span>
           </InfoTip>
         </p>
       )}

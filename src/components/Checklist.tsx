@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { byBookingOrder, type MoneyItem } from '../budget'
 import { formatDate, formatDay, today } from '../dates'
 import { updateExpense } from '../db/expenses'
 import type { ChecklistItem, Day, Expense, Place, Trip } from '../db/model'
@@ -23,6 +24,8 @@ interface ToBook {
   sub: string
   /** "YYYY-MM-DD" it happens (for the order); undated ones last. */
   date: string
+  /** Same order as the Budget's "Book before the trip": flights, other transport, hotels, tickets. */
+  booking: NonNullable<MoneyItem['booking']>
   booked: boolean
   setBooked: (booked: boolean) => void
   /** The day it is in (places): a tap on the line opens it. */
@@ -50,6 +53,7 @@ function toBookItems(places: PlaceToBook[], expenses: Expense[]): ToBook[] {
           .filter(Boolean)
           .join(' · '),
         date: hotel.checkIn ?? '9999',
+        booking: 'hotel',
         booked: !!e.booked,
         setBooked,
       }
@@ -61,6 +65,7 @@ function toBookItems(places: PlaceToBook[], expenses: Expense[]): ToBook[] {
       name: `${journey.from} → ${journey.to}`,
       sub: [JOURNEY_LABEL[journey.mode], journey.date && formatDay(journey.date), journey.carrier].filter(Boolean).join(' · '),
       date: journey.date ?? '9999',
+      booking: journey.mode === 'flight' ? 'flight' : 'transport',
       booked: !!e.booked,
       setBooked,
     }
@@ -72,17 +77,18 @@ function toBookItems(places: PlaceToBook[], expenses: Expense[]): ToBook[] {
       name: place.name,
       sub: `${PLACE_KIND[place.bookAhead]} · ${formatDay(day.date)}`,
       date: day.date,
+      booking: 'ticket',
       booked: !!place.booked,
       setBooked: (booked) => void updatePlace(place.id, { booked }),
       dayId: day.id,
     }),
   )
-  return [...fromExpenses, ...fromPlaces].sort((a, b) => a.date.localeCompare(b.date))
+  return [...fromExpenses, ...fromPlaces].sort(byBookingOrder)
 }
 
 /**
  * The trip's checklist (User's choice A from a mock, 2026-10-27, with an icon before each thing to book): first
- * what the itinerary still needs booked — one list by date, the name with "Ticket · Sat 1 Apr" under it, a tap on
+ * what the itinerary still needs booked — one list, flights, other transport, hotels, then tickets, each by date, the name with "Ticket · Sat 1 Apr" under it, a tap on
  * the line opens its day, the box ticks it Booked; booked ones folded — listed from the itinerary itself so it
  * follows when things move or leave it; then the reminders (stored on the trip), added with an optional due date.
  */

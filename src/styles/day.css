@@ -1613,6 +1613,16 @@ button.pe-change {
   font-weight: 400;
 }
 
+/* A longer explanation as one point per line. */
+.tip-lines {
+  display: grid;
+  gap: 6px;
+}
+
+.tip-lines > span {
+  display: block;
+}
+
 @media (hover: hover) {
   .info-tip-text {
     position: absolute;
@@ -1628,6 +1638,12 @@ button.pe-change {
   .info-tip.end .info-tip-text {
     left: auto;
     right: 0;
+  }
+
+  /* No room below (near the bottom of the window): above the "i". */
+  .info-tip.up .info-tip-text {
+    top: auto;
+    bottom: calc(100% + 4px);
   }
 
   /* Hover only (and keyboard focus); a click does nothing. */

@@ -257,9 +257,9 @@ export function tripMoney(days: Day[], places: Place[], legs: Leg[], expenses: E
 
 const BOOKING_ORDER = ['flight', 'transport', 'hotel', 'ticket']
 
-/** What needs booking in its order of importance, each kind by date (undated last). */
-export function byBookingOrder(a: MoneyItem, b: MoneyItem): number {
-  const rank = (i: MoneyItem) => BOOKING_ORDER.indexOf(i.booking ?? 'ticket')
+/** What needs booking in its order of importance, each kind by date (undated last). Also the Checklist's order. */
+export function byBookingOrder(a: Pick<MoneyItem, 'booking' | 'date'>, b: Pick<MoneyItem, 'booking' | 'date'>): number {
+  const rank = (i: Pick<MoneyItem, 'booking'>) => BOOKING_ORDER.indexOf(i.booking ?? 'ticket')
   return rank(a) - rank(b) || (a.date ?? '9999').localeCompare(b.date ?? '9999')
 }
 

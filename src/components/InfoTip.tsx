@@ -7,17 +7,35 @@ import { useDismiss } from '../useDismiss'
  * shows on hover only (a click does nothing). On a phone (no hover) a tap on
  * the "i" shows the text as a line under the row it sits in (a floating bubble
  * would run off a narrow screen) and another tap, or one elsewhere, hides it.
- * lign="end": the bubble opens leftwards, for an "i" at the end of a line (it ran past the screen's edge).
+ * align="end": the bubble opens leftwards, for an "i" at the end of a line (it ran past the screen's edge).
+ * The bubble opens upwards when there's no room for it below (User, 2026-11-02: near the bottom of the
+ * window it was cut).
  */
 export function InfoTip({ label, align = 'start', children }: { label: string; align?: 'start' | 'end'; children: ReactNode }) {
   const [open, setOpen] = useState(false)
+  const [up, setUp] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
+  const text = useRef<HTMLSpanElement>(null)
   const id = useId()
 
   useDismiss(ref, open, setOpen)
 
+  /** Up when the bubble doesn't fit below the "i" and there's more room above. */
+  const place = () => {
+    const button = ref.current?.getBoundingClientRect()
+    const height = text.current?.offsetHeight ?? 0
+    if (!button || !height) return
+    const below = window.innerHeight - button.bottom
+    setUp(height + 12 > below && button.top > below)
+  }
+
   return (
-    <span ref={ref} className={`info-tip${align === 'end' ? ' end' : ''}${open ? ' open' : ''}`}>
+    <span
+      ref={ref}
+      className={`info-tip${align === 'end' ? ' end' : ''}${up ? ' up' : ''}${open ? ' open' : ''}`}
+      onMouseEnter={place}
+      onFocus={place}
+    >
       <button
         type="button"
         className="info-tip-button"
@@ -30,7 +48,7 @@ export function InfoTip({ label, align = 'start', children }: { label: string; a
       >
         <Icon name="info" size={16} />
       </button>
-      <span id={id} role="tooltip" className="info-tip-text small">
+      <span ref={text} id={id} role="tooltip" className="info-tip-text small">
         {children}
       </span>
     </span>
