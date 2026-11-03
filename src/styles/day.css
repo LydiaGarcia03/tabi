@@ -438,8 +438,48 @@ button.option-select-button {
   font-size: 1rem;
 }
 
-.place-header:hover:not(:disabled) {
+/* A div with role="button" (so the option's name can be a button inside it): what a button got from ui.css. */
+.place-header {
+  color: var(--text);
+  cursor: pointer;
+}
+
+.place-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+
+/* A place from an option: its name opens the option's details, an "open" icon in the accent color after it;
+   underlined in the text's color on hover (User's choice A from a mock, 2026-11-03). */
+button.place-option-name {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  text-align: left;
+}
+
+button.place-option-name:hover:not(:disabled) {
   border-color: transparent;
+}
+
+.place-option-name > .icon {
+  margin-left: 6px;
+  vertical-align: -2px;
+  color: var(--accent-text);
+}
+
+@media (hover: hover) {
+  .place-option-name:hover .place-option-text {
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+  }
 }
 
 .place-number {
@@ -574,16 +614,12 @@ button.option-select-button {
   margin: 0;
 }
 
-.place-editor .place-option-link {
-  justify-self: start;
-}
-
-.pe-line-top,
+.pe-line-first,
 .pe-line-end {
   border-top: 0;
 }
 
-.pe-line-top {
+.pe-line-first {
   padding-top: 0;
 }
 
@@ -699,13 +735,61 @@ button.option-select-button {
   border-color: var(--accent);
 }
 
-.place-editor .pe-name > input {
+.pe-name > input {
   flex: 1;
   min-width: 0;
+  min-height: 38px;
+  padding-top: 6px;
+  padding-bottom: 6px;
   border: 0;
   background: transparent;
   font-weight: 700;
   outline: none;
+}
+
+/* The open card's name and kind, on top in place of the name (User's choice A, 2026-11-03), with the option's details beside. */
+.place-name-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: -6px 0 4px;
+  cursor: default;
+}
+
+.place-name-edit > .pe-name {
+  flex: 1;
+  min-width: 0;
+}
+
+button.place-option-button {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  color: var(--accent-text);
+}
+
+button.place-option-button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+/* Phones: every pixel to the name (the open card closes with a tap on its facts, as before, without the chevron). */
+@media (max-width: 599px) {
+  .place-item.selected .place-chevron {
+    display: none;
+  }
+
+  .place-item.selected .place-header {
+    gap: 10px;
+    padding-right: 8px;
+  }
+
+  button.place-option-button {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 .kind-picker {
@@ -802,10 +886,24 @@ button.kind-picker-button {
   flex: 1 1 12em;
 }
 
+/* A dashed pill like "+ Back to base" (User, 2026-11-03: the bare link didn't look like a button). */
 button.pe-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   min-height: 0;
-  padding: 0 0 0 4px;
-  font-size: inherit;
+  margin: 2px 0 0 2px;
+  padding: 2px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  font-size: 0.8rem;
+  vertical-align: 1px;
+  color: var(--accent-text);
+}
+
+button.pe-change:hover:not(:disabled) {
+  border-color: var(--accent-text);
 }
 
 .floor-pill input {

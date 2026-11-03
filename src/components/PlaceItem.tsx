@@ -1,4 +1,4 @@
-import { useRef, useState, type HTMLAttributes } from 'react'
+import { useEffect, useRef, useState, type HTMLAttributes } from 'react'
 import { describePlaceCost, peopleGoing } from '../budget'
 import type { Place, PlaceKind } from '../db/model'
 import { deletePlace, movePlaceInDay, updatePlace } from '../db/trips'
@@ -55,21 +55,56 @@ interface Props {
 export function PlaceItem({ place, index, count, currency, currencies, travelers, date, selected, onSelect, handle, dragging }: Props) {
   const hours = describeWindow(windowFor(place.openingHours, weekdayOf(date)))
   const conflict = timeConflict(place, date)
+  const fromOption = useFromOption(place)
+  const [details, setDetails] = useState(false)
   return (
     <li className={`place-item${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}`} data-reorder-id={place.id}>
       <div className="place-row">
-        <button type="button" className="place-header" onClick={onSelect} aria-expanded={selected}>
+        {/* A div, not a button: the name inside it is a button of its own when the place came from an option. */}
+        <div
+          role="button"
+          tabIndex={0}
+          className="place-header"
+          onClick={onSelect}
+          onKeyDown={(e) => {
+            if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault()
+              onSelect()
+            }
+          }}
+          aria-expanded={selected}
+        >
           <span className="place-number">
             <span>{index + 1}</span>
           </span>
           <span className="place-title">
+            {selected ? (
+              <PlaceNameField key={place.id} place={place} onDetails={fromOption ? () => setDetails(true) : undefined} />
+            ) : (
             <span className="place-name">
               <span className="place-kind" title={PLACE_KIND_LABEL[place.kind ?? 'place']}>
                 <Icon name={PLACE_KIND_ICON[place.kind ?? 'place']} size={15} />
               </span>
-              {place.name}
+              {/* From an option: the name (and the icon after it) opens the option's details (User's choice A, 2026-11-03). */}
+              {fromOption ? (
+                <button
+                  type="button"
+                  className="place-option-name"
+                  title="See option details"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDetails(true)
+                  }}
+                >
+                  <span className="place-option-text">{place.name}</span>
+                  <Icon name="external" size={15} />
+                </button>
+              ) : (
+                place.name
+              )}
               {place.inside && <span className="floor-tag">{floorLabel(place.inside.floor)}</span>}
             </span>
+            )}
             {(place.plannedTime || place.cost || hours || place.visitMinutes) && (
               <span className="place-meta">
                 {place.plannedTime && (
@@ -112,7 +147,7 @@ export function PlaceItem({ place, index, count, currency, currencies, travelers
           <span className="place-chevron" aria-hidden="true">
             <Icon name="down" size={16} />
           </span>
-        </button>
+        </div>
         {handle && (
           <button
             type="button"
@@ -137,31 +172,52 @@ export function PlaceItem({ place, index, count, currency, currencies, travelers
           date={date}
         />
       )}
+      {/* The option's details (photos, link, rating…), read-only: photos are only added on the Options page. */}
+      {details && fromOption && (
+        <Sheet title={KIND_SINGULAR[fromOption.option.kind]} onClose={() => setDetails(false)}>
+          <OptionDetails
+            option={fromOption.option}
+            trip={fromOption.trip}
+            images={fromOption.images}
+            inPlan={place.bookAhead && place.booked ? 'booked' : 'in'}
+            onClose={() => setDetails(false)}
+          />
+        </Sheet>
+      )}
     </li>
   )
 }
 
 /**
- * A place added from an option: its details (photos, link, rating…) in a sheet, read-only.
- * Photos are only added on the Options page.
+ * The open card's name and kind, in place of the name on top (User's choice A from a mock, 2026-11-03): the field is
+ * ready to type when the card opens; a place from an option gets a button beside it for the option's details.
+ * Clicks here never close the card.
  */
-function FromOption({ place }: { place: Place }) {
-  const found = useFromOption(place)
-  const [open, setOpen] = useState(false)
-  if (!found) return null
-  const { option, trip, images } = found
+function PlaceNameField({ place, onDetails }: { place: Place; onDetails?: () => void }) {
+  const [name, setName] = useDraft(place.name, (value) => updatePlace(place.id, { name: value.trim() || place.name }))
+  const input = useRef<HTMLInputElement>(null)
+  // Ready to type with a mouse; on touch screens the keyboard would cover the card just opened to read it.
+  useEffect(() => {
+    if (window.matchMedia('(hover: hover)').matches) input.current?.focus({ preventScroll: true })
+  }, [])
   return (
-    <>
-      <button type="button" className="link place-option-link" onClick={() => setOpen(true)}>
-        <Icon name="external" size={16} /> See option details
-        {images.length > 0 && <span className="muted"> · {images.length === 1 ? '1 photo' : `${images.length} photos`}</span>}
-      </button>
-      {open && (
-        <Sheet title={KIND_SINGULAR[option.kind]} onClose={() => setOpen(false)}>
-          <OptionDetails option={option} trip={trip} images={images} inPlan={place.bookAhead && place.booked ? 'booked' : 'in'} onClose={() => setOpen(false)} />
-        </Sheet>
+    <span className="place-name-edit" onClick={(e) => e.stopPropagation()}>
+      <span className="pe-name">
+        <KindPicker
+          kind={place.kind ?? 'place'}
+          onChange={(kind) =>
+            // A ticked "book ahead" follows the kind: a table for a restaurant, a ticket for a place.
+            void updatePlace(place.id, { kind, bookAhead: place.bookAhead && (BOOK_AHEAD_FOR[kind] ?? 'either') })
+          }
+        />
+        <input ref={input} value={name} aria-label="Name" onChange={(e) => setName(e.target.value)} />
+      </span>
+      {onDetails && (
+        <button type="button" className="place-option-button" title="See option details" aria-label="See option details" onClick={onDetails}>
+          <Icon name="external" size={18} />
+        </button>
       )}
-    </>
+    </span>
   )
 }
 
@@ -170,7 +226,6 @@ function FromOption({ place }: { place: Place }) {
  * closed card uses for it (clock, pin, wallet, door, pencil), so the open card reads like the closed one unfolded.
  */
 function PlaceEditor({ place, index, count, currency, currencies = [], travelers }: Omit<Props, 'selected' | 'onSelect'>) {
-  const [name, setName] = useDraft(place.name, (value) => updatePlace(place.id, { name: value.trim() || place.name }))
   const [notes, setNotes] = useDraft(place.notes, (value) => updatePlace(place.id, { notes: value }))
   const [chosenCurrency, setChosenCurrency] = useState(currency)
   const costCurrency = place.cost?.currency ?? chosenCurrency
@@ -216,24 +271,7 @@ function PlaceEditor({ place, index, count, currency, currencies = [], travelers
 
   return (
     <div className="place-editor">
-      <div className="pe-line pe-line-top">
-        <span />
-        <div className="pe-stack">
-          <FromOption place={place} />
-          <div className="pe-name">
-            <KindPicker
-              kind={place.kind ?? 'place'}
-              onChange={(kind) =>
-                // A ticked "book ahead" follows the kind: a table for a restaurant, a ticket for a place.
-                void updatePlace(place.id, { kind, bookAhead: place.bookAhead && (BOOK_AHEAD_FOR[kind] ?? 'either') })
-              }
-            />
-            <input value={name} aria-label="Name" onChange={(e) => setName(e.target.value)} />
-          </div>
-        </div>
-      </div>
-
-      <div className="pe-line">
+      <div className="pe-line pe-line-first">
         <Icon name="clock" size={17} />
         <div className="pe-row pe-when">
           <label className="pill-field">
@@ -273,7 +311,7 @@ function PlaceEditor({ place, index, count, currency, currencies = [], travelers
             <span className="small muted pe-address">
               {place.address ?? 'Custom pin'}{' '}
               <button type="button" className="link pe-change" onClick={() => setRelocating(!relocating)}>
-                {relocating ? 'Cancel' : 'Change'}
+                <Icon name={relocating ? 'close' : 'edit'} size={13} /> {relocating ? 'Cancel' : 'Change'}
               </button>
             </span>
             <FloorPill value={inside} onChange={setInside} />
