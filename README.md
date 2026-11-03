@@ -46,7 +46,7 @@ Type each place's hours and visit time. Tabi warns about visits that don't fit a
 <td width="50%" valign="top">
 
 ### 🏨 Options & comparison
-Collect the hotels, restaurants, places, shops and transport you're considering. Rate them, add prices and photos (browse them in a carousel), see them on a map, and compare them per city by price, distance and rating. Tick one and it goes into the itinerary: a place into a day, a hotel or a flight into the trip.
+Collect the hotels, restaurants, places, shops and transport you're considering. Rate them, add prices and photos (in HD when the small print matters, like a park map; browse and zoom them in a carousel), search them, see them on a map, and compare them per city by price, distance and rating. Tick one and it goes into the itinerary: a place into a day, a hotel or a flight into the trip; take it out of the day and the tick goes too. On the day, the place's name opens the option's details and photos.
 
 ### 💴 Budget
 Start from the money you set aside: what is already booked (paid), what still needs booking, and the estimates per category (the itinerary plus your own, like souvenirs), ending in what's left over. During the trip, log what you spend each day and see it against the estimate. Pay in the currencies of the countries you visit (yen, dollars…) and see it all in your own, with today's rate filled in and editable — or no conversion at all on a trip at home.
@@ -62,11 +62,11 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 <table>
 <tr>
 <td align="center" valign="top" width="25%">
-<img src="docs/screenshots/trip-phone-light.png" alt="The trip page on a phone: Days, Cities, Checklist and More as a segmented control, then one card per day with its city, route of places, travel time, distance on foot and estimated cost, and the bottom navigation bar" width="200">
+<img src="docs/screenshots/trip-phone-light.png" alt="The trip page on a phone: Days, Cities, Checklist and More as a segmented control, a line to plan the time off, then one card per day with its city, route of places, travel time, distance on foot and estimated cost, and the bottom navigation bar" width="200">
 <br><sub><b>The trip</b> — one card per day</sub>
 </td>
 <td align="center" valign="top" width="25%">
-<img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: the day switcher, the map on top with numbered pins and the way between the first two places, then the day's places" width="200">
+<img src="docs/screenshots/day-phone-light.png" alt="The day page on a phone: the day switcher, the map on top with numbered pins and the way between the first two places, then the day's weather, its places and sunrise; Senso-ji came from an option, so its name opens the option's details" width="200">
 <br><sub><b>A day</b> — map and the way between places</sub>
 </td>
 <td align="center" valign="top" width="25%">
@@ -89,10 +89,10 @@ Install it on your phone. Itineraries, notes, routes and costs stay readable wit
 - 🌍 **Made for Japan, ready for anywhere** — pick the trip's countries: their currencies come with today's rate, place searches look there first, Google suggests the public transport, and their public holidays show on the days.
 - 🏙️ **Cities** — split the trip by city (stays, day trips, stopovers), with a base hotel or station for each, hotel changes inside a city, and a color of your choice.
 - ✈️ **Transport between cities** — flights with connections, trains, buses, ferries; fares compared side by side, plus a flight planner and an airline baggage guide (Brazil → Japan, inside Brazil and Japan, and the biggest airlines of the Americas).
-- ✅ **Checklist** — what the itinerary still needs booked (hotels, flights, tickets, tables), plus your own reminders.
+- ✅ **Checklist** — what the itinerary still needs booked (hotels, flights, tickets, tables), getting your vacation approved, plus your own reminders.
 - ☀️ **Day helpers** — sunrise and sunset in the day's timeline, the usual weather for that date, a warning when the way back relies on a late train, and the floor of places inside buildings.
 - 🚕 **Driver card** — a place's address in the local language, big on the screen, to show a taxi driver.
-- 🏖️ **Time off** — how many vacation days the trip takes, flight days included, with your work calendar's holidays (where your company is), approved vacation and Brazil's CLT rules.
+- 🏖️ **Time off** — how many vacation days the trip takes, flight days included: plan your vacation and days off on a calendar, mark it approved, with your work calendar's holidays (where your company is) and Brazil's CLT rules.
 - 🔗 **Open in Google Maps** — quick links for any place or leg when you're online.
 - 🔄 **Sync between devices** — optional, through your own Google Drive (trips, photos and settings).
 - 🧭 **App tour** — on a computer, a guided tour of the app on an example trip.
