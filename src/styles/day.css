@@ -591,8 +591,10 @@ button.option-select-button {
   padding: 2px 0 0;
 }
 
+/* minmax(0, 1fr): an implicit "auto" column grew to the name box's natural width and pushed it past the card on phones. */
 .pe-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   min-width: 0;
 }

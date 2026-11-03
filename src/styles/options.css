@@ -186,9 +186,16 @@ button.options-search-toggle:hover:not(:disabled) {
   color: var(--accent-text);
 }
 
-button.options-search-toggle.on {
+/* Also on hover: a tap leaves the button "hovered" on phones, which turned the icon red on red.
+   White in both themes, like the HD button (User, 2026-11-03; dark mode's --on-accent is dark). */
+button.options-search-toggle.on,
+button.options-search-toggle.on:hover:not(:disabled) {
   background: var(--accent);
-  color: var(--on-accent);
+  color: #fff;
+}
+
+button.options-search-toggle.on:hover:not(:disabled) {
+  opacity: 0.85;
 }
 
 .options-search-row {
