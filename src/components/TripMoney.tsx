@@ -35,6 +35,18 @@ const useMoney = (trip: Trip) => (amount: number) => formatMoney({ amount, curre
 const compact = (amount: number, currency: string) =>
   new Intl.NumberFormat('en', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(amount)
 
+/** Which rows are unfolded: any number at once (User, 2026-11-02: opening one used to close the other). */
+function useOpenSet<T>(): [(key: T) => boolean, (key: T) => void] {
+  const [open, setOpen] = useState<ReadonlySet<T>>(new Set())
+  const toggle = (key: T) =>
+    setOpen((now) => {
+      const next = new Set(now)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+  return [(key) => open.has(key), toggle]
+}
+
 const categoryColor = (category: ExpenseCategory) => `var(--cat-${category})`
 
 const share = (amount: number, of: number) => `${of > 0 ? Math.max(0, Math.min(100, (amount / of) * 100)) : 0}%`
@@ -326,7 +338,7 @@ const dayText = (item: { day?: number }) => (item.day ? `Day ${item.day}` : 'Tri
  * one by one with their route. Items with no kind (a free-form cost) stay plain rows.
  */
 function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip; amount: (item: MoneyItem) => string }) {
-  const [open, setOpen] = useState<SegmentMode | null>(null)
+  const [isOpen, toggle] = useOpenSet<SegmentMode>()
   const show = useMoney(trip)
   const kinds = new Map<SegmentMode, MoneyItem[]>()
   for (const item of items) if (item.mode) kinds.set(item.mode, [...(kinds.get(item.mode) ?? []), item])
@@ -348,12 +360,12 @@ function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip
     <>
       {rows.map(({ mode, list, sum, uses }) => {
         const flight = mode === 'flight'
-        const unfolded = open === mode
+        const unfolded = isOpen(mode)
         return (
           <Fragment key={mode}>
             <tr className="estimate-group">
               <td>
-                <button type="button" className="estimate-group-name" aria-expanded={unfolded} onClick={() => setOpen(unfolded ? null : mode)}>
+                <button type="button" className="estimate-group-name" aria-expanded={unfolded} onClick={() => toggle(mode)}>
                   <span className="estimate-group-tri">
                     <Icon name={unfolded ? 'down' : 'forward'} size={13} />
                   </span>
@@ -405,7 +417,7 @@ function TransportRows({ items, trip, amount }: { items: MoneyItem[]; trip: Trip
  * city alone; a travel day "Osaka → Okinawa").
  */
 function CityRows({ items, trip, stays, amount }: { items: MoneyItem[]; trip: Trip; stays: Stay[]; amount: (item: MoneyItem) => string }) {
-  const [open, setOpen] = useState<string | null>(null)
+  const [isOpen, toggle] = useOpenSet<string>()
   const show = useMoney(trip)
   const cities = new Map<string, MoneyItem[]>()
   const ordered = [...items].sort((a, b) => (a.day ?? 1e9) - (b.day ?? 1e9))
@@ -416,13 +428,13 @@ function CityRows({ items, trip, stays, amount }: { items: MoneyItem[]; trip: Tr
   return (
     <>
       {[...cities].map(([city, list]) => {
-        const unfolded = open === city
+        const unfolded = isOpen(city)
         const sum = sumItems(list, trip)
         return (
           <Fragment key={city}>
             <tr className="estimate-group">
               <td>
-                <button type="button" className="estimate-group-name" aria-expanded={unfolded} onClick={() => setOpen(unfolded ? null : city)}>
+                <button type="button" className="estimate-group-name" aria-expanded={unfolded} onClick={() => toggle(city)}>
                   <span className="estimate-group-tri">
                     <Icon name={unfolded ? 'down' : 'forward'} size={13} />
                   </span>
@@ -462,7 +474,7 @@ export function EstimatesCard({
   started: boolean
   stays: Stay[]
 }) {
-  const [open, setOpen] = useState<ExpenseCategory | null>(null)
+  const [isOpen, toggle] = useOpenSet<ExpenseCategory>()
   const [sheet, setSheet] = useState<ExpenseCategory | 'new' | null>(null)
   const show = useMoney(trip)
   const total = (categories ?? []).reduce((sum, c) => sum + c.estimate, 0)
@@ -490,7 +502,7 @@ export function EstimatesCard({
           <ul className="estimate-cats">
             {categories.map((c) => {
               const over = c.spent > c.estimate
-              const unfolded = open === c.category
+              const unfolded = isOpen(c.category)
               const transportKinds = !started && c.category === 'transport'
               const foodCities = !started && (c.category === 'food' || c.category === 'shopping')
               return (
@@ -512,7 +524,7 @@ export function EstimatesCard({
                         className={`ghost icon-button estimate-chevron${unfolded ? ' open' : ''}`}
                         aria-expanded={unfolded}
                         aria-label={`What's in ${CATEGORY_LABEL[c.category]}`}
-                        onClick={() => setOpen(unfolded ? null : c.category)}
+                        onClick={() => toggle(c.category)}
                       >
                         <Icon name={unfolded ? 'down' : 'forward'} size={16} />
                       </button>
