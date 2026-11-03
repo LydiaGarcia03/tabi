@@ -85,6 +85,11 @@ export const ICON_PATHS = {
   card: 'M5 5.5h14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9a2 2 0 012-2zM7 10h6M7 14h10',
   // A late way back (after the last trains): a crescent moon.
   moon: 'M19.5 14.5A7.5 7.5 0 119.5 4.5a6 6 0 0010 10z',
+  // Time off settings (User's choice A from a mock, 2026-11-03): the company's building (work calendar), a sun
+  // (vacation days a year) and scales (labor rules).
+  building: 'M4 21V5l8-2v18M12 8h8v13M8 8h.01M8 12h.01M8 16h.01M16 12h.01M16 16h.01M2 21h20',
+  sun: 'M12 16a4 4 0 100-8 4 4 0 000 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  scale: 'M12 3v18M7 21h10M5 7h14M5 7l-3 7a3 3 0 006 0L5 7zM19 7l-3 7a3 3 0 006 0l-3-7z',
 } as const
 
 export type IconName = keyof typeof ICON_PATHS

@@ -42,6 +42,8 @@ export interface Trip {
 /**
  * Time off (User's picks from mocks, 2026-11-02: A2 = the calendar + the count as a short sum, P1 = a card opening
  * it in a sheet, P3's "· 13 vacation days" beside the trip's dates). Unindexed, synced and backed up with the trip.
+ * Leaving and coming back home come from the flights from and to home in the itinerary, else the trip's dates (the
+ * typed `leave` / `back` of the first version are no longer read).
  */
 export interface TimeOff {
   /** Work calendar: the company's country (ISO code) and region, whose holidays don't use vacation days. */
@@ -49,16 +51,24 @@ export interface TimeOff {
   region?: string
   /** Working weekdays, 0 = Sunday (default Monday–Friday). */
   workDays?: number[]
-  /** Vacation days a year, and already used this year (for "left this year"). */
-  perYear?: number
-  used?: number
-  /** Vacation already approved: the trip's days inside them are covered. */
+  /**
+   * The vacation planned on the calendar (User, 2026-11-03), each period ticked `approved` once the company approved it;
+   * until then the trip's checklist has "Get your vacation approved". Read with `vacationPeriods`.
+   */
+  vacation?: VacationPeriod[]
+  /** Older data: periods already approved (read as approved vacation; replaced by `vacation` on the next save). */
   approved?: { from: string; to: string }[]
-  /** Leaving and coming back home ("YYYY-MM-DD"); absent = from the flights from and to home, else the trip's dates. */
-  leave?: string
-  back?: string
+  /** Single days off that aren't vacation (a "folga", bank hours, a day the company gives), with an optional name. */
+  daysOff?: { date: string; name?: string }[]
   /** Brazilian labor rules: vacation counted in calendar days, and the start / minimum length checks. */
   clt?: boolean
+}
+
+export interface VacationPeriod {
+  /** "YYYY-MM-DD", inclusive. */
+  from: string
+  to: string
+  approved?: boolean
 }
 
 /**

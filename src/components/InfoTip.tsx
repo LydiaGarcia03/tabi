@@ -9,7 +9,7 @@ import { useDismiss } from '../useDismiss'
  * would run off a narrow screen) and another tap, or one elsewhere, hides it.
  * align="end": the bubble opens leftwards, for an "i" at the end of a line (it ran past the screen's edge).
  * The bubble opens upwards when there's no room for it below (User, 2026-11-02: near the bottom of the
- * window it was cut).
+ * window it was cut), the room counted inside any box around it that scrolls (a sheet's body).
  */
 export function InfoTip({ label, align = 'start', children }: { label: string; align?: 'start' | 'end'; children: ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -25,8 +25,18 @@ export function InfoTip({ label, align = 'start', children }: { label: string; a
     const button = ref.current?.getBoundingClientRect()
     const height = text.current?.offsetHeight ?? 0
     if (!button || !height) return
-    const below = window.innerHeight - button.bottom
-    setUp(height + 12 > below && button.top > below)
+    // The room is the window's, or less inside a box that scrolls or clips (a sheet's body cut the bubble; User,
+    // 2026-11-03).
+    let top = 0
+    let bottom = window.innerHeight
+    for (let el = ref.current?.parentElement; el; el = el.parentElement) {
+      if (getComputedStyle(el).overflowY === 'visible') continue
+      const box = el.getBoundingClientRect()
+      top = Math.max(top, box.top)
+      bottom = Math.min(bottom, box.bottom)
+    }
+    const below = bottom - button.bottom
+    setUp(height + 12 > below && button.top - top > below)
   }
 
   return (

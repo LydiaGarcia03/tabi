@@ -24,8 +24,9 @@ import { useDraft } from '../useDraft'
 import { useOnline } from '../useOnline'
 import { DaysTitle } from '../components/DaysTitle'
 import { useTripHolidays } from '../holidays/holidays'
-import { TimeOffCard } from '../components/TimeOff'
+import { TimeOffCard, TimeOffLine } from '../components/TimeOff'
 import { useTimeOff } from '../planning/useTimeOff'
+import { vacationPeriods } from '../planning/timeOff'
 type OverviewView = 'days' | 'cities' | 'checklist' | 'more'
 
 /** Phones: the itinerary page's tabs (User's choice A from a mock, 2026-10-27). */
@@ -83,9 +84,10 @@ export function TripPage({ tripId }: { tripId: string }) {
     // Phones: the Checklist tab shows how many things are still to book.
     const toBookCount =
       [...byDay.values()].flatMap((d) => d.money.bookAhead).filter((i) => !i.booked).length +
-      expenses.filter((e) => !e.dayId && expenseNeedsBooking(e) && !e.booked).length
+      expenses.filter((e) => !e.dayId && expenseNeedsBooking(e) && !e.booked).length +
+      vacationPeriods(trip?.timeOff).filter((p) => !p.approved).length
     return { byDay, total, toBookCount }
-  }, [days, places, legs, expenses, travelers, trip?.estimates, trip?.railPasses])
+  }, [days, places, legs, expenses, travelers, trip?.estimates, trip?.railPasses, trip?.timeOff])
 
   if (trip === undefined || days === undefined || !overview || !stays) return null
   if (!trip) return <NotFound />
@@ -115,6 +117,8 @@ export function TripPage({ tripId }: { tripId: string }) {
 
       <div className={`overview-grid show-${view}`}>
         <section className="section overview-days">
+          {/* Phones only (P3's phone version). */}
+          <TimeOffLine trip={trip} expenses={expenses ?? []} />
           <DaysTitle holidays={holidays} />
           <ol className="day-cards">
             {days.map((day, i) => {
@@ -162,10 +166,8 @@ export function TripPage({ tripId }: { tripId: string }) {
             <span className="muted small">Needed for the trip: booked ahead + estimated</span>
           </a>
 
-          {/* Phones: in the More tab. */}
-          <div className="overview-part" data-tab="more">
-            <TimeOffCard trip={trip} expenses={expenses ?? []} />
-          </div>
+          {/* Not on phones: there it is a line above the days (TimeOffLine). */}
+          <TimeOffCard trip={trip} expenses={expenses ?? []} />
 
           <div className="overview-part" data-tab="checklist">
           <Checklist

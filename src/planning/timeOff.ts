@@ -7,48 +7,68 @@
 //   2 days before a holiday or the weekly rest (Sunday; art. 134 §3), and a period has at least 5 days (§1).
 
 import { addDays, daysBetween } from '../dates'
-import type { Expense, TimeOff, Trip } from '../db/model'
+import type { Expense, Journey, TimeOff, Trip, VacationPeriod } from '../db/model'
 
 export const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5]
 
+/** The vacation planned (older data: its approved periods, read as approved vacation). */
+export function vacationPeriods(t: TimeOff | undefined): VacationPeriod[] {
+  return t?.vacation ?? (t?.approved ?? []).map((p) => ({ ...p, approved: true }))
+}
+
 export const weekday = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay()
+
+/** A flight from or to home: the day it leaves and the day it lands ("+N" of its last flight). */
+export interface HomeFlight {
+  leaves: string
+  lands: string
+  from: string
+  to: string
+  time?: string
+  arriveTime?: string
+}
 
 export interface AwayDates {
   leave: string
   back: string
-  /** Where each came from: typed in Time off, the flights from / to home, or the trip's own dates. */
-  leaveFrom: 'typed' | 'flight' | 'trip'
-  backFrom: 'typed' | 'flight' | 'trip'
+  /** The flights there and back in the itinerary, when there are. */
+  out?: HomeFlight
+  home?: HomeFlight
 }
 
+const homeFlight = (j: Journey): HomeFlight => ({
+  leaves: j.date!,
+  lands: addDays(j.date!, Math.max(0, j.legs?.at(-1)?.arriveDay ?? 0)),
+  from: j.from,
+  to: j.to,
+  time: j.time,
+  arriveTime: j.legs?.at(-1)?.arriveTime,
+})
+
 /**
- * Leaving and coming back home: typed in Time off, else the flights in the itinerary that leave by the trip's first day
- * (the first one) and on or after its last day (the last one, arriving "+N" days later), else the trip's dates.
+ * Leaving and coming back home: the flights in the itinerary that leave by the trip's first day (the first one) and on
+ * or after its last day (the last one, landing "+N" days later), else the trip's dates.
  */
 export function awayDates(trip: Trip, expenses: Expense[]): AwayDates {
   const flights = expenses
     .filter((e) => !e.dayId && e.journey?.mode === 'flight' && e.journey.date)
     .map((e) => e.journey!)
     .sort((a, b) => a.date!.localeCompare(b.date!))
-  const out = flights.find((f) => f.date! <= trip.startDate)
-  const home = [...flights].reverse().find((f) => f.date! >= trip.endDate)
-  const homeArrives = home && addDays(home.date!, Math.max(0, home.legs?.at(-1)?.arriveDay ?? 0))
-  const t = trip.timeOff
-  return {
-    leave: t?.leave ?? out?.date ?? trip.startDate,
-    back: t?.back ?? homeArrives ?? trip.endDate,
-    leaveFrom: t?.leave ? 'typed' : out ? 'flight' : 'trip',
-    backFrom: t?.back ? 'typed' : homeArrives ? 'flight' : 'trip',
-  }
+  const outJourney = flights.find((f) => f.date! <= trip.startDate)
+  const homeJourney = [...flights].reverse().find((f) => f.date! >= trip.endDate && f !== outJourney)
+  const out = outJourney && homeFlight(outJourney)
+  const home = homeJourney && homeFlight(homeJourney)
+  return { leave: out?.leaves ?? trip.startDate, back: home ? (home.lands > trip.endDate ? home.lands : trip.endDate) : trip.endDate, out, home }
 }
 
 export interface AwayDay {
   date: string
-  /** A day off anyway (not a working day), a holiday on a working day, or a vacation day. */
-  kind: 'rest' | 'holiday' | 'vacation'
+  /** A day off anyway (not a working day), a holiday on a working day, a day off that isn't vacation, or a vacation day. */
+  kind: 'rest' | 'holiday' | 'dayoff' | 'vacation'
   /** Its holiday's name, also when it falls inside the vacation (CLT). */
   holiday?: string
-  /** Inside an approved vacation. */
+  /** Inside a vacation period planned on the calendar, and inside an approved one. */
+  planned: boolean
   approved: boolean
 }
 
@@ -72,14 +92,16 @@ export interface TimeOffCount {
   rest: number
   /** Holidays that come off the count, with their names. */
   holidays: { date: string; name: string }[]
+  /** Days off that aren't vacation (on working days away), with their names. */
+  daysOff: { date: string; name?: string }[]
   vacation: number
+  /** Vacation days not in any vacation planned on the calendar. */
+  unplanned: number
   /** Vacation days inside an approved vacation, and the rest still to ask for (first and last of them). */
   covered: number
   toAsk: number
   toAskFrom?: string
   toAskTo?: string
-  /** Vacation days a year − used − this trip (when the year's days are set). */
-  left?: number
   calendarDays: boolean
   clt?: CltCheck
 }
@@ -90,21 +112,33 @@ export function countTimeOff(trip: Trip, expenses: Expense[], holidays: Map<stri
   const length = daysBetween(away.leave, away.back) + 1
   if (length <= 0 || length > 400) return null
   const work = new Set(t.workDays ?? DEFAULT_WORK_DAYS)
-  const approved = (date: string) => (t.approved ?? []).some((p) => date >= p.from && date <= p.to)
+  const periods = vacationPeriods(t)
+  const planned = (date: string) => periods.some((p) => date >= p.from && date <= p.to)
+  const approved = (date: string) => periods.some((p) => p.approved && date >= p.from && date <= p.to)
+  const dayOff = new Map((t.daysOff ?? []).map((d) => [d.date, d]))
 
   const days: AwayDay[] = []
   for (let i = 0; i < length; i++) {
     const date = addDays(away.leave, i)
     const holiday = holidays.get(date)
-    const kind = !work.has(weekday(date)) ? 'rest' : holiday ? 'holiday' : 'vacation'
-    days.push({ date, kind, holiday, approved: approved(date) })
+    const kind = !work.has(weekday(date)) ? 'rest' : holiday ? 'holiday' : dayOff.has(date) ? 'dayoff' : 'vacation'
+    days.push({ date, kind, holiday, planned: planned(date), approved: approved(date) })
   }
 
-  // CLT: every day from the first vacation day to the last is a vacation day.
+  // CLT: every day from the first vacation day to the last is a vacation day. A day off that isn't vacation splits
+  // the vacation in two periods, each counted from its first day to its last.
   const calendarDays = !!t.clt
-  const first = days.findIndex((d) => d.kind === 'vacation')
-  const last = days.findLastIndex((d) => d.kind === 'vacation')
-  if (calendarDays && first >= 0) for (let i = first; i <= last; i++) days[i].kind = 'vacation'
+  if (calendarDays) {
+    for (let start = 0; start < days.length; ) {
+      let end = start
+      while (end < days.length && days[end].kind !== 'dayoff') end++
+      const part = days.slice(start, end)
+      const first = part.findIndex((d) => d.kind === 'vacation')
+      const last = part.findLastIndex((d) => d.kind === 'vacation')
+      if (first >= 0) for (let i = first; i <= last; i++) part[i].kind = 'vacation'
+      start = end + 1
+    }
+  }
 
   const vacationDays = days.filter((d) => d.kind === 'vacation')
   const toAsk = vacationDays.filter((d) => !d.approved)
@@ -114,12 +148,13 @@ export function countTimeOff(trip: Trip, expenses: Expense[], holidays: Map<stri
     daysAway: length,
     rest: days.filter((d) => d.kind === 'rest').length,
     holidays: days.filter((d) => d.kind === 'holiday').map((d) => ({ date: d.date, name: d.holiday! })),
+    daysOff: days.filter((d) => d.kind === 'dayoff').map((d) => ({ date: d.date, name: dayOff.get(d.date)?.name })),
     vacation: vacationDays.length,
+    unplanned: vacationDays.filter((d) => !d.planned).length,
     covered: vacationDays.length - toAsk.length,
     toAsk: toAsk.length,
     toAskFrom: toAsk[0]?.date,
     toAskTo: toAsk.at(-1)?.date,
-    left: t.perYear != null ? t.perYear - (t.used ?? 0) - vacationDays.length : undefined,
     calendarDays,
   }
 

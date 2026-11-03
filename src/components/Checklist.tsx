@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { byBookingOrder, type MoneyItem } from '../budget'
-import { formatDate, formatDay, today } from '../dates'
+import { dateParts, daysBetween, formatDate, formatDay, today } from '../dates'
+import { vacationPeriods } from '../planning/timeOff'
 import { updateExpense } from '../db/expenses'
 import type { ChecklistItem, Day, Expense, Place, Trip } from '../db/model'
 import { updatePlace, updateTrip } from '../db/trips'
@@ -24,8 +25,8 @@ interface ToBook {
   sub: string
   /** "YYYY-MM-DD" it happens (for the order); undated ones last. */
   date: string
-  /** Same order as the Budget's "Book before the trip": flights, other transport, hotels, tickets. */
-  booking: NonNullable<MoneyItem['booking']>
+  /** Same order as the Budget's "Book before the trip": flights, other transport, hotels, tickets (none: the vacation, first). */
+  booking?: MoneyItem['booking']
   booked: boolean
   setBooked: (booked: boolean) => void
   /** The day it is in (places): a tap on the line opens it. */
@@ -86,6 +87,32 @@ function toBookItems(places: PlaceToBook[], expenses: Expense[]): ToBook[] {
   return [...fromExpenses, ...fromPlaces].sort(byBookingOrder)
 }
 
+/** "27 Mar" (no weekday: User, 2026-11-03). */
+const shortDate = (date: string) => {
+  const { day, month } = dateParts(date)
+  return `${day} ${month}`
+}
+
+/**
+ * The vacation planned in Time off and not approved yet, first in the list (User's choice C1, 2026-11-03: without it
+ * the trip doesn't happen); ticking it = ticking "Approved" there.
+ */
+function vacationItems(trip: Trip): ToBook[] {
+  const periods = vacationPeriods(trip.timeOff)
+  return periods.map((p, i) => ({
+    id: `vacation-${p.from}`,
+    icon: 'sun',
+    name: 'Get your vacation approved',
+    sub: `Vacation · ${shortDate(p.from)} → ${shortDate(p.to)} · ${daysBetween(p.from, p.to) + 1} days`,
+    date: p.from,
+    booked: !!p.approved,
+    setBooked: (approved) =>
+      void updateTrip(trip.id, {
+        timeOff: { ...trip.timeOff, vacation: periods.map((q, j) => (j === i ? { ...q, approved: approved || undefined } : q)), approved: undefined },
+      }),
+  }))
+}
+
 /**
  * The trip's checklist (User's choice A from a mock, 2026-10-27, with an icon before each thing to book): first
  * what the itinerary still needs booked — one list, flights, other transport, hotels, then tickets, each by date, the name with "Ticket · Sat 1 Apr" under it, a tap on
@@ -98,7 +125,7 @@ export function Checklist({ trip, toBook, expenses }: { trip: Trip; toBook: Plac
   const [due, setDue] = useState('')
   const dueInput = useRef<HTMLInputElement>(null)
   const now = today()
-  const booking = toBookItems(toBook, expenses)
+  const booking = [...vacationItems(trip), ...toBookItems(toBook, expenses)]
   const left = booking.filter((b) => !b.booked)
   const done = booking.filter((b) => b.booked)
 
@@ -132,7 +159,7 @@ export function Checklist({ trip, toBook, expenses }: { trip: Trip; toBook: Plac
     )
     return (
       <li key={b.id} className={`check-row${b.booked ? ' done' : ''}`}>
-        <input type="checkbox" checked={b.booked} aria-label={`${b.name}: booked`} onChange={(e) => b.setBooked(e.target.checked)} />
+        <input type="checkbox" checked={b.booked} aria-label={`${b.name}: ${b.booking ? 'booked' : 'done'}`} onChange={(e) => b.setBooked(e.target.checked)} />
         {b.dayId ? (
           <a className="check-body" href={href({ page: 'day', tripId: trip.id, dayId: b.dayId })}>
             {content}
@@ -150,7 +177,7 @@ export function Checklist({ trip, toBook, expenses }: { trip: Trip; toBook: Plac
       {booking.length > 0 && (
         <div className="to-book">
           <p className="to-book-head">
-            To book · {done.length} of {booking.length} booked
+            To do · {done.length} of {booking.length} done
           </p>
           <span className={`progress${left.length === 0 ? ' done' : ''}`} aria-hidden="true">
             <span style={{ width: `${(done.length / booking.length) * 100}%` }} />
@@ -158,7 +185,7 @@ export function Checklist({ trip, toBook, expenses }: { trip: Trip; toBook: Plac
           {left.length > 0 && <ul className="checklist">{left.map(renderBooking)}</ul>}
           {done.length > 0 && (
             <details className="to-book-done">
-              <summary>{done.length} booked</summary>
+              <summary>{done.length} done</summary>
               <ul className="checklist">{done.map(renderBooking)}</ul>
             </details>
           )}

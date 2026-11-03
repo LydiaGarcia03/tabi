@@ -838,23 +838,63 @@ a.check-body > .icon {
 
 /* --- Time off (User's picks from mocks, 2026-11-02: P1 card + A2 sheet) ------------------------------------------ */
 
+/* A button that looks like the other cards (the Trip budget one): keeps .card's background, border and padding. */
 .time-off-card {
-  all: unset;
-  box-sizing: border-box;
   display: grid;
-  gap: 2px;
+  justify-content: stretch;
+  justify-items: stretch;
+  gap: 4px;
   width: 100%;
-  cursor: pointer;
+  min-height: 0;
+  padding: 16px;
+  text-align: left;
+  font-weight: 400;
+  border-radius: var(--radius);
 }
 
-.time-off-card:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.time-off-card .time-off-number {
+  margin-right: 2px;
 }
 
 .time-off-number {
   font-size: 1.3rem;
   color: var(--accent-text);
+}
+
+.time-off-accent {
+  color: var(--accent-text);
+}
+
+/* Phones (P3): one line above the days. */
+.time-off-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.time-off-line > .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+@media (min-width: 900px) {
+  .time-off-line {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .overview-side > .time-off-card {
+    display: none;
+  }
 }
 
 .time-off-warn {
@@ -911,152 +951,656 @@ a.check-body > .icon {
   color: var(--alert);
 }
 
-/* The calendar: two months side by side when there's room. */
-.time-off-months {
+/* The calendar of the days away (User's picks from mocks, 2026-11-03): the trip a solid blue band, flight days paler
+   with a line on top and a round plane at the ends, vacation a green pill, days off purple, still to ask for a dashed
+   red pill (S2), holidays a dot; two months side by side when there's room. */
+.away-cal {
+  --away-trip: color-mix(in srgb, var(--saved) 17%, var(--surface));
+  --away-fly: color-mix(in srgb, var(--saved) 7%, var(--surface));
+  --away-off: var(--spent);
+  position: relative;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
   gap: 16px;
 }
 
-.time-off-month h4 {
-  margin: 0 0 6px;
+.away-month h4 {
+  margin: 0 0 4px;
   font-size: 0.85rem;
+  line-height: 28px;
 }
 
-.time-off-grid {
+/* ‹ › at the top right, on the line of the month names. */
+.away-cal-nav {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  gap: 2px;
+}
+
+.away-cal-nav .icon-button {
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+}
+
+.away-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 3px;
+  row-gap: 4px;
 }
 
-.time-off-grid .dow {
+.away-grid .dow {
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--muted);
   text-align: center;
+  padding-bottom: 2px;
 }
 
-.time-off-grid .day {
+.away-grid .day {
+  all: unset;
   position: relative;
-  height: 30px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 7px;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
 
-.time-off-grid .day.away {
-  background: color-mix(in srgb, var(--saved) 16%, var(--surface));
+.away-grid button.day {
+  cursor: pointer;
 }
 
-.time-off-grid .day.needed,
-.time-off-grid .day.approved {
-  color: #fff;
-  font-weight: 700;
+/* Empty cells (before the 1st and to fill 6 weeks) keep the days' height. */
+.away-grid .pad {
+  height: 34px;
 }
 
-.time-off-grid .day.needed {
-  background: var(--accent);
+.away-grid button.day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 8px;
 }
 
-.time-off-grid .day.approved {
+.away-grid .day .n {
+  position: relative;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+/* Hover ring only on plain days: on a filled circle (the period being chosen, vacation, a day off) it showed as a
+   thin orange-looking border (User, 2026-11-03). */
+.away-grid button.day:not(.preview):not(.vac):not(.off):not(.ask):hover .n {
+  box-shadow: inset 0 0 0 1.5px var(--muted);
+}
+
+.away-grid .day.rest {
+  color: var(--muted);
+}
+
+.away-grid .day.trip {
+  background: var(--away-trip);
+}
+
+.away-grid .day.fly {
+  background: var(--away-fly);
+}
+
+.away-grid .day.flight {
+  box-shadow: inset 0 3px 0 var(--saved);
+}
+
+.away-grid .day.r0 {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.away-grid .day.r1 {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.away-grid .day .plane {
+  position: absolute;
+  z-index: 4;
+  top: -7px;
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--saved);
+  color: var(--surface);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.away-grid .day .plane.start {
+  left: -3px;
+}
+
+.away-grid .day .plane.end {
+  right: -3px;
+}
+
+.away-grid .day .holiday {
+  position: absolute;
+  z-index: 4;
+  top: 3px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cat-food);
+}
+
+/* Pills over the band: vacation (green), still to ask for (dashed red), the period being chosen (dashed green). */
+.away-grid .day.vac::before,
+.away-grid .day.ask::before,
+.away-grid .day.preview::before {
+  content: '';
+  position: absolute;
+  inset: 5px 0;
+  z-index: 1;
+}
+
+.away-grid .day.vac::before {
   background: var(--ok);
 }
 
-.time-off-grid .day.holiday::after {
-  content: '';
-  position: absolute;
-  top: 3px;
+.away-grid .day.vac .n {
+  color: var(--surface);
+  font-weight: 700;
+}
+
+/* Planned, not approved yet: a pale green pill with a green outline (User's choice P1, 2026-11-03). */
+.away-grid .day.vac.planned::before {
+  background: color-mix(in srgb, var(--ok) 16%, var(--surface));
+  border-top: 1.5px solid var(--ok);
+  border-bottom: 1.5px solid var(--ok);
+}
+
+.away-grid .day.vac.planned.v0::before {
+  border-left: 1.5px solid var(--ok);
+}
+
+.away-grid .day.vac.planned.v1::before {
+  border-right: 1.5px solid var(--ok);
+}
+
+.away-grid .day.vac.planned .n {
+  color: var(--ok);
+}
+
+.away-grid .day.vac.v0::before,
+.away-grid .day.ask.a0::before,
+.away-grid .day.preview.p0::before {
+  left: 3px;
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+
+.away-grid .day.vac.v1::before,
+.away-grid .day.ask.a1::before,
+.away-grid .day.preview.p1::before {
   right: 3px;
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+}
+
+.away-grid .day.ask::before {
+  border-top: 1.5px dashed var(--accent);
+  border-bottom: 1.5px dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.away-grid .day.ask.a0::before {
+  border-left: 1.5px dashed var(--accent);
+}
+
+.away-grid .day.ask.a1::before {
+  border-right: 1.5px dashed var(--accent);
+}
+
+.away-grid .day.ask .n {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.away-grid .day.preview::before {
+  border-top: 1.5px dashed var(--ok);
+  border-bottom: 1.5px dashed var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+}
+
+.away-grid .day.preview.p0::before {
+  border-left: 1.5px dashed var(--ok);
+}
+
+.away-grid .day.preview.p1::before {
+  border-right: 1.5px dashed var(--ok);
+}
+
+.away-grid .day.preview.p0 .n,
+.away-grid .day.preview.p1 .n {
+  background: var(--ok);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+/* Taking days out of the vacation: the same dashed period, in red. */
+.away-grid .day.preview.removing::before {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.away-grid .day.preview.removing.p0 .n,
+.away-grid .day.preview.removing.p1 .n {
+  background: var(--accent);
+}
+
+.away-grid .day.preview.removing .n {
+  text-decoration: line-through;
+}
+
+.time-off-removing {
+  color: var(--accent-text);
+}
+
+.away-grid .day.off .n {
+  background: var(--away-off);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+/* L3: "Legend ?" opens a bubble (hover with a mouse, a tap on touch screens). */
+.away-legend {
+  position: relative;
+  --away-trip: color-mix(in srgb, var(--saved) 17%, var(--surface));
+  --away-fly: color-mix(in srgb, var(--saved) 7%, var(--surface));
+}
+
+.away-legend-button {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.away-legend-q {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.75rem;
+}
+
+.away-legend.open .away-legend-q {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.away-legend-pop {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: calc(100% + 6px);
+  width: max-content;
+  max-width: min(300px, 80vw);
+  display: none;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.2);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.away-legend.open .away-legend-pop {
+  display: grid;
+}
+
+@media (hover: hover) {
+  .away-legend:hover .away-legend-pop {
+    display: grid;
+  }
+}
+
+.away-legend-pop strong {
+  color: var(--text);
+}
+
+.away-legend-pop > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.away-legend-pop b {
+  color: var(--text);
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.away-legend-pop .k {
+  flex: none;
+  width: 20px;
+  height: 14px;
+  margin-right: 4px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
+}
+
+.away-legend-pop .k.trip {
+  background: var(--away-trip);
+}
+
+.away-legend-pop .k.fly {
+  background: var(--away-fly);
+  box-shadow: inset 0 3px 0 var(--saved);
+}
+
+.away-legend-pop .k.vac {
+  background: var(--ok);
+  border-radius: 999px;
+}
+
+.away-legend-pop .k.planned {
+  background: color-mix(in srgb, var(--ok) 16%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px var(--ok);
+  border-radius: 999px;
+}
+
+.away-legend-pop .k.off {
+  width: 14px;
+  margin: 0 7px 0 3px;
+  background: var(--spent);
+  border-radius: 50%;
+}
+
+.away-legend-pop .k.ask {
+  border: 1.5px dashed var(--accent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.away-legend-pop .k.holiday::after {
+  content: '';
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--cat-food);
 }
 
-.time-off-grid .day.away.holiday {
-  box-shadow: inset 0 0 0 2px var(--cat-food);
+.away-legend-pop .k.plane {
+  width: 16px;
+  height: 16px;
+  margin: 0 6px 0 2px;
+  border-radius: 50%;
+  background: var(--saved);
+  color: var(--surface);
 }
 
-.time-off-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-}
-
-.time-off-legend i {
+.away-swatch {
   display: inline-block;
-  width: 11px;
-  height: 11px;
-  margin-right: 4px;
+  flex: none;
+  width: 10px;
+  height: 10px;
   border-radius: 3px;
-  vertical-align: -1px;
 }
 
-.time-off-legend i.needed {
-  background: var(--accent);
-}
-
-.time-off-legend i.approved {
+.away-swatch.vac {
   background: var(--ok);
 }
 
-.time-off-legend i.away {
-  background: color-mix(in srgb, var(--saved) 16%, var(--surface));
-  border: 1px solid var(--border);
+.away-swatch.off {
+  background: var(--spent);
+  border-radius: 50%;
 }
 
-.time-off-legend i.holiday {
-  border-radius: 50%;
-  background: var(--cat-food);
+/* Under the calendar (D4 + N1, User's choices from mocks, 2026-11-03): soft blocks whose left edge has the calendar's
+   color — away blue, vacation green (dashed while not approved), day off purple, days not covered dashed red. */
+.away-blocks {
+  display: grid;
+  gap: 6px;
+}
+
+.away-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px 8px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--border);
+  background: var(--surface-2);
+}
+
+.away-block.away {
+  border-left-color: var(--saved);
+}
+
+.away-block.vacation {
+  border-left-color: var(--ok);
+}
+
+.away-block.vacation.planned {
+  border-left-style: dashed;
+}
+
+.away-block.dayoff {
+  border-left-color: var(--spent);
+}
+
+.away-block.gap {
+  border: 1px dashed var(--border);
+  border-left: 4px dashed var(--accent);
+  background: transparent;
+}
+
+.away-block-body {
+  display: grid;
+  min-width: 0;
+}
+
+.away-block-head {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.away-block.gap .away-block-head {
+  color: var(--alert);
+}
+
+.away-block-main {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.away-block-sub {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.away-block-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.away-block-end .icon-button {
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+}
+
+.away-approve {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Green when approved, like the vacation on the calendar (the app's switches are red). */
+.away-approve input[type='checkbox'].toggle:checked {
+  background: var(--ok);
+}
+
+/* N1: the day off's name as the main line, edited in place (an underline, no box). */
+.away-name {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.away-name .icon {
+  color: var(--muted);
+}
+
+.away-name.empty {
+  color: var(--muted);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.away-name:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.away-name-input {
+  justify-self: start;
+  width: min(260px, 100%);
+  min-height: 0;
+  padding: 0 2px 1px;
+  border: none;
+  border-bottom: 1.5px solid var(--spent);
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.away-name-input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--spent);
 }
 
 .time-off-foot {
   margin: 0;
 }
 
+/* Settings: A's lines (User's choice from a mock, 2026-11-03), each starting with its icon, thin rules between. */
 .time-off-settings {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
 }
 
-.time-off-settings .field-stack {
+.to-line {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.to-line:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.to-line > .icon {
+  margin-top: 7px;
+  color: var(--muted);
+}
+
+/* A line of one row (CLT): icon and text centered on each other. */
+.to-line.center {
+  align-items: center;
+}
+
+.to-line.center > .icon {
+  margin-top: 0;
+}
+
+.to-stack {
   display: grid;
   gap: 6px;
+  min-width: 0;
+}
+
+/* Compact fields (User, 2026-11-03: the first and third lines were too big). */
+.time-off-settings select {
+  min-height: 0;
+  padding: 5px 10px;
+  font-size: 0.9rem;
 }
 
 .time-off-settings select {
   min-width: 0;
+  padding-right: 30px;
+  background-position: right 10px center;
 }
 
-.time-off-numbers label,
-.time-off-period label {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.time-off-numbers input {
-  width: 8em;
-}
-
-.time-off-period input {
-  min-width: 0;
-}
-
-.time-off-clt {
+/* Country and region share the line. */
+.to-pair {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 
-.time-off-clt input {
-  margin-top: 3px;
-  flex: none;
+.to-pair select {
+  flex: 1 1 0;
+  width: auto;
 }
 
-.time-off-settings > .primary {
-  justify-self: start;
+
+
+/* "Vacation | Day off": compact (User, 2026-11-03: too tall). */
+.time-off-settings .segmented {
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.time-off-settings .segmented button {
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.time-off-settings .sheet-actions {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
 }
