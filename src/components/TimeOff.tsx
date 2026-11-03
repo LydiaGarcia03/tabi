@@ -4,7 +4,7 @@ import { addDays, daysBetween, formatDay } from '../dates'
 import type { Expense, TimeOff, Trip, VacationPeriod } from '../db/model'
 import { updateTrip } from '../db/trips'
 import { useWorkHolidays, type WorkHolidays } from '../holidays/holidays'
-import { countTimeOff, DEFAULT_WORK_DAYS, vacationPeriods, weekday, type HomeFlight, type TimeOffCount } from '../planning/timeOff'
+import { countTimeOff, DEFAULT_WORK_DAYS, toAskOf, vacationDaysOf, vacationPeriods, weekday, type HomeFlight, type TimeOffCount } from '../planning/timeOff'
 import { useTimeOff } from '../planning/useTimeOff'
 import { useDismiss } from '../useDismiss'
 import { useOnline } from '../useOnline'
@@ -31,7 +31,7 @@ export function TimeOffLine({ trip, expenses }: { trip: Trip; expenses: Expense[
   const [open, setOpen] = useState(false)
   const { count } = useTimeOff(trip, expenses)
   const set = !!trip.timeOff?.country
-  const toAsk = count && vacationPeriods(trip.timeOff).length ? count.toAsk : undefined
+  const toAsk = count?.plan?.toAsk
 
   return (
     <>
@@ -48,7 +48,7 @@ export function TimeOffLine({ trip, expenses }: { trip: Trip; expenses: Expense[
             </>
           ) : (
             <>
-              <strong className="time-off-accent">{plural(count.vacation, 'vacation day')}</strong>{' '}
+              <strong className="time-off-accent">{plural(vacationDaysOf(count), 'vacation day')}</strong>{' '}
               <span className="muted">
                 · {count.daysAway} away
                 {toAsk ? ` · ${toAsk} to ask` : toAsk === 0 ? ' · all approved' : ''}
@@ -95,20 +95,22 @@ export function TimeOffCard({ trip, expenses }: { trip: Trip; expenses: Expense[
         ) : (
           <>
             <span>
-              <strong className="time-off-number num">{count.vacation}</strong> {count.vacation === 1 ? 'vacation day' : 'vacation days'}
+              <strong className="time-off-number num">{vacationDaysOf(count)}</strong> {vacationDaysOf(count) === 1 ? 'vacation day' : 'vacation days'}
             </span>
             <span className="muted small">
               {count.daysAway} days away ({formatDay(count.away.leave)} → {formatDay(count.away.back)})
-              {vacationPeriods(trip.timeOff).length ? (
-                count.toAsk > 0 ? (
+              {count.plan ? (
+                toAskOf(count) > 0 ? (
                   <>
                     {' · '}
-                    <span className="time-off-warn">{count.toAsk} still to ask for</span>
+                    <span className="time-off-warn">{toAskOf(count)} still to ask for</span>
                   </>
                 ) : (
-                  ' · all in your approved vacation'
+                  ' · all approved'
                 )
-              ) : null}
+              ) : (
+                ' · not planned yet'
+              )}
             </span>
             {count.clt && (!count.clt.startOk || count.clt.short) && (
               <span className="small time-off-warn">
@@ -142,8 +144,9 @@ function TimeOffSheet({ trip, expenses, onClose }: { trip: Trip; expenses: Expen
     <div className="time-off-sheet">
       <div className="row between">
         <span className="muted small">Work calendar: {workCalendarName(trip.timeOff ?? {}, holidays)}</span>
-        <button type="button" className="link" onClick={() => setSettings(true)}>
-          Settings
+        {/* An orange pencil, so editing stands out (User, 2026-11-03: it was a "Settings" link). */}
+        <button type="button" className="ghost icon-button time-off-edit" aria-label="Edit time off" title="Edit" onClick={() => setSettings(true)}>
+          <Icon name="edit" size={18} />
         </button>
       </div>
       {count === undefined ? (
@@ -151,7 +154,7 @@ function TimeOffSheet({ trip, expenses, onClose }: { trip: Trip; expenses: Expen
       ) : count === null ? (
         <p className="muted small">The trip's dates look wrong: check them in Trip settings.</p>
       ) : (
-        <TimeOffSum count={count} trip={trip} holidays={holidays} />
+        <TimeOffSum count={count} trip={trip} holidays={holidays} onEdit={() => setSettings(true)} />
       )}
     </div>
   )
@@ -163,93 +166,166 @@ function workCalendarName(timeOff: TimeOff, holidays?: WorkHolidays): string {
   return region ? `${country} · ${region}` : country
 }
 
-/** A2: the count as a short sum, then the calendar. */
-function TimeOffSum({ count, trip, holidays }: { count: TimeOffCount; trip: Trip; holidays?: WorkHolidays }) {
+/**
+ * R1 (User's choice from a mock, 2026-11-03): the vacation days as a big number with what is still to ask for, then
+ * the same blocks as the editor (read-only), the CLT warnings and the calendar. The numbers follow the vacation
+ * planned; what the trip needs is the minimum, under the days away.
+ */
+function TimeOffSum({ count, trip, holidays, onEdit }: { count: TimeOffCount; trip: Trip; holidays?: WorkHolidays; onEdit: () => void }) {
   const t = trip.timeOff ?? {}
-  const workDays = t.workDays ?? DEFAULT_WORK_DAYS
-  const weekendsOnly = [0, 6].every((d) => !workDays.includes(d)) && workDays.length === 5
-  const restLabel = count.calendarDays ? (weekendsOnly ? 'Weekends before and after' : 'Days off before and after') : weekendsOnly ? 'Weekends' : 'Days off'
-  const clt = count.clt
-  const flights = count.away.out || count.away.home
+  const plan = count.plan
   return (
     <>
-      <div className="time-off-receipt">
-        <div>
-          <span>
-            Days away <span className="muted">{formatDay(count.away.leave)} → {formatDay(count.away.back)}</span>
-          </span>
-          <span className="num">{count.daysAway}</span>
-        </div>
-        {count.rest > 0 && (
-          <div className="muted">
-            <span>{restLabel}</span>
-            <span className="num">− {count.rest}</span>
-          </div>
-        )}
-        {count.holidays.length > 3 ? (
-          <div className="muted">
-            <span>Holidays</span>
-            <span className="num">− {count.holidays.length}</span>
-          </div>
+      <p className="time-off-hero">
+        <strong className="num">{vacationDaysOf(count)}</strong> {vacationDaysOf(count) === 1 ? 'vacation day' : 'vacation days'}{' '}
+        {!plan ? (
+          <span className="muted">· needed for the trip</span>
+        ) : plan.toAsk === 0 ? (
+          <span className="ok-text">· all approved</span>
         ) : (
-          count.holidays.map((h) => (
-            <div key={h.date} className="muted">
-              <span>
-                {h.name} <span className="small">{formatDay(h.date)}</span>
-              </span>
-              <span className="num">− 1</span>
-            </div>
-          ))
+          <span className="time-off-warn">· {plan.approved === 0 ? 'all still to ask for' : `${plan.toAsk} still to ask for`}</span>
         )}
-        {count.daysOff.length > 0 && (
-          <div className="muted">
-            <span>
-              {count.daysOff.length === 1 ? count.daysOff[0].name || 'Day off' : 'Days off'}{' '}
-              <span className="small">{count.daysOff.length === 1 ? formatDay(count.daysOff[0].date) : ''}</span>
-            </span>
-            <span className="num">− {count.daysOff.length}</span>
-          </div>
-        )}
-        <div className="total">
-          <span>{count.calendarDays ? 'Vacation days (calendar days, CLT)' : 'Vacation days'}</span>
-          <span className="num">{count.vacation}</span>
-        </div>
-        {vacationPeriods(t).length > 0 &&
-          (count.toAsk === 0 ? (
-            <div className="ok-text">
-              <span>All in your approved vacation</span>
-              <Icon name="check" size={16} />
-            </div>
-          ) : (
-            <>
-              <div className="ok-text">
-                <span>In your approved vacation</span>
-                <span className="num">{count.covered}</span>
-              </div>
-              <div className="time-off-warn strong">
-                <span>
-                  Still to ask for ({formatDay(count.toAskFrom!)}
-                  {count.toAskTo !== count.toAskFrom && `–${formatDay(count.toAskTo!)}`})
-                </span>
-                <span className="num">{count.toAsk}</span>
-              </div>
-            </>
-          ))}
-      </div>
+      </p>
+
+      <AwayBlocks trip={trip} timeOff={t} count={count} onPlan={onEdit} />
 
       <CltAlerts count={count} />
 
       <div className="row between away-cal-head">
         <span />
-        <CalendarLegend flights={!!flights} />
+        <CalendarLegend flights={!!(count.away.out || count.away.home)} />
       </div>
       <AwayCalendar trip={trip} timeOff={t} count={count} holidays={holidays?.dates} />
-
-      <p className="muted small time-off-foot">
-        Leaving and coming back: {flights ? 'your flights from and to home' : "the trip's dates, until your flights are in the itinerary"}.
-        {clt?.startOk && ` ✓ Starting on ${formatDay(clt.start)} is fine under the CLT.`}
-      </p>
     </>
+  )
+}
+
+interface BlocksEdit {
+  setPeriods: (periods: VacationPeriod[]) => void
+  setDaysOff: (daysOff: NonNullable<TimeOff['daysOff']>) => void
+}
+
+/**
+ * D4 + N1 (User's choices from mocks, 2026-11-03): blocks whose left edge has the calendar's color — away (blue), each
+ * vacation period (green; dashed while not approved), each day off (purple), the days away not in the vacation (dashed
+ * red). With `edit` (the settings): an "Approved" switch and ✕ on each period, the day off's name edited in place;
+ * without (the summary): a "To ask for" / "Approved" tag.
+ */
+function AwayBlocks({ trip, timeOff, count, edit, onPlan }: { trip: Trip; timeOff: TimeOff; count: TimeOffCount; edit?: BlocksEdit; onPlan?: () => void }) {
+  const periods = vacationPeriods(timeOff)
+  const daysOff = timeOff.daysOff ?? []
+  const { out, home } = count.away
+  const tripDays = daysBetween(trip.startDate, trip.endDate) + 1
+  const holidayNames = count.holidays.map((h) => h.name)
+  return (
+    <div className="away-blocks">
+      <div className="away-block away">
+        <span className="away-block-body">
+          <span className="away-block-head">Away · {plural(count.daysAway, 'day')}</span>
+          <span className="away-block-main">
+            {formatDay(count.away.leave)} → {formatDay(count.away.back)}
+          </span>
+          {out || home ? (
+            <span className="away-block-sub">
+              {tripDays} of trip + {plural(count.daysAway - tripDays, 'flight day')}
+            </span>
+          ) : (
+            <span className="away-block-sub">The trip's dates · the flight days are added once your flights are in the itinerary</span>
+          )}
+          {[out, home].map(
+            (f, i) =>
+              f && (
+                <span key={i} className="away-block-sub">
+                  {airport(f.from)} → {airport(f.to)} leaves {formatDay(f.leaves)}
+                  {f.time && ` ${f.time}`} · lands {formatDay(f.lands)}
+                  {f.arriveTime && ` ${f.arriveTime}`}
+                </span>
+              ),
+          )}
+          {(out || home) && !(out && home) && <span className="away-block-sub">The flight {out ? 'back' : 'there'} is added once it is in the itinerary</span>}
+          {!edit && (
+            <span className="away-block-sub">
+              The trip needs at least {plural(count.vacation, 'vacation day')}
+              {holidayNames.length > 0 && ` (${holidayNames.join(', ')} ${holidayNames.length === 1 ? 'is a holiday' : 'are holidays'})`}
+            </span>
+          )}
+        </span>
+      </div>
+
+      {periods.length === 0 && (
+        <div className="away-block vacation planned">
+          <span className="away-block-body">
+            <span className="away-block-head">Vacation</span>
+            {edit ? (
+              <span className="away-block-sub">Not planned yet: tap its first and last day on the calendar</span>
+            ) : (
+              <button type="button" className="link away-block-link" onClick={onPlan}>
+                Plan your vacation <Icon name="edit" size={13} />
+              </button>
+            )}
+          </span>
+        </div>
+      )}
+      {periods.map((p, i) => (
+        <div key={p.from} className={`away-block vacation${p.approved ? '' : ' planned'}`}>
+          <span className="away-block-body">
+            <span className="away-block-head">Vacation · {plural(daysBetween(p.from, p.to) + 1, 'day')}</span>
+            <span className="away-block-main">
+              {formatDay(p.from)} → {formatDay(p.to)}
+            </span>
+            {i === periods.length - 1 && count.unplanned === 0 && <span className="away-block-sub">Covers every day away</span>}
+          </span>
+          {edit ? (
+            <span className="away-block-end">
+              <label className="away-approve" title="Tick it once your company approves this vacation">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  className="toggle"
+                  checked={!!p.approved}
+                  onChange={(e) => edit.setPeriods(periods.map((q) => (q === p ? { ...q, approved: e.target.checked || undefined } : q)))}
+                />
+                Approved
+              </label>
+              <button type="button" className="ghost icon-button" aria-label="Remove this vacation" onClick={() => edit.setPeriods(periods.filter((q) => q !== p))}>
+                <Icon name="close" size={14} />
+              </button>
+            </span>
+          ) : (
+            <span className={`away-tag ${p.approved ? 'yes' : 'no'}`}>{p.approved ? 'Approved' : 'To ask for'}</span>
+          )}
+        </div>
+      ))}
+
+      {daysOff.map((d) => (
+        <div key={d.date} className="away-block dayoff">
+          <span className="away-block-body">
+            <span className="away-block-head">Day off · {formatDay(d.date)}</span>
+            {edit ? (
+              <DayOffName name={d.name} onChange={(name) => edit.setDaysOff(daysOff.map((x) => (x.date === d.date ? { ...x, name } : x)))} />
+            ) : (
+              <span className={`away-block-main${d.name ? '' : ' muted'}`}>{d.name || 'Not vacation'}</span>
+            )}
+          </span>
+          {edit && (
+            <span className="away-block-end">
+              <button type="button" className="ghost icon-button" aria-label="Remove this day off" onClick={() => edit.setDaysOff(daysOff.filter((x) => x.date !== d.date))}>
+                <Icon name="close" size={14} />
+              </button>
+            </span>
+          )}
+        </div>
+      ))}
+
+      {count.unplanned > 0 && (
+        <div className="away-block gap">
+          <span className="away-block-body">
+            <span className="away-block-head">Not in your vacation · {plural(count.unplanned, 'day')}</span>
+            <span className="away-block-main">{ranges(count.days.filter((d) => d.kind === 'vacation' && !d.planned).map((d) => d.date))}</span>
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -275,7 +351,7 @@ function CltAlerts({ count }: { count: TimeOffCount }) {
       {clt?.short && (
         <p className="time-off-alert small">
           <strong>
-            <Icon name="warning" size={14} /> {plural(count.vacation, 'day')} is too short for a vacation period
+            <Icon name="warning" size={14} /> A vacation period is shorter than 5 days
           </strong>
           <br />
           Under the CLT a period has at least 5 days (and one of the year's at least 14).
@@ -633,7 +709,6 @@ function TimeOffSettings({ trip, expenses, onDone }: { trip: Trip; expenses: Exp
   }
 
   const { out, home } = count?.away ?? {}
-  const tripDays = daysBetween(trip.startDate, trip.endDate) + 1
 
   return (
     <div className="time-off-settings">
@@ -767,97 +842,8 @@ function TimeOffSettings({ trip, expenses, onDone }: { trip: Trip; expenses: Exp
             <p className="muted small">The trip's dates look wrong: check them in Trip settings.</p>
           )}
 
-          {/* D4 (User's choice from a mock, 2026-11-03): blocks whose left edge has the calendar's color — away (blue),
-              each vacation period (green; dashed while not approved) with an "Approved" switch and ✕, each day off
-              (purple; N1: its name as the main line, edited in place), the days not covered (dashed red). */}
           {count && (
-            <div className="away-blocks">
-              <div className="away-block away">
-                <span className="away-block-body">
-                  <span className="away-block-head">Away · {plural(count.daysAway, 'day')}</span>
-                  <span className="away-block-main">
-                    {formatDay(count.away.leave)} → {formatDay(count.away.back)}
-                  </span>
-                  {out || home ? (
-                    <span className="away-block-sub">
-                      {tripDays} of trip + {plural(count.daysAway - tripDays, 'flight day')}
-                    </span>
-                  ) : (
-                    <span className="away-block-sub">The trip's dates · the flight days are added once your flights are in the itinerary</span>
-                  )}
-                  {[out, home].map(
-                    (f, i) =>
-                      f && (
-                        <span key={i} className="away-block-sub">
-                          {airport(f.from)} → {airport(f.to)} leaves {formatDay(f.leaves)}
-                          {f.time && ` ${f.time}`} · lands {formatDay(f.lands)}
-                          {f.arriveTime && ` ${f.arriveTime}`}
-                        </span>
-                      ),
-                  )}
-                  {(out || home) && !(out && home) && (
-                    <span className="away-block-sub">The flight {out ? 'back' : 'there'} is added once it is in the itinerary</span>
-                  )}
-                </span>
-              </div>
-
-              {periods.length === 0 && (
-                <div className="away-block vacation planned">
-                  <span className="away-block-body">
-                    <span className="away-block-head">Vacation</span>
-                    <span className="away-block-sub">Not planned yet: tap its first and last day on the calendar</span>
-                  </span>
-                </div>
-              )}
-              {periods.map((p) => (
-                <div key={p.from} className={`away-block vacation${p.approved ? '' : ' planned'}`}>
-                  <span className="away-block-body">
-                    <span className="away-block-head">Vacation · {plural(daysBetween(p.from, p.to) + 1, 'day')}</span>
-                    <span className="away-block-main">
-                      {formatDay(p.from)} → {formatDay(p.to)}
-                    </span>
-                  </span>
-                  <span className="away-block-end">
-                    <label className="away-approve" title="Tick it once your company approves this vacation">
-                      <input
-                        type="checkbox"
-                        role="switch"
-                        className="toggle"
-                        checked={!!p.approved}
-                        onChange={(e) => setPeriods(periods.map((q) => (q === p ? { ...q, approved: e.target.checked || undefined } : q)))}
-                      />
-                      Approved
-                    </label>
-                    <button type="button" className="ghost icon-button" aria-label="Remove this vacation" onClick={() => setPeriods(periods.filter((q) => q !== p))}>
-                      <Icon name="close" size={14} />
-                    </button>
-                  </span>
-                </div>
-              ))}
-
-              {daysOff.map((d) => (
-                <div key={d.date} className="away-block dayoff">
-                  <span className="away-block-body">
-                    <span className="away-block-head">Day off · {formatDay(d.date)}</span>
-                    <DayOffName name={d.name} onChange={(name) => patch({ daysOff: daysOff.map((x) => (x.date === d.date ? { ...x, name } : x)) })} />
-                  </span>
-                  <span className="away-block-end">
-                    <button type="button" className="ghost icon-button" aria-label="Remove this day off" onClick={() => patch({ daysOff: daysOff.filter((x) => x.date !== d.date) })}>
-                      <Icon name="close" size={14} />
-                    </button>
-                  </span>
-                </div>
-              ))}
-
-              {count.unplanned > 0 && (
-                <div className="away-block gap">
-                  <span className="away-block-body">
-                    <span className="away-block-head">Not in your vacation · {plural(count.unplanned, 'day')}</span>
-                    <span className="away-block-main">{ranges(count.days.filter((d) => d.kind === 'vacation' && !d.planned).map((d) => d.date))}</span>
-                  </span>
-                </div>
-              )}
-            </div>
+            <AwayBlocks trip={trip} timeOff={draft} count={count} edit={{ setPeriods, setDaysOff: (daysOff) => patch({ daysOff }) }} />
           )}
         </div>
       </div>

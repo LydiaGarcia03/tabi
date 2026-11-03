@@ -103,8 +103,20 @@ export interface TimeOffCount {
   toAskFrom?: string
   toAskTo?: string
   calendarDays: boolean
+  /**
+   * The vacation planned on the calendar (User, 2026-11-03: the summary has to follow it, not only what the trip
+   * needs): its days (calendar days with the CLT, else workdays that aren't holidays; days off left out), how many are
+   * approved and how many are still to ask for. Absent while nothing is planned.
+   */
+  plan?: { days: number; approved: number; toAsk: number }
   clt?: CltCheck
 }
+
+/** The vacation days to show: the plan's when there is one, else what the trip needs. */
+export const vacationDaysOf = (count: TimeOffCount) => count.plan?.days ?? count.vacation
+
+/** The days still to ask for: the plan's not approved yet, else every day the trip needs. */
+export const toAskOf = (count: TimeOffCount) => count.plan?.toAsk ?? count.toAsk
 
 export function countTimeOff(trip: Trip, expenses: Expense[], holidays: Map<string, string>): TimeOffCount | null {
   const t: TimeOff = trip.timeOff ?? {}
@@ -158,17 +170,37 @@ export function countTimeOff(trip: Trip, expenses: Expense[], holidays: Map<stri
     calendarDays,
   }
 
-  if (t.clt && toAsk.length) {
+  // The vacation planned, counted day by day over its whole periods (they may start before the trip and end after it).
+  const length0 = (p: VacationPeriod) => {
+    let n = 0
+    for (let d = p.from; d <= p.to; d = addDays(d, 1)) {
+      const workday = work.has(weekday(d)) && !holidays.has(d)
+      if (workday && dayOff.has(d)) continue
+      if (calendarDays || workday) n++
+    }
+    return n
+  }
+  if (periods.length) {
+    const lengths = periods.map(length0)
+    const days = lengths.reduce((a, b) => a + b, 0)
+    const ok = periods.reduce((sum, p, i) => sum + (p.approved ? lengths[i] : 0), 0)
+    count.plan = { days, approved: ok, toAsk: days - ok }
+  }
+
+  // CLT checks: on the first vacation period not approved yet when there is a plan, else on the days the trip needs.
+  const firstToAsk = periods.length ? periods.filter((p) => !p.approved).sort((a, b) => a.from.localeCompare(b.from))[0]?.from : toAsk[0]?.date
+  if (t.clt && firstToAsk) {
     // A day off before which vacation may not start: Sunday (the weekly rest) or a holiday.
     const blocks = (date: string) => weekday(date) === 0 || holidays.has(date)
     const allowed = (date: string) => work.has(weekday(date)) && !holidays.has(date) && !blocks(addDays(date, 1)) && !blocks(addDays(date, 2))
-    const start = toAsk[0].date
+    const start = firstToAsk
     const startOk = allowed(start)
     const near = (step: number) => {
       for (let i = 1; i <= 14; i++) if (allowed(addDays(start, step * i))) return addDays(start, step * i)
       return undefined
     }
-    count.clt = { start, startOk, earlier: startOk ? undefined : near(-1), later: startOk ? undefined : near(1), short: vacationDays.length < 5 }
+    const short = periods.length ? periods.some((p) => daysBetween(p.from, p.to) + 1 < 5) : vacationDays.length < 5
+    count.clt = { start, startOk, earlier: startOk ? undefined : near(-1), later: startOk ? undefined : near(1), short }
   }
   return count
 }

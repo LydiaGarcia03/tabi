@@ -1442,6 +1442,61 @@ a.check-body > .icon {
   color: var(--muted);
 }
 
+/* The summary (R1): the vacation days as a big number, a tag on each period, the orange pencil to edit. */
+.time-off-hero {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-weight: 600;
+}
+
+.time-off-hero strong {
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--accent-text);
+}
+
+.time-off-hero .muted,
+.time-off-hero .ok-text,
+.time-off-hero .time-off-warn {
+  font-size: 0.85rem;
+}
+
+.time-off-edit {
+  color: var(--accent);
+}
+
+.time-off-edit:hover {
+  background: color-mix(in srgb, var(--cat-food) 12%, transparent);
+}
+
+.away-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.away-tag.no {
+  color: var(--alert);
+  background: color-mix(in srgb, var(--alert) 14%, var(--surface));
+}
+
+.away-tag.yes {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 16%, var(--surface));
+}
+
+.away-block-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .away-block-end {
   display: flex;
   align-items: center;

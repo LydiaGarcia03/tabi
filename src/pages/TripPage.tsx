@@ -26,7 +26,7 @@ import { DaysTitle } from '../components/DaysTitle'
 import { useTripHolidays } from '../holidays/holidays'
 import { TimeOffCard, TimeOffLine } from '../components/TimeOff'
 import { useTimeOff } from '../planning/useTimeOff'
-import { vacationPeriods } from '../planning/timeOff'
+import { vacationDaysOf, vacationPeriods } from '../planning/timeOff'
 type OverviewView = 'days' | 'cities' | 'checklist' | 'more'
 
 /** Phones: the itinerary page's tabs (User's choice A from a mock, 2026-10-27). */
@@ -95,7 +95,7 @@ export function TripPage({ tripId }: { tripId: string }) {
 
   return (
     <TripLayout trip={trip} active="itinerary">
-      <TripHeader key={trip.id} trip={trip} dayCount={days.length} vacation={timeOff?.vacation} />
+      <TripHeader key={trip.id} trip={trip} dayCount={days.length} vacation={timeOff ? vacationDaysOf(timeOff) : undefined} />
 
       {/* Phones only: the days and the rest of the plan as a segmented control (User's choice B1 from a mock: unlike the
           bottom bar, which changes page); no title, the top bar has the trip's name and dates. */}
