@@ -26,12 +26,23 @@ import { Sheet } from './Sheet'
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
+// The itinerary's card and line show the vacation planned ("Mon 27 Mar → Thu 20 Apr"), not the trip's dates, which the
+// itinerary already shows (User, 2026-11-09); without a plan, the days traveling ("away" read as away from work).
+const sortedPeriods = (t: TimeOff | undefined) => [...vacationPeriods(t)].sort((a, b) => a.from.localeCompare(b.from))
+// With the year (User): "Mon 27 Mar → Thu 20 Apr 2028"; across New Year each date with its year
+// ("Mon 27 Dec 2027 → Fri 7 Jan 2028").
+const periodText = (p: VacationPeriod) => {
+  const [fromYear, toYear] = [p.from.slice(0, 4), p.to.slice(0, 4)]
+  return `${formatDay(p.from)}${fromYear !== toYear ? ` ${fromYear}` : ''} → ${formatDay(p.to)} ${toYear}`
+}
+
 /** Phones (P3): one line above the days; a tap opens the sheet. */
 export function TimeOffLine({ trip, expenses }: { trip: Trip; expenses: Expense[] }) {
   const [open, setOpen] = useState(false)
   const { count } = useTimeOff(trip, expenses)
   const set = !!trip.timeOff?.country
   const toAsk = count?.plan?.toAsk
+  const periods = sortedPeriods(trip.timeOff)
 
   return (
     <>
@@ -50,7 +61,12 @@ export function TimeOffLine({ trip, expenses }: { trip: Trip; expenses: Expense[
             <>
               <strong className="time-off-accent">{plural(vacationDaysOf(count), 'vacation day')}</strong>{' '}
               <span className="muted">
-                · {count.daysAway} away
+                ·{' '}
+                {periods.length === 1
+                  ? periodText(periods[0])
+                  : periods.length > 1
+                    ? `${periods.length} periods`
+                    : `${count.daysAway} days traveling`}
                 {toAsk ? ` · ${toAsk} to ask` : toAsk === 0 ? ' · all approved' : ''}
               </span>
               {count.clt && (!count.clt.startOk || count.clt.short) && (
@@ -78,6 +94,7 @@ export function TimeOffCard({ trip, expenses }: { trip: Trip; expenses: Expense[
   const [open, setOpen] = useState(false)
   const { count } = useTimeOff(trip, expenses)
   const set = !!trip.timeOff?.country
+  const periods = sortedPeriods(trip.timeOff)
 
   return (
     <>
@@ -98,7 +115,14 @@ export function TimeOffCard({ trip, expenses }: { trip: Trip; expenses: Expense[
               <strong className="time-off-number num">{vacationDaysOf(count)}</strong> {vacationDaysOf(count) === 1 ? 'vacation day' : 'vacation days'}
             </span>
             <span className="muted small">
-              {count.daysAway} days away ({formatDay(count.away.leave)} → {formatDay(count.away.back)})
+              {periods.length
+                ? periods.map((p, i) => (
+                    <span key={p.from}>
+                      {i > 0 && <br />}
+                      {periodText(p)}
+                    </span>
+                  ))
+                : `${count.daysAway} days traveling (${formatDay(count.away.leave)} → ${formatDay(count.away.back)})`}
               {count.plan ? (
                 toAskOf(count) > 0 ? (
                   <>
@@ -221,7 +245,7 @@ function AwayBlocks({ trip, timeOff, count, edit, onPlan }: { trip: Trip; timeOf
     <div className="away-blocks">
       <div className="away-block away">
         <span className="away-block-body">
-          <span className="away-block-head">Away · {plural(count.daysAway, 'day')}</span>
+          <span className="away-block-head">Traveling · {plural(count.daysAway, 'day')}</span>
           <span className="away-block-main">
             {formatDay(count.away.leave)} → {formatDay(count.away.back)}
           </span>
@@ -273,7 +297,7 @@ function AwayBlocks({ trip, timeOff, count, edit, onPlan }: { trip: Trip; timeOf
             <span className="away-block-main">
               {formatDay(p.from)} → {formatDay(p.to)}
             </span>
-            {i === periods.length - 1 && count.unplanned === 0 && <span className="away-block-sub">Covers every day away</span>}
+            {i === periods.length - 1 && count.unplanned === 0 && <span className="away-block-sub">Covers every day traveling</span>}
           </span>
           {edit ? (
             <span className="away-block-end">
@@ -535,7 +559,7 @@ function CalendarLegend({ flights }: { flights: boolean }) {
           <i className="k off" /> <b>Day off</b> not vacation
         </span>
         <span>
-          <i className="k ask" /> <b>Not in your vacation</b> a workday away
+          <i className="k ask" /> <b>Not in your vacation</b> a workday while traveling
         </span>
         <span>
           <i className="k holiday" /> <b>Holiday</b> of your work calendar
