@@ -21,6 +21,9 @@ import { Stars } from './Stars'
 
 export const OPTIONS_MAP_ID = 'options-map'
 
+/** Google's style for this map: our own (Google's icons in gray, light and dark) once its Map ID is set, else Google's default. */
+const OPTIONS_MAP_STYLE = import.meta.env.VITE_GOOGLE_OPTIONS_MAP_ID || 'DEMO_MAP_ID'
+
 /** Where the drawer can rest, as a share of the map's height from its top: list almost full, half, mostly map. */
 const DRAWER_STOPS = [0.1, 0.5, 0.82]
 
@@ -335,7 +338,7 @@ export function OptionPin({
   return (
     <span
       data-option-pin={option.id}
-      className={`option-pin kind-${option.kind}${planned || isBase ? '' : ' faded'}${option.status === 'discarded' ? ' discarded' : ''}${active ? ' active' : ''}${approximate ? ' approximate' : ''}`}
+      className={`option-pin kind-${option.kind}${option.status === 'discarded' ? ' discarded' : ''}${active ? ' active' : ''}${approximate ? ' approximate' : ''}`}
     >
       {isBase && base ? (
         <span className="base-pin" aria-hidden="true" dangerouslySetInnerHTML={{ __html: baseMarkerSvg(base) }} />
@@ -394,7 +397,7 @@ function OptionsMapCanvas({
     <ErrorBoundary fallback={<MapMessage online={online} />}>
       <Map
         id={OPTIONS_MAP_ID}
-        mapId="DEMO_MAP_ID"
+        mapId={OPTIONS_MAP_STYLE}
         colorScheme={dark ? 'DARK' : 'LIGHT'}
         defaultCenter={center?.lat != null && center.lng != null ? { lat: center.lat, lng: center.lng } : { lat: 35.6812, lng: 139.7671 }}
         defaultZoom={13}

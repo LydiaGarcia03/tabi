@@ -28,11 +28,12 @@
   --spent: #8a5cb0;
   /* City base tile on the maps (white icon on it): the place pins' red (placePinSvg in mapLines.ts), in both themes. */
   --base-pin: #b5332e;
-  /* Option dots on the Options map, one color per kind, in both themes. */
-  --kind-hotel: #3d4b6b;
-  --kind-restaurant: #c56a1c;
-  --kind-place: #2f7a5c;
-  --kind-shop: #7a4a8c;
+  /* Option dots on the Options map, one color per kind, in both themes: vivid, so they stand out
+     from Google's grayed icons (User, 2026-11-18: the darker ones got lost, the hotels' navy on the dark map). */
+  --kind-hotel: #3b6ff0;
+  --kind-restaurant: #f07c12;
+  --kind-place: #14a06a;
+  --kind-shop: #b04fe0;
   --shadow: 0 1px 2px rgb(60 40 20 / 0.06), 0 4px 14px rgb(60 40 20 / 0.06);
   --radius: 14px;
   --radius-sm: 10px;
